@@ -1,0 +1,25 @@
+﻿
+
+StatusCode        : 200
+StatusDescription : OK
+Content           : {"openapi":"3.1.0","info":{"title":"Chatterbox TTS 
+                    Server","description":"Text-to-Speech server with advanced UI and API 
+                    capabilities.","version":"2.0.2"},"paths":{"/api/ui/initial-data":{"get":{"tags...
+RawContent        : HTTP/1.1 200 OK
+                    Content-Length: 10665
+                    Content-Type: application/json
+                    Date: Sun, 15 Jun 2025 21:50:32 GMT
+                    Server: uvicorn
+                    
+                    {"openapi":"3.1.0","info":{"title":"Chatterbox TTS Server","description"...
+Forms             : {}
+Headers           : {[Content-Length, 10665], [Content-Type, application/json], [Date, Sun, 15 Jun 2025 
+                    21:50:32 GMT], [Server, uvicorn]}
+Images            : {}
+InputFields       : {}
+Links             : {}
+ParsedHtml        : System.__ComObject
+RawContentLength  : 10665
+
+
+

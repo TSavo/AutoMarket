@@ -1,0 +1,23 @@
+{
+  "name": "blog-scripts",
+  "version": "1.0.0",
+  "description": "Scripts for generating and animating blog post images",
+  "main": "process-blog-post.ts",
+  "scripts": {
+    "process": "ts-node process-blog-post.ts",
+    "process-all": "ts-node process-blog-post.ts --all"
+  },
+  "dependencies": {
+    "@fal-ai/client": "^1.4.0",
+    "replicate": "^1.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.8.10",
+    "axios": "^1.9.0",
+    "dotenv": "^16.5.0",
+    "gray-matter": "^4.0.3",
+    "sharp": "^0.34.1",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.8.3"
+  }
+}

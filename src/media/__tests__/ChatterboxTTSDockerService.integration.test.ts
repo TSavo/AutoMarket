@@ -1,0 +1,293 @@
+import { describe, test, expect, beforeAll, afterAll } from 'vitest';
+import { ChatterboxTTSDockerService } from '../ChatterboxTTSDockerService';
+import fs from 'fs';
+import path from 'path';
+
+// Import integration test setup for real fetch and file system operations
+import '../../test/integration-setup';
+
+describe('ChatterboxTTSDockerService Integration Tests', () => {
+  let chatterboxService: ChatterboxTTSDockerService;
+  let tempDir: string;
+
+  beforeAll(async () => {
+    chatterboxService = new ChatterboxTTSDockerService();
+
+    // Create temp directory for test outputs
+    tempDir = path.join(process.cwd(), 'temp', 'chatterbox-tests');
+    if (!fs.existsSync(tempDir)) {
+      fs.mkdirSync(tempDir, { recursive: true });
+    }
+
+    console.log('🧪 Starting Chatterbox TTS integration tests...');
+    console.log('📁 Test output directory:', tempDir);
+
+    // Start the Chatterbox service for integration tests
+    console.log('🚀 Starting Chatterbox TTS service for integration tests...');
+    const started = await chatterboxService.startService();
+    if (started) {
+      console.log('✅ Chatterbox TTS service started successfully');
+    } else {
+      console.log('❌ Failed to start Chatterbox TTS service - some tests may be skipped');
+    }
+  }, 120000); // 2 minute timeout for service startup
+
+  afterAll(async () => {
+    // Stop the service
+    try {
+      console.log('🛑 Stopping Chatterbox TTS service after integration tests...');
+      await chatterboxService.stopService();
+      console.log('✅ Chatterbox TTS service stopped');
+    } catch (error) {
+      console.warn('Service stop warning:', error);
+    }
+
+    // Clean up test files
+    try {
+      if (fs.existsSync(tempDir)) {
+        const files = fs.readdirSync(tempDir);
+        for (const file of files) {
+          if (file.startsWith('test_')) {
+            fs.unlinkSync(path.join(tempDir, file));
+          }
+        }
+      }
+    } catch (error) {
+      console.warn('Cleanup warning:', error);
+    }
+  });
+
+  describe('Service Availability', () => {
+    test('should check if service is available', async () => {
+      const available = await chatterboxService.isAvailable();
+      console.log('🔍 Chatterbox service available:', available);
+      
+      expect(typeof available).toBe('boolean');
+      
+      if (!available) {
+        console.log('⚠️ Chatterbox service not available - integration tests may be skipped');
+      }
+    });
+
+    test('should get service status', async () => {
+      const status = await chatterboxService.getServiceStatus();
+      console.log('📊 Chatterbox service status:', status);
+      
+      expect(['running', 'stopped', 'error', 'starting']).toContain(status);
+    });
+  });
+
+  describe('MediaTransformer Interface', () => {
+    test('should provide correct transformer info', () => {
+      const info = chatterboxService.getInfo();
+      
+      expect(info.id).toBe('chatterbox-tts');
+      expect(info.name).toBe('Chatterbox TTS');
+      expect(info.type).toBe('local');
+      expect(info.transforms).toHaveLength(1);
+      expect(info.transforms[0]).toEqual({
+        input: 'text',
+        output: 'audio',
+        description: 'Convert text to speech using Chatterbox TTS'
+      });
+    });
+
+    test('should validate input types', async () => {
+      const invalidInput = {
+        type: 'image' as const,
+        data: 'invalid'
+      };
+
+      await expect(
+        chatterboxService.transform(invalidInput, 'audio')
+      ).rejects.toThrow('ChatterboxTTSDockerService only supports text input');
+    });
+
+    test('should validate output types', async () => {
+      const validInput = {
+        type: 'text' as const,
+        data: 'Hello world'
+      };
+
+      await expect(
+        chatterboxService.transform(validInput, 'image' as any)
+      ).rejects.toThrow('ChatterboxTTSDockerService only outputs audio');
+    });
+  });
+
+  describe('Real Chatterbox TTS Service Tests', () => {
+    test('should generate TTS audio from text (basic)', async () => {
+      // Check if service is running via Docker status instead of network availability
+      const status = await chatterboxService.getServiceStatus();
+
+      if (status !== 'running') {
+        console.log('⏭️ Skipping TTS test - service not running');
+        return;
+      }
+
+      console.log('🎤 Testing basic TTS generation...');
+      
+      const outputPath = path.join(tempDir, 'test_basic_tts.mp3');
+      const testText = 'Hello, this is a test of the Chatterbox TTS service.';
+      
+      const result = await chatterboxService.generateTTS(testText, outputPath, {
+        onProgress: (progress) => {
+          console.log(`📈 Progress: ${progress.progress}% - ${progress.message}`);
+        }
+      });
+      
+      console.log('🎯 TTS Result:', result);
+      
+      expect(result.success).toBe(true);
+      expect(result.audioPath).toBe(outputPath);
+      expect(result.processingTime).toBeGreaterThan(0);
+      
+      if (result.success) {
+        expect(fs.existsSync(outputPath)).toBe(true);
+        
+        const stats = fs.statSync(outputPath);
+        expect(stats.size).toBeGreaterThan(0);
+        
+        console.log(`✅ Generated audio file: ${stats.size} bytes`);
+        if (result.duration) {
+          console.log(`⏱️ Audio duration: ${result.duration} seconds`);
+        }
+      }
+    }, 120000); // 2 minute timeout for TTS generation
+
+    test('should generate TTS with different output format (WAV)', async () => {
+      const status = await chatterboxService.getServiceStatus();
+
+      if (status !== 'running') {
+        console.log('⏭️ Skipping WAV TTS test - service not running');
+        return;
+      }
+
+      console.log('🎤 Testing WAV format TTS generation...');
+      
+      const outputPath = path.join(tempDir, 'test_wav_tts.wav');
+      const testText = 'This is a test of WAV format output.';
+      
+      const result = await chatterboxService.generateTTS(testText, outputPath, {
+        outputFormat: 'wav',
+        onProgress: (progress) => {
+          console.log(`📈 WAV Progress: ${progress.progress}% - ${progress.message}`);
+        }
+      });
+      
+      console.log('🎯 WAV TTS Result:', result);
+      
+      expect(result.success).toBe(true);
+      
+      if (result.success) {
+        expect(fs.existsSync(outputPath)).toBe(true);
+        
+        const stats = fs.statSync(outputPath);
+        expect(stats.size).toBeGreaterThan(0);
+        
+        console.log(`✅ Generated WAV file: ${stats.size} bytes`);
+      }
+    }, 120000);
+
+    test('should handle speed control', async () => {
+      const status = await chatterboxService.getServiceStatus();
+
+      if (status !== 'running') {
+        console.log('⏭️ Skipping speed control test - service not running');
+        return;
+      }
+
+      console.log('🎤 Testing speed control...');
+      
+      const outputPath = path.join(tempDir, 'test_speed_tts.mp3');
+      const testText = 'This is a test of speed control.';
+      
+      const result = await chatterboxService.generateTTS(testText, outputPath, {
+        speed: 1.5, // 1.5x speed
+        onProgress: (progress) => {
+          console.log(`📈 Speed Test Progress: ${progress.progress}% - ${progress.message}`);
+        }
+      });
+      
+      console.log('🎯 Speed Control Result:', result);
+      
+      expect(result.success).toBe(true);
+      
+      if (result.success) {
+        expect(fs.existsSync(outputPath)).toBe(true);
+        console.log(`✅ Generated speed-controlled audio`);
+      }
+    }, 120000);
+
+    test('should use MediaTransformer interface for TTS', async () => {
+      const status = await chatterboxService.getServiceStatus();
+
+      if (status !== 'running') {
+        console.log('⏭️ Skipping MediaTransformer test - service not running');
+        return;
+      }
+
+      console.log('🎤 Testing MediaTransformer interface...');
+      
+      const input = {
+        type: 'text' as const,
+        data: 'Testing the MediaTransformer interface for TTS.'
+      };
+      
+      const result = await chatterboxService.transform(input, 'audio', {
+        outputFormat: 'mp3',
+        speed: 1.0
+      });
+      
+      console.log('🎯 MediaTransformer Result:', {
+        type: result.type,
+        dataSize: result.data instanceof Buffer ? result.data.length : 'unknown',
+        metadata: result.metadata
+      });
+      
+      expect(result.type).toBe('audio');
+      expect(result.data).toBeInstanceOf(Buffer);
+      expect(result.metadata).toBeDefined();
+      expect(result.metadata?.format).toBe('mp3');
+      expect(result.metadata?.processingTime).toBeGreaterThan(0);
+      
+      if (result.data instanceof Buffer) {
+        expect(result.data.length).toBeGreaterThan(0);
+        console.log(`✅ Generated audio buffer: ${result.data.length} bytes`);
+      }
+    }, 120000);
+  });
+
+  describe('Performance', () => {
+    test('should complete TTS generation within reasonable time', async () => {
+      const status = await chatterboxService.getServiceStatus();
+
+      if (status !== 'running') {
+        console.log('⏭️ Skipping performance test - service not running');
+        return;
+      }
+
+      console.log('⏱️ Testing TTS performance...');
+      
+      const outputPath = path.join(tempDir, 'test_performance_tts.mp3');
+      const testText = 'Performance test.';
+      
+      const startTime = Date.now();
+      
+      const result = await chatterboxService.generateTTS(testText, outputPath);
+      
+      const endTime = Date.now();
+      const totalTime = endTime - startTime;
+      
+      console.log(`⏱️ Total test time: ${totalTime}ms`);
+      console.log(`🎯 Service processing time: ${result.processingTime}ms`);
+      
+      expect(result.success).toBe(true);
+      expect(totalTime).toBeLessThan(60000); // Should complete within 1 minute for short text
+      
+      if (result.success) {
+        console.log(`✅ Performance test completed successfully`);
+      }
+    }, 120000);
+  });
+});

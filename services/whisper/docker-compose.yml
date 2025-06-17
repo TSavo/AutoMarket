@@ -1,0 +1,24 @@
+services:
+  whisper:
+    image: onerahmet/openai-whisper-asr-webservice:latest
+    container_name: whisper-service
+    ports:
+      - "9000:9000"
+    environment:
+      - LANG=C.UTF-8
+      - POETRY_VENV=/app/.venv
+    working_dir: /app
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9000/ || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - whisper-network
+
+networks:
+  whisper-network:
+    driver: bridge
+    name: whisper-network
