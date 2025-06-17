@@ -53,12 +53,12 @@ export interface MediaTransformer {
   /**
    * Perform a media transformation
    * 
-   * @param input - The input media data
+   * @param input - The input media data (single input or array for multi-input transformations)
    * @param outputType - The desired output media type
    * @param options - Optional transformation parameters
    * @returns Promise<MediaOutput> - The transformed media
    */
-  transform(input: MediaInput, outputType: MediaType, options?: Record<string, any>): Promise<MediaOutput>;
+  transform(input: MediaInput | MediaInput[], outputType: MediaType, options?: Record<string, any>): Promise<MediaOutput>;
   
   /**
    * Get information about the transformer
@@ -108,7 +108,7 @@ export interface TransformerRegistry {
  * Transformation request for workflow engines
  */
 export interface TransformationRequest {
-  input: MediaInput;
+  input: MediaInput | MediaInput[];
   outputType: MediaType;
   transformerId?: string; // Optional specific transformer to use
   options?: Record<string, any>;

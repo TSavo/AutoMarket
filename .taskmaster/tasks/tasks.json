@@ -2,204 +2,200 @@
   "master": {
     "tasks": [
       {
-        "id": 24,
-        "title": "Review and Validate Completed Architecture",
-        "description": "Review the implemented MediaTransformer architecture to ensure all core objectives are met and the system is production-ready.",
-        "details": "Conduct a thorough review of the MediaTransformer interface, LocalServiceManager, and DockerComposeService implementations. Verify type safety, error handling, and Docker self-management features.",
-        "testStrategy": "Validate against the original requirements and ensure all 20 tests (10 unit + 10 integration) pass.",
+        "id": 43,
+        "title": "Create ModelRegistry and Provider Base Classes",
+        "description": "Establish the foundational classes for the ModelRegistry and Provider pattern to enable model and provider management.",
+        "details": "Implement abstract base classes `ModelRegistry` and `Provider` with core methods for model registration and retrieval. Use TypeScript interfaces to define the contract for models and providers. Ensure the base classes support role-based model creation and provider delegation.",
+        "testStrategy": "Unit tests for base class methods, including model registration, provider retrieval, and role-based model creation. Verify interface contracts are enforced.",
         "priority": "high",
+        "dependencies": [],
+        "status": "done",
+        "subtasks": []
+      },
+      {
+        "id": 44,
+        "title": "Extract API Clients from Monolithic Services",
+        "description": "Separate API client logic from existing monolithic services to create pure HTTP API clients.",
+        "details": "Extract API client logic from `ChatterboxTTSDockerService` and `WhisperSTTService` into standalone classes `ChatterboxAPIClient` and `WhisperAPIClient`. Ensure these clients handle only HTTP communication and are free from Docker or business logic.",
+        "testStrategy": "Unit tests for API client methods, ensuring they correctly handle HTTP requests and responses. Mock HTTP calls to verify behavior.",
+        "priority": "high",
+        "dependencies": [
+          43
+        ],
+        "status": "done",
+        "subtasks": []
+      },
+      {
+        "id": 45,
+        "title": "Extract Docker Services from Monolithic Services",
+        "description": "Separate Docker management logic from existing monolithic services to create standalone Docker services.",
+        "details": "Extract Docker management logic from `ChatterboxTTSDockerService` and `WhisperSTTService` into standalone classes `ChatterboxDockerService` and `WhisperDockerService`. These services should handle only Docker operations (start, stop, health checks).",
+        "testStrategy": "Unit tests for Docker service methods, verifying Docker operations (start, stop, health checks) work as expected. Mock Docker interactions for testing.",
+        "priority": "high",
+        "dependencies": [
+          43
+        ],
+        "status": "done",
+        "subtasks": []
+      },
+      {
+        "id": 46,
+        "title": "Create Model Implementations",
+        "description": "Implement concrete model classes that coordinate extracted API clients and Docker services.",
+        "details": "Create concrete model classes (e.g., `WhisperSTTModel`, `ChatterboxTTSModel`) that use the extracted API clients and Docker services for transformation logic. Ensure models adhere to the `Model` interface and delegate infrastructure concerns to providers.",
+        "testStrategy": "Unit tests for model transformation methods, ensuring they correctly use API clients and Docker services. Mock dependencies to isolate model logic.",
+        "priority": "high",
+        "dependencies": [
+          44,
+          45
+        ],
+        "status": "done",
+        "subtasks": []
+      },
+      {
+        "id": 47,
+        "title": "Create Provider Classes",
+        "description": "Implement provider classes that manage model creation and infrastructure.",
+        "details": "Create provider classes (e.g., `WhisperDockerProvider`, `ChatterboxDockerProvider`) that implement the `Provider` interface. These classes should manage Docker services and create model instances with pre-configured dependencies.",
+        "testStrategy": "Unit tests for provider methods, verifying model creation and infrastructure management. Mock dependencies to isolate provider logic.",
+        "priority": "high",
+        "dependencies": [
+          43,
+          46
+        ],
+        "status": "done",
+        "subtasks": []
+      },
+      {
+        "id": 48,
+        "title": "Register Models with Providers",
+        "description": "Implement model registration logic in the ModelRegistry to associate models with their providers.",
+        "details": "Extend the `ModelRegistry` to support model registration with providers. Ensure providers can register models they support, and the registry can retrieve models by provider and model ID.",
+        "testStrategy": "Unit tests for model registration and retrieval in the `ModelRegistry`. Verify models are correctly associated with providers.",
+        "priority": "medium",
+        "dependencies": [
+          43,
+          47
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 49,
+        "title": "Update Existing Code to Use New Pattern",
+        "description": "Refactor existing code to use the new ModelRegistry and Provider pattern.",
+        "details": "Update existing code (e.g., `ChatterboxTTSDockerService`, `WhisperSTTService`) to use the new `ModelRegistry` and `Provider` pattern. Ensure backward compatibility with existing API interfaces.",
+        "testStrategy": "Integration tests to verify existing functionality works with the new pattern. Ensure all unit tests pass.",
+        "priority": "medium",
+        "dependencies": [
+          47,
+          48
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 50,
+        "title": "Implement Asset and Role Mixins",
+        "description": "Create the base Asset class and role mixins for strong typing and role casting.",
+        "details": "Implement the base `Asset` class and role mixins (`withSpeechRole`, `withAudioRole`, etc.) to enable strong typing and automatic role casting. Ensure role mixins preserve source asset references.",
+        "testStrategy": "Unit tests for asset creation, role casting, and source asset preservation. Verify role interfaces are correctly applied.",
+        "priority": "medium",
         "dependencies": [],
         "status": "pending",
         "subtasks": []
       },
       {
-        "id": 25,
-        "title": "Verify Docker Self-Management Functionality",
-        "description": "Ensure Docker containers are self-managed by services as intended.",
-        "details": "Test the LocalServiceManager and DockerComposeService components to confirm automatic container lifecycle management, health checks, and readiness detection.",
-        "testStrategy": "Run integration tests with real Docker services to verify container management.",
+        "id": 51,
+        "title": "Implement Core Media Types",
+        "description": "Create core media types (Speech, Audio, Video, Text) with source asset preservation.",
+        "details": "Implement the core media types (`Speech`, `Audio`, `Video`, `Text`) with constructors that preserve source asset references. Ensure these types can be created from assets and cast to other roles.",
+        "testStrategy": "Unit tests for media type creation, role casting, and source asset preservation. Verify media types correctly reference their source assets.",
+        "priority": "medium",
+        "dependencies": [
+          50
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 52,
+        "title": "Implement Model Interfaces with Role Acceptance",
+        "description": "Define model interfaces that accept role-based inputs and outputs.",
+        "details": "Define abstract model interfaces (e.g., `SpeechToTextModel`, `TextToSpeechModel`) that accept role-based inputs (e.g., `Speech | (Asset & SpeechRole)`). Ensure these interfaces enforce type-safe role casting.",
+        "testStrategy": "Unit tests for model interfaces, verifying they correctly accept role-based inputs and outputs. Mock role casting for testing.",
+        "priority": "medium",
+        "dependencies": [
+          50,
+          51
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 53,
+        "title": "Implement Provider Role Mixins",
+        "description": "Create role mixins for providers to enable multi-role capabilities.",
+        "details": "Implement role mixins (e.g., `withSpeechToTextProvider`, `withTextToSpeechProvider`) to enable providers to support multiple roles (e.g., STT and TTS). Ensure mixins correctly extend provider capabilities.",
+        "testStrategy": "Unit tests for provider role mixins, verifying they correctly extend provider capabilities. Mock role implementations for testing.",
+        "priority": "medium",
+        "dependencies": [
+          47,
+          52
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 54,
+        "title": "Implement Factory Pattern for Provider Selection",
+        "description": "Create a factory class to retrieve providers by role.",
+        "details": "Implement a `ProviderFactory` class with methods to retrieve providers by role (e.g., `getSpeechToTextProvider`). Ensure the factory supports manual provider selection and role-based retrieval.",
+        "testStrategy": "Unit tests for the `ProviderFactory`, verifying it correctly retrieves providers by role. Mock provider registration for testing.",
+        "priority": "medium",
+        "dependencies": [
+          47,
+          53
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 55,
+        "title": "Verify All Tests Pass",
+        "description": "Run all unit and integration tests to ensure the refactored code meets requirements.",
+        "details": "Execute all existing unit and integration tests to verify the refactored code maintains existing functionality. Address any test failures and ensure backward compatibility.",
+        "testStrategy": "Run all unit and integration tests. Verify no regressions and all tests pass.",
         "priority": "high",
         "dependencies": [
-          24
+          49,
+          54
         ],
         "status": "pending",
         "subtasks": []
       },
       {
-        "id": 26,
-        "title": "Validate WhisperSTTService Implementation",
-        "description": "Confirm the WhisperSTTService is fully functional for audio-to-text transformations.",
-        "details": "Test the WhisperSTTService with various audio inputs to ensure accurate transcription and Docker self-management.",
-        "testStrategy": "Use real audio files for testing and verify transcription accuracy and service health.",
-        "priority": "high",
-        "dependencies": [
-          24
-        ],
-        "status": "pending",
-        "subtasks": []
-      },
-      {
-        "id": 27,
-        "title": "Validate ChatterboxTTSDockerService Implementation",
-        "description": "Ensure the ChatterboxTTSDockerService correctly transforms text to audio.",
-        "details": "Test the service with different text inputs to confirm audio generation, CUDA acceleration, and progress monitoring.",
-        "testStrategy": "Generate audio files and validate output quality and service performance.",
-        "priority": "high",
-        "dependencies": [
-          24
-        ],
-        "status": "pending",
-        "subtasks": []
-      },
-      {
-        "id": 28,
-        "title": "Review and Update Documentation",
-        "description": "Ensure all documentation is complete and up-to-date.",
-        "details": "Review architecture documentation, API references, service guides, and testing strategies for accuracy and completeness.",
-        "testStrategy": "Cross-check documentation with implemented features and update as needed.",
-        "priority": "medium",
-        "dependencies": [
-          24
-        ],
-        "status": "pending",
-        "subtasks": []
-      },
-      {
-        "id": 29,
-        "title": "Test Error Handling and Recovery",
-        "description": "Verify the system's ability to handle and recover from errors.",
-        "details": "Simulate errors in the WhisperSTTService and ChatterboxTTSDockerService to test automatic restart and error handling.",
-        "testStrategy": "Inject faults and monitor system recovery and logging.",
-        "priority": "medium",
-        "dependencies": [
-          24
-        ],
-        "status": "pending",
-        "subtasks": []
-      },
-      {
-        "id": 30,
-        "title": "Optimize Performance for Production",
-        "description": "Fine-tune the system for optimal performance in a production environment.",
-        "details": "Review CUDA acceleration, container reuse, and health check optimizations.",
-        "testStrategy": "Benchmark performance metrics and compare against expected thresholds.",
-        "priority": "medium",
-        "dependencies": [
-          24
-        ],
-        "status": "pending",
-        "subtasks": []
-      },
-      {
-        "id": 31,
-        "title": "Validate Asset Management",
-        "description": "Ensure the AssetManager and MediaAssetStore handle assets correctly.",
-        "details": "Test file creation, storage, and cleanup processes for media assets.",
-        "testStrategy": "Simulate asset lifecycle and verify proper management.",
-        "priority": "medium",
-        "dependencies": [
-          24
-        ],
-        "status": "pending",
-        "subtasks": []
-      },
-      {
-        "id": 32,
-        "title": "Verify Provider Integrations",
-        "description": "Confirm integrations with Creatify, FAL.ai, and Replicate APIs are functional.",
-        "details": "Test API calls and responses for each provider to ensure seamless integration.",
-        "testStrategy": "Mock API responses and validate integration logic.",
-        "priority": "medium",
-        "dependencies": [
-          24
-        ],
-        "status": "pending",
-        "subtasks": []
-      },
-      {
-        "id": 33,
-        "title": "Test FFmpeg Video Composition",
-        "description": "Ensure the FFmpeg video composition engine works as expected.",
-        "details": "Test video composition with various inputs to confirm output quality and performance.",
-        "testStrategy": "Generate test videos and validate composition results.",
-        "priority": "medium",
-        "dependencies": [
-          24
-        ],
-        "status": "pending",
-        "subtasks": []
-      },
-      {
-        "id": 34,
-        "title": "Review Testing Infrastructure",
-        "description": "Validate the testing setup, including unit and integration tests.",
-        "details": "Ensure all tests are correctly configured and cover 100% of the codebase.",
-        "testStrategy": "Run all tests and verify coverage reports.",
-        "priority": "medium",
-        "dependencies": [
-          24
-        ],
-        "status": "pending",
-        "subtasks": []
-      },
-      {
-        "id": 35,
-        "title": "Prepare Deployment Pipeline",
-        "description": "Set up the deployment pipeline for production readiness.",
-        "details": "Configure CI/CD pipelines for automated testing and deployment.",
-        "testStrategy": "Simulate deployment in a staging environment and verify all components.",
-        "priority": "high",
-        "dependencies": [
-          24,
-          25,
-          26,
-          27,
-          28,
-          29,
-          30,
-          31,
-          32,
-          33,
-          34
-        ],
-        "status": "pending",
-        "subtasks": []
-      },
-      {
-        "id": 36,
-        "title": "Conduct Final System Validation",
-        "description": "Perform a comprehensive validation of the entire system.",
-        "details": "Test all services, Docker management, and integrations in a production-like environment.",
-        "testStrategy": "Execute end-to-end tests and validate against all success criteria.",
-        "priority": "high",
-        "dependencies": [
-          35
-        ],
-        "status": "pending",
-        "subtasks": []
-      },
-      {
-        "id": 37,
-        "title": "Update Future Transformation Roadmap",
-        "description": "Plan for future transformations like text-to-image and image-to-video.",
-        "details": "Outline the architecture and requirements for upcoming transformations.",
-        "testStrategy": "Review architectural readiness and draft implementation plans.",
+        "id": 56,
+        "title": "Document Architecture and Usage",
+        "description": "Create documentation for the new architecture and usage patterns.",
+        "details": "Document the new ModelRegistry and Provider architecture, including examples of model and provider usage. Provide guidelines for extending the system with new models and providers.",
+        "testStrategy": "Review documentation for accuracy and completeness. Verify examples work as described.",
         "priority": "low",
         "dependencies": [
-          24
+          55
         ],
         "status": "pending",
         "subtasks": []
       },
       {
-        "id": 38,
-        "title": "Document Lessons Learned",
-        "description": "Capture insights and lessons from the project for future reference.",
-        "details": "Summarize challenges, solutions, and best practices encountered during development.",
-        "testStrategy": "Review project milestones and document key takeaways.",
+        "id": 57,
+        "title": "Demo Core Architecture Principle",
+        "description": "Demonstrate the core architecture principle of one model, multiple providers.",
+        "details": "Create a demo showcasing the core architecture principle: the same model interface (`whisper`) working with different providers (Docker, OpenAI, Replicate). Highlight provider abstraction and implementation flexibility.",
+        "testStrategy": "Verify the demo correctly demonstrates the architecture principle. Ensure all provider implementations work as expected.",
         "priority": "low",
         "dependencies": [
-          36
+          55
         ],
         "status": "pending",
         "subtasks": []
@@ -207,7 +203,7 @@
     ],
     "metadata": {
       "created": "2025-06-17T05:23:26.699Z",
-      "updated": "2025-06-17T13:09:57.317Z",
+      "updated": "2025-06-17T20:21:20.190Z",
       "description": "Tasks for master context"
     }
   }

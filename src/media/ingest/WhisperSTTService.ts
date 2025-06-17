@@ -9,8 +9,7 @@ import {
   createMediaOutput
 } from '../types/MediaTransformer';
 import { DockerComposeService } from '../../services/DockerComposeService';
-import fetch from 'node-fetch';
-import FormData from 'form-data';
+import { WhisperAPIClient, WhisperTranscriptionRequest } from '../clients/WhisperAPIClient';
 import * as fs from 'fs';
 import { exec } from 'child_process';
 import { promisify } from 'util';
@@ -25,10 +24,8 @@ const execAsync = promisify(exec);
  */
 export class WhisperSTTService implements STTService, MediaTransformer, LocalServiceManager {
     // Service properties
-    private readonly baseUrl: string;
-    private readonly maxRetries: number;
-    private readonly retryDelay: number;
     private readonly dockerService: DockerComposeService;
+    private readonly apiClient: WhisperAPIClient;
 
     // MediaTransformer properties
     readonly id = 'whisper';
@@ -43,72 +40,24 @@ export class WhisperSTTService implements STTService, MediaTransformer, LocalSer
     ];
 
     constructor(
-        baseUrl: string = 'http://localhost:9000',
-        maxRetries: number = 3,
-        retryDelay: number = 1000
+        baseUrl: string = 'http://localhost:9000'
     ) {
-        this.baseUrl = baseUrl;
-        this.maxRetries = maxRetries;
-        this.retryDelay = retryDelay;
+        // Initialize API client (pure HTTP client)
+        this.apiClient = new WhisperAPIClient(baseUrl);
 
-        // Initialize Docker Compose service for Whisper
+        // Initialize Docker Compose service for infrastructure management
         this.dockerService = new DockerComposeService({
             serviceName: 'whisper',
             composeFile: 'services/whisper/docker-compose.yml',
             containerName: 'whisper-service',
-            healthCheckUrl: `${this.baseUrl}/asr`
+            healthCheckUrl: `${baseUrl}/asr`
         });
     }    /**
      * Check if the Whisper service is available
      */
     async isAvailable(): Promise<boolean> {
-        try {
-            console.log(`[WhisperSTT] Checking availability at ${this.baseUrl}/asr`);
-
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => {
-                console.log('[WhisperSTT] Availability check timeout after 5 seconds');
-                controller.abort();
-            }, 5000);
-
-            const response = await fetch(`${this.baseUrl}/asr`, {
-                method: 'GET',
-                signal: controller.signal
-            });
-
-            clearTimeout(timeoutId);
-
-            console.log(`[WhisperSTT] Availability check response: ${response.status}`);
-
-            // The service responds with 405 Method Not Allowed for GET requests,
-            // but this confirms the service is running
-            const isAvailable = response.status === 405 || response.status === 200;
-            console.log(`[WhisperSTT] Service available: ${isAvailable}`);
-
-            return isAvailable;
-        } catch (error) {
-            console.warn('[WhisperSTT] Availability check failed:', error);
-
-            // If fetch fails, try a fallback check using the root endpoint
-            try {
-                console.log('[WhisperSTT] Trying fallback availability check at root endpoint');
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 3000);
-
-                const response = await fetch(`${this.baseUrl}/`, {
-                    method: 'GET',
-                    signal: controller.signal
-                });
-
-                clearTimeout(timeoutId);
-                console.log(`[WhisperSTT] Fallback check response: ${response.status}`);
-
-                return response.status === 200;
-            } catch (fallbackError) {
-                console.warn('[WhisperSTT] Fallback availability check also failed:', fallbackError);
-                return false;
-            }
-        }
+        // Delegate to API client for health checking
+        return await this.apiClient.checkHealth();
     }
 
     /**
@@ -139,15 +88,23 @@ export class WhisperSTTService implements STTService, MediaTransformer, LocalSer
                 throw new Error(`Audio file not found: ${audioFilePath}`);
             }
 
-            const result = await this.performTranscription(audioFilePath, options);
-            
+            // Create transcription request using API client
+            const request = this.apiClient.createTranscriptionRequest(audioFilePath, {
+                task: options?.task || 'transcribe',
+                language: options?.language,
+                word_timestamps: options?.word_timestamps
+            });
+
+            // Perform transcription using API client
+            const result = await this.apiClient.transcribeAudio(request);
+
             const endTime = Date.now();
             const processingTime = endTime - startTime;
 
             return {
                 success: true,
                 text: result.text,
-                confidence: result.confidence || 0.9, // Whisper doesn't provide confidence scores
+                confidence: result.confidence || 0.9,
                 language: result.language || options?.language || 'auto',
                 processingTime,
                 wordTimestamps: result.segments || [],
@@ -165,7 +122,7 @@ export class WhisperSTTService implements STTService, MediaTransformer, LocalSer
             const processingTime = endTime - startTime;
 
             console.error('Whisper transcription failed:', error);
-            
+
             return {
                 success: false,
                 text: '',
@@ -182,133 +139,20 @@ export class WhisperSTTService implements STTService, MediaTransformer, LocalSer
         }
     }
 
-    /**
-     * Perform the actual transcription with retry logic
-     */
-    private async performTranscription(
-        audioFilePath: string, 
-        options?: any
-    ): Promise<any> {
-        let lastError: Error | null = null;
 
-        for (let attempt = 1; attempt <= this.maxRetries; attempt++) {
-            try {
-                return await this.makeTranscriptionRequest(audioFilePath, options);
-            } catch (error) {
-                lastError = error instanceof Error ? error : new Error('Unknown error');
-                
-                if (attempt === this.maxRetries) {
-                    break;
-                }
-
-                console.warn(`Transcription attempt ${attempt} failed, retrying in ${this.retryDelay}ms...`);
-                await new Promise(resolve => setTimeout(resolve, this.retryDelay));
-            }
-        }
-
-        throw lastError || new Error('Max retries exceeded');
-    }    /**
-     * Make the actual HTTP request to the Whisper service
-     */
-    private async makeTranscriptionRequest(
-        audioFilePath: string,
-        options?: any
-    ): Promise<any> {
-        // Create form data
-        const formData = new FormData();
-        formData.append('audio_file', fs.createReadStream(audioFilePath));
-        
-        // Add optional parameters
-        if (options?.task) {
-            formData.append('task', options.task);
-        }
-        if (options?.language) {
-            formData.append('language', options.language);
-        }
-        if (options?.word_timestamps) {
-            formData.append('word_timestamps', 'true');
-        }
-
-        // Set up request with timeout
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 300000); // 5 minutes timeout
-
-        try {
-            // Make the request
-            const response = await fetch(`${this.baseUrl}/asr`, {
-                method: 'POST',
-                body: formData,
-                headers: formData.getHeaders(),
-                signal: controller.signal
-            });            clearTimeout(timeoutId);
-
-            if (!response.ok) {
-                const errorText = await response.text();
-                throw new Error(`Whisper service error (${response.status}): ${errorText}`);
-            }
-
-            // Try to parse as JSON first, fall back to plain text
-            let result: any;
-            const responseText = await response.text();
-            
-            try {
-                result = JSON.parse(responseText);
-                // Validate JSON response structure
-                if (result && typeof result.text === 'string') {
-                    return result;
-                }
-            } catch (jsonError) {
-                // Response is plain text, not JSON
-                console.log('[WhisperSTT] Received plain text response, wrapping in result object');
-            }
-            
-            // Handle plain text response
-            if (responseText && responseText.trim()) {
-                return {
-                    text: responseText.trim(),
-                    language: 'unknown',
-                    confidence: 0.95
-                };
-            }
-            
-            throw new Error('Empty or invalid response from Whisper service');
-        } catch (error) {
-            clearTimeout(timeoutId);
-            
-            if ((error as Error).name === 'AbortError') {
-                throw new Error('Request timeout after 5 minutes');
-            }
-            
-            throw error;
-        }
-    }
 
     /**
      * Get supported audio formats
      */
     getSupportedFormats(): string[] {
-        return [
-            'mp3', 'wav', 'flac', 'm4a', 'ogg', 
-            'wma', 'aac', 'opus', 'webm'
-        ];
+        return this.apiClient.getSupportedFormats();
     }
 
     /**
-     * Get supported languages (subset of Whisper's full language support)
+     * Get supported languages
      */
     getSupportedLanguages(): string[] {
-        return [
-            'auto', 'en', 'es', 'fr', 'de', 'it', 'pt', 'ru', 'ja', 'ko',
-            'zh', 'ar', 'hi', 'nl', 'sv', 'da', 'no', 'fi', 'pl', 'tr'
-        ];
-    }
-
-    /**
-     * Validate audio file format
-     */
-    private validateAudioFormat(filePath: string): boolean {
-        const extension = filePath.split('.').pop()?.toLowerCase();
-        return extension ? this.getSupportedFormats().includes(extension) : false;
+        return this.apiClient.getSupportedLanguages();
     }
 
     /**
@@ -458,6 +302,7 @@ export class WhisperSTTService implements STTService, MediaTransformer, LocalSer
      */
     getDockerServiceInfo() {
         const dockerConfig = this.dockerService.getConfig();
+        const apiInfo = this.apiClient.getInfo();
         return {
             containerName: dockerConfig.containerName,
             dockerImage: 'onerahmet/openai-whisper-asr-webservice:latest',
@@ -465,7 +310,7 @@ export class WhisperSTTService implements STTService, MediaTransformer, LocalSer
             command: `docker-compose -f ${dockerConfig.composeFile} up -d ${dockerConfig.serviceName}`,
             composeService: dockerConfig.serviceName,
             composeFile: dockerConfig.composeFile,
-            healthCheckUrl: dockerConfig.healthCheckUrl || `${this.baseUrl}/asr`,
+            healthCheckUrl: dockerConfig.healthCheckUrl || `${apiInfo.baseUrl}/asr`,
             network: 'whisper-network',
             serviceDirectory: 'services/whisper'
         };
