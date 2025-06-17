@@ -1,0 +1,120 @@
+# =============================================================================
+# Docker ignore file for Chatterbox TTS Server
+# Excludes unnecessary files from Docker build context for faster builds
+# =============================================================================
+
+# Version control
+.git
+.gitignore
+.gitattributes
+
+# Documentation
+*.md
+README*
+CHANGELOG*
+LICENSE*
+docs/
+documentation.md
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+.coverage
+.pytest_cache/
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+
+# Virtual environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# pyenv
+.python-version
+
+# Docker
+Dockerfile*
+docker-compose*
+.dockerignore
+
+# Test files
+test_*
+*_test.py
+tests/
+testing/
+
+# Temporary files
+*.tmp
+*.temp
+*.log
+*.bak
+*.backup
+*.orig
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Application specific (keep these in host, not in image)
+outputs/
+logs/
+hf_cache/
+model_cache/
+
+# Keep essential files (explicitly include if needed)
+# !config.yaml
+# !requirements*.txt
+# !server.py
+# !engine.py
+# !models.py
+# !utils.py
+# !async_tts.py
+# !task_manager.py
+# !ui/

@@ -1,0 +1,123 @@
+version: '3.8'
+
+services:
+  # Init container to fix permissions
+  chatterbox-init:
+    image: alpine:latest
+    volumes:
+      - ./logs:/app/logs
+      - ./outputs:/app/outputs
+      - ./voices:/app/voices
+      - ./reference_audio:/app/reference_audio
+    command: >
+      sh -c "
+        mkdir -p /app/logs /app/outputs /app/voices /app/reference_audio &&
+        chown -R 1000:1000 /app/logs /app/outputs /app/voices /app/reference_audio &&
+        chmod -R 755 /app/logs /app/outputs /app/voices /app/reference_audio
+      "
+
+  # Production service
+  chatterbox-tts-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production  # Use production stage
+      args:
+        - RUNTIME=${RUNTIME:-nvidia}  # nvidia, rocm, or cpu
+        - PYTHON_VERSION=3.11
+    image: chatterbox-tts:latest
+    container_name: chatterbox-tts-server
+    depends_on:
+      chatterbox-init:
+        condition: service_completed_successfully
+    ports:
+      - "${PORT:-8004}:8004"
+    volumes:
+      # Configuration persistence
+      - ./config.yaml:/app/config.yaml:ro
+      # Data directories (persistent)
+      - ./voices:/app/voices
+      - ./reference_audio:/app/reference_audio
+      - ./outputs:/app/outputs
+      - ./logs:/app/logs
+      # Model cache (named volume for better performance)
+      - hf_cache:/app/hf_cache
+
+    # Alternative GPU method (uncomment if deploy method fails)
+    # runtime: nvidia
+
+    restart: unless-stopped
+
+    environment:
+      # Performance optimizations
+      - HF_HUB_ENABLE_HF_TRANSFER=1
+      - PYTORCH_CUDA_ALLOC_CONF=max_split_size_mb:512
+      # GPU configuration
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+      # Application settings
+      - PYTHONPATH=/app
+      - TZ=UTC
+
+    # Health check
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8004/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+    # GPU Support and Resource limits
+    deploy:
+      resources:
+        limits:
+          memory: 8G
+        reservations:
+          memory: 4G
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+  # Development service (optional)
+  chatterbox-tts-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development  # Use development stage
+      args:
+        - RUNTIME=${RUNTIME:-nvidia}
+        - PYTHON_VERSION=3.11
+    image: chatterbox-tts:dev
+    container_name: chatterbox-tts-dev
+    ports:
+      - "${DEV_PORT:-8005}:8004"
+      - "8888:8888"  # Jupyter port
+    volumes:
+      # Mount source code for live development
+      - .:/app
+      - hf_cache:/app/hf_cache
+    environment:
+      - HF_HUB_ENABLE_HF_TRANSFER=1
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+      - PYTHONPATH=/app
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    profiles:
+      - dev  # Only start with --profile dev
+    command: ["python", "server.py"]
+
+# Named volumes for data persistence
+volumes:
+  hf_cache:
+
+# Networks (optional, for advanced setups)
+networks:
+  default:
+    name: chatterbox-network
