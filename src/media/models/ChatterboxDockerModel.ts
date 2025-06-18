@@ -10,7 +10,7 @@
 import { TextToSpeechModel, TextToSpeechOptions } from './TextToSpeechModel';
 import { ChatterboxAPIClient } from '../clients/ChatterboxAPIClient';
 import { ChatterboxDockerService } from '../services/ChatterboxDockerService';
-import { Text, Speech } from '../assets/roles';
+import { Text, Speech, Audio, hasSpeechRole } from '../assets/roles';
 import { castToText } from '../assets/casting';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -57,17 +57,45 @@ export class ChatterboxDockerModel extends TextToSpeechModel {
   }
 
   /**
-   * Transform text to speech using Docker-based Chatterbox
+   * Transform text to speech using Docker-based Chatterbox - basic TTS
    */
-  async transform(input: Text, options?: TextToSpeechOptions): Promise<Speech> {
+  async transform(input: Text, options?: TextToSpeechOptions): Promise<Speech>;
+  
+  /**
+   * Transform text to speech with voice cloning - dual-signature pattern
+   */
+  async transform(text: Text, voiceAudio: Speech, options?: TextToSpeechOptions): Promise<Speech>;
+  
+  /**
+   * Implementation for both transform signatures
+   */
+  async transform(
+    input: Text, 
+    voiceAudioOrOptions?: Speech | TextToSpeechOptions, 
+    options?: TextToSpeechOptions
+  ): Promise<Speech> {
     const startTime = Date.now();
 
     // Cast input to Text
-    const text = castToText(input);
+    const text = await castToText(input);
     
     // Validate text data
     if (!text.isValid()) {
       throw new Error('Invalid text data provided');
+    }
+
+    // Parse arguments to determine which signature was used
+    let voiceAudio: Speech | undefined;
+    let actualOptions: TextToSpeechOptions | undefined;
+    
+    if (voiceAudioOrOptions && hasSpeechRole(voiceAudioOrOptions)) {
+      // Second signature: transform(text, voiceSpeech, options)
+      voiceAudio = await voiceAudioOrOptions.asSpeech();
+      actualOptions = options;
+    } else {
+      // First signature: transform(text, options)
+      voiceAudio = undefined;
+      actualOptions = voiceAudioOrOptions as TextToSpeechOptions;
     }
 
     try {
@@ -83,18 +111,27 @@ export class ChatterboxDockerModel extends TextToSpeechModel {
         throw new Error('Chatterbox Docker service is not healthy');
       }
 
-      // Handle voice cloning if voice file is provided
+      // Handle voice cloning if voiceAudio is provided
       let referenceAudioFilename: string | undefined;
-      if (options?.voiceFile) {
-        console.log(`[ChatterboxDockerModel] Voice cloning requested with file: ${options.voiceFile}`);
-        console.log(`[ChatterboxDockerModel] Force upload option: ${options.forceUpload}`);
+      if (voiceAudio) {
+        console.log(`[ChatterboxDockerModel] Voice cloning requested with Audio object`);
+        console.log(`[ChatterboxDockerModel] Force upload option: ${actualOptions?.forceUpload}`);
         
         try {
-          const localFilename = path.basename(options.voiceFile);
+          // Generate a filename for the audio data
+          const timestamp = Date.now();
+          const format = voiceAudio.getFormat();
+          const localFilename = `voice_clone_${timestamp}.${format}`;
+          const tempPath = path.join(this.tempDir, localFilename);
+          
+          // Write audio data to temporary file
+          fs.writeFileSync(tempPath, voiceAudio.data);
+          console.log(`[ChatterboxDockerModel] Wrote voice audio to temp file: ${tempPath}`);
+          
           console.log(`[ChatterboxDockerModel] Local filename: ${localFilename}`);
           
           // Check if file already exists on server (unless force upload is requested)
-          if (!options.forceUpload) {
+          if (!actualOptions?.forceUpload) {
             console.log(`[ChatterboxDockerModel] Checking if file already exists on server...`);
             try {
               const existingFiles = await this.apiClient.getReferenceFiles();
@@ -113,36 +150,42 @@ export class ChatterboxDockerModel extends TextToSpeechModel {
           }
 
           // Upload if file doesn't exist or force upload is requested
-          if (!referenceAudioFilename || options.forceUpload) {
-            console.log(`[ChatterboxDockerModel] ${options.forceUpload ? 'Force uploading' : 'Uploading'} reference file: ${options.voiceFile}`);
-            const uploadResult = await this.apiClient.uploadReferenceAudio(options.voiceFile);
+          if (!referenceAudioFilename || actualOptions?.forceUpload) {
+            console.log(`[ChatterboxDockerModel] ${actualOptions?.forceUpload ? 'Force uploading' : 'Uploading'} reference file: ${tempPath}`);
+            const uploadResult = await this.apiClient.uploadReferenceAudio(tempPath);
             console.log(`[ChatterboxDockerModel] Upload successful, filename: ${uploadResult.filename}`);
             referenceAudioFilename = uploadResult.filename;
           } else {
             console.log(`[ChatterboxDockerModel] Skipping upload, using existing file: ${referenceAudioFilename}`);
           }
+          
+          // Clean up temporary file
+          this.cleanupTempFile(tempPath);
         } catch (error) {
           console.error('[ChatterboxDockerModel] Upload error:', error);
           throw new Error(`Failed to upload reference audio: ${error instanceof Error ? error.message : 'Unknown error'}`);
         }
       } else {
-        console.log(`[ChatterboxDockerModel] No voice file specified, using default voice`);
+        console.log(`[ChatterboxDockerModel] No voice audio specified, using default voice`);
       }
 
       // Create TTS request
       console.log(`[ChatterboxDockerModel] Creating TTS request with options:`, {
-        voice: options?.voice,
-        speed: options?.speed,
-        voiceFile: options?.voiceFile,
-        outputFormat: options?.format as 'mp3' | 'wav' || 'mp3'
+        speed: actualOptions?.speed,
+        voiceCloning: !!voiceAudio,
+        outputFormat: actualOptions?.format as 'mp3' | 'wav' || 'mp3'
       });
       
       const request = this.apiClient.createTTSRequest(text.content, {
-        voice: options?.voice || this.getDefaultVoice(),
-        speed: options?.speed || 1.0,
-        voiceFile: options?.voiceFile, // Pass voiceFile to set correct voice_mode
-        outputFormat: options?.format as 'mp3' | 'wav' || 'mp3'
+        speed: actualOptions?.speed || 1.0,
+        voiceFile: voiceAudio ? 'voice_clone_mode' : undefined, // Indicates voice cloning mode
+        outputFormat: actualOptions?.format as 'mp3' | 'wav' || 'mp3'
       });
+
+      // For basic TTS, set default voice if not voice cloning
+      if (!voiceAudio) {
+        request.predefined_voice_id = this.getDefaultVoice();
+      }
 
       // Set reference audio filename if uploaded
       if (referenceAudioFilename) {

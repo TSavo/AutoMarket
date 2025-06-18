@@ -199,11 +199,62 @@
         ],
         "status": "pending",
         "subtasks": []
+      },
+      {
+        "id": 58,
+        "title": "Update TextToSpeechModel Interface for Dual-Signature Transform Method",
+        "description": "Modify the TextToSpeechModel interface to support a dual-signature transform method for voice cloning, changing from voiceFile options to a clean interface pattern.",
+        "details": "1. Update the TextToSpeechModel interface:\n   - Modify the existing transform method signature:\n     From: transform(text: string, options?: { voiceFile: string }): Promise<Speech>\n     To: transform(text: Text): Promise<Speech>\n   - Add a new overload for voice cloning:\n     transform(text: Text, voiceAudio: Audio): Promise<Speech>\n\n2. Update the implementation in relevant classes (e.g., ChatterboxTTSModel):\n   - Implement both transform method signatures\n   - For the voice cloning method, extract the audio data from the Audio object\n\n3. Modify the Audio class to include a static method:\n   Add: static fromFile(filePath: string): Audio\n\n4. Update PRD documentation:\n   - Explain the new interface design and its benefits\n   - Provide usage examples for both basic TTS and voice cloning\n\n5. Update interface definitions in TypeScript:\n   ```typescript\n   interface TextToSpeechModel {\n     transform(text: Text): Promise<Speech>;\n     transform(text: Text, voiceAudio: Audio): Promise<Speech>;\n   }\n   ```\n\n6. Refactor existing code that uses the old interface:\n   - Search for all occurrences of `transform` method calls with `voiceFile` option\n   - Replace with new `Audio.fromFile()` method and updated transform call\n\n7. Ensure backward compatibility:\n   - If necessary, create a wrapper method that accepts the old format and calls the new method internally\n\n8. Update any relevant factory methods or dependency injection code to accommodate the new interface",
+        "testStrategy": "1. Unit Tests:\n   - Test basic TTS transform method with various text inputs\n   - Test voice cloning transform method with different text and audio inputs\n   - Verify Audio.fromFile() method correctly loads audio files\n   - Test error handling for invalid inputs (e.g., null or undefined text/audio)\n\n2. Integration Tests:\n   - Test the entire TTS pipeline using both transform methods\n   - Verify output Speech object contains correct data\n   - Test with real audio files for voice cloning\n\n3. Backward Compatibility Tests:\n   - If a compatibility wrapper is implemented, test it thoroughly\n   - Ensure existing code using the old interface still works correctly\n\n4. Performance Tests:\n   - Compare performance of new interface vs. old interface\n   - Ensure voice cloning doesn't introduce significant overhead\n\n5. Documentation Tests:\n   - Verify all code examples in updated PRD documentation are correct and functional\n\n6. Edge Case Tests:\n   - Test with very long text inputs\n   - Test with various audio file formats and qualities for voice cloning\n\n7. Mock Provider Tests:\n   - Create mock TextToSpeechModel implementations to test interface compliance\n\n8. Regression Tests:\n   - Run full test suite to ensure no unintended side effects in other parts of the system",
+        "status": "done",
+        "dependencies": [
+          52,
+          51
+        ],
+        "priority": "high",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Update Chatterbox Integration Test",
+            "description": "Update the chatterbox integration test to demonstrate the new dual-signature transform pattern for voice cloning",
+            "details": "Replace the current voice cloning test that uses options with a clean dual-signature interface test that matches the Whisper STT pattern. The test should show:\n- Basic TTS: model.transform(text) \n- Voice cloning: model.transform(text, voiceAudio)\n- Clear comparison between the two approaches",
+            "status": "done",
+            "dependencies": [],
+            "parentTaskId": 58
+          },
+          {
+            "id": 2,
+            "title": "Update PRD Documentation",
+            "description": "Update PRD documentation to reflect the dual-signature TTS transform pattern",
+            "details": "Updated the PRD to include:\n- New TTS Dual-Signature Pattern section explaining the design\n- Updated TextToSpeechModel interface with overloaded transform methods\n- Updated usage examples showing both basic TTS and voice cloning patterns\n- Clear explanation of consistency with Whisper STT multi-input pattern",
+            "status": "done",
+            "dependencies": [],
+            "parentTaskId": 58
+          },
+          {
+            "id": 3,
+            "title": "Implement Dual-Signature Transform in TextToSpeechModel",
+            "description": "Implement the dual-signature transform method in TextToSpeechModel abstract class",
+            "details": "Update the abstract TextToSpeechModel class to support method overloading:\n- transform(input: Text | (Asset & TextRole)): Promise<Speech> - basic TTS\n- transform(text: Text | (Asset & TextRole), voiceAudio: Audio | (Asset & SpeechRole)): Promise<Speech> - voice cloning\nEnsure type safety and proper method resolution for both signatures.",
+            "status": "done",
+            "dependencies": [],
+            "parentTaskId": 58
+          },
+          {
+            "id": 4,
+            "title": "Update Chatterbox Implementation",
+            "description": "Update ChatterboxDockerProvider and ChatterboxTTSModel to implement dual-signature interface",
+            "details": "Modify the concrete implementation to support both transform signatures:\n- Remove voiceFile from options interface\n- Implement basic TTS: transform(text) calling existing TTS API\n- Implement voice cloning: transform(text, voiceAudio) with voice upload and cloning API calls\n- Ensure proper Audio asset handling and file upload for voice cloning",
+            "status": "done",
+            "dependencies": [],
+            "parentTaskId": 58
+          }
+        ]
       }
     ],
     "metadata": {
       "created": "2025-06-17T05:23:26.699Z",
-      "updated": "2025-06-17T20:21:20.190Z",
+      "updated": "2025-06-17T23:19:33.377Z",
       "description": "Tasks for master context"
     }
   }

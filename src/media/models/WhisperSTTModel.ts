@@ -62,7 +62,7 @@ export class WhisperSTTModel extends SpeechToTextModel {
     const startTime = Date.now();
 
     // Cast input to Speech
-    const speech = castToSpeech(input);
+    const speech = await castToSpeech(input);
 
     // Validate speech data
     if (!speech.isValid()) {
@@ -89,7 +89,7 @@ export class WhisperSTTModel extends SpeechToTextModel {
         // Create transcription request
         const request = this.apiClient.createTranscriptionRequest(tempFilePath, {
           task: options?.task || 'transcribe',
-          language: options?.language || speech.language,
+          language: options?.language || speech.sourceAsset?.metadata?.language,
           word_timestamps: options?.wordTimestamps
         });
 
@@ -102,7 +102,7 @@ export class WhisperSTTModel extends SpeechToTextModel {
         // Create Text result
         const text = new Text(
           response.text,
-          response.language || options?.language || speech.language || 'auto',
+          response.language || options?.language || speech.sourceAsset?.metadata?.language || 'auto',
           response.confidence || 0.9,
           {
             segments: this.convertToSpeechSegments(response.segments),

@@ -29,25 +29,25 @@ describe('Asset Role Casting System', () => {
 
   describe('Direct Role Casting', () => {
     describe('castToSpeech', () => {
-      it('should cast Speech object directly', () => {
+      it('should cast Speech object directly', async () => {
         const speech = new Speech(mockAudioData, 'en', 'John');
-        const result = castToSpeech(speech);
+        const result = await castToSpeech(speech);
         
         expect(result).toBe(speech);
       });
 
-      it('should cast MP3Asset to Speech', () => {
+      it('should cast MP3Asset to Speech', async () => {
         const asset = new MP3Asset(mockAudioData, { language: 'en', speaker: 'John' });
-        const result = castToSpeech(asset);
+        const result = await castToSpeech(asset);
         
         expect(result).toBeInstanceOf(Speech);
         expect(result.language).toBe('en');
         expect(result.speaker).toBe('John');
       });
 
-      it('should cast MP4Asset to Speech', () => {
+      it('should cast MP4Asset to Speech', async () => {
         const asset = new MP4Asset(mockVideoData, { language: 'es' });
-        const result = castToSpeech(asset);
+        const result = await castToSpeech(asset);
         
         expect(result).toBeInstanceOf(Speech);
         expect(result.language).toBe('es');

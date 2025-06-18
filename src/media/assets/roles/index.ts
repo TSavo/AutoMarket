@@ -113,7 +113,7 @@ export class Audio implements SpeechRole {
   /**
    * Convert to Speech role - simple naming extension
    */
-  asSpeech(): Speech {
+  async asSpeech(): Promise<Speech> {
     return new Speech(this.data, this.sourceAsset);
   }
 
@@ -226,7 +226,7 @@ export class Video implements SpeechRole {
   /**
    * Convert to Speech role - extract audio from video
    */
-  asSpeech(): Speech {
+  async asSpeech(): Promise<Speech> {
     // For now, create Speech from the video data
     // TODO: In the future, this could extract audio track from video
     return new Speech(this.data, this.sourceAsset);
@@ -339,7 +339,7 @@ export class Text {
  * SpeechRole - Assets that can provide speech data
  */
 export interface SpeechRole {
-  asSpeech(): Speech;
+  asSpeech(): Promise<Speech>;
   canPlaySpeechRole(): boolean;
 }
 
@@ -347,7 +347,7 @@ export interface SpeechRole {
  * AudioRole - Assets that can provide audio data
  */
 export interface AudioRole {
-  asAudio(): Audio;
+  asAudio(): Promise<Audio>;
   canPlayAudioRole(): boolean;
 }
 
@@ -355,7 +355,7 @@ export interface AudioRole {
  * VideoRole - Assets that can provide video data
  */
 export interface VideoRole {
-  asVideo(): Video;
+  asVideo(): Promise<Video>;
   getVideoMetadata(): VideoMetadata;
   canPlayVideoRole(): boolean;
 }
@@ -364,7 +364,7 @@ export interface VideoRole {
  * TextRole - Assets that can provide text data
  */
 export interface TextRole {
-  asText(): Text;
+  asText(): Promise<Text>;
   getTextMetadata(): TextMetadata;
   canPlayTextRole(): boolean;
 }

@@ -73,7 +73,7 @@ export class ChatterboxTTSModel extends TextToSpeechModel {
     const startTime = Date.now();
 
     // Cast input to Text
-    const text = castToText(input);
+    const text = await castToText(input);
 
     // Validate text data
     if (!text.isValid()) {

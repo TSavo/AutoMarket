@@ -11,6 +11,7 @@ import fs from 'fs';
 import path from 'path';
 import { WhisperDockerProvider } from '../../providers/WhisperDockerProvider';
 import { Audio, Video, Text } from '../../assets/roles';
+import { AssetLoader } from '../../assets/SmartAssetFactory';
 import { SpeechToTextModel } from '../../models/SpeechToTextModel';
 import { SpeechToTextProvider } from '../../registry/ProviderRoles';
 
@@ -85,9 +86,9 @@ async function runIntegrationTest(): Promise<void> {
     assert(mp3Result.content.length > 0, 'MP3 result content is not empty');
     console.log(`📝 MP3 result: "${mp3Result.content.substring(0, 100)}..."`);
 
-    // Test 3: MP4 Video file - model extracts audio automatically!
+    // Test 3: MP4 Video file - smart asset loading with automatic role detection!
     console.log('🎬 Testing MP4 Video...');
-    const mp4Video: Video = Video.fromFile(mp4Path);
+    const mp4Video = AssetLoader.load(mp4Path); // Smart asset loading with auto role detection
     assert(mp4Video.isValid(), 'MP4 Video is valid');
 
     const mp4Result: Text = await model.transform(mp4Video);

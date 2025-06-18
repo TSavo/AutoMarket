@@ -8,10 +8,11 @@
  * - Same clean interface as Whisper STT
  */
 
-import fs from 'fs';
-import path from 'path';
+import * as fs from 'fs';
+import * as path from 'path';
 import { ChatterboxDockerProvider } from '../../providers/ChatterboxDockerProvider';
-import { Text, Speech } from '../../assets/roles';
+import { Text, Speech, Audio } from '../../assets/roles';
+import { AssetLoader } from '../../assets/SmartAssetFactory';
 import { TextToSpeechModel } from '../../models/TextToSpeechModel';
 import { TextToSpeechProvider } from '../../registry/ProviderRoles';
 
@@ -72,9 +73,9 @@ async function runIntegrationTest() {
     assert(stringResult.data.length > 0, 'String result has audio data');
     console.log(`🎵 String result: Audio(${stringResult.getFormat().toUpperCase()})`);
 
-    // Test 2: Text from file - same clean interface!
+    // Test 2: Text from file - smart asset loading!
     console.log('📄 Testing Text from file...');
-    const textFromFile: Text = Text.fromFile(testTextPath);
+    const textFromFile = AssetLoader.load(testTextPath); // Smart asset loading
     assert(textFromFile.isValid(), 'Text from file is valid');
 
     const fileResult: Speech = await model.transform(textFromFile);
@@ -86,7 +87,6 @@ async function runIntegrationTest() {
     // Test with options
     console.log('🔧 Testing with custom options...');
     const optionsResult: Speech = await model.transform(textFromString, {
-      voice: 'Abigail.wav',
       speed: 1.0
     });
 
@@ -94,8 +94,8 @@ async function runIntegrationTest() {
     assert(optionsResult.isValid(), 'Options result is valid audio');
     console.log(`🎵 Options result: Audio(${optionsResult.getFormat().toUpperCase()})`);
 
-    // Test 3: Voice cloning with automatic upload handling
-    console.log('🎤 Testing voice cloning with automatic upload...');
+    // Test 3: Voice cloning with dual-signature transform pattern
+    console.log('🎤 Testing voice cloning with clean dual-signature interface...');
     const voiceCloneFile = path.join(process.cwd(), 'confusion.wav');
     
     // Check if confusion.wav exists
@@ -104,20 +104,22 @@ async function runIntegrationTest() {
     } else {
       console.log(`📁 Using voice clone file: ${voiceCloneFile}`);
       
-      // Test 3a: Voice cloning - model should automatically handle upload
-      console.log('🎵 Testing voice cloning (automatic upload handling)...');
+      // Test 3a: Voice cloning with clean dual-signature interface
+      console.log('🎵 Testing voice cloning with Audio input (clean interface)...');
       
-      // For voice cloning, we only need voiceFile parameter - model handles the upload
-      const voiceCloneOptions = {
-        speed: 1.0,
-        voiceFile: voiceCloneFile
-      } as any; // Type assertion to bypass TypeScript checking
+      // Load voice audio using smart asset loading
+      const voiceAudio = AssetLoader.load(voiceCloneFile); // Smart asset loading
+      assert(voiceAudio.isValid(), 'Voice audio is valid');
       
-      console.log('📋 Voice clone options:', voiceCloneOptions);
+
       
+      console.log('📋 Voice cloning with dual signature: transform(text, voiceSpeech)');
+      
+      // Clean dual-signature interface: transform(text, voiceSpeech)
+      // This matches the Whisper pattern: transform(audio) vs transform(video)
       const voiceCloneResult: Speech = await model.transform(
-        Text.fromString('This should sound like the cloned voice from the confusion audio file. The model automatically handles upload.'),
-        voiceCloneOptions
+        Text.fromString('This should sound like the cloned voice from the confusion audio file.'),
+        voiceAudio
       );
 
       assert(!!voiceCloneResult, 'Voice cloning result exists');
@@ -125,26 +127,18 @@ async function runIntegrationTest() {
       assert(voiceCloneResult.data.length > 0, 'Voice cloning result has audio data');
       console.log(`🎵 Voice clone result: Audio(${voiceCloneResult.getFormat().toUpperCase()})`);
       
-      // Test 3b: Voice cloning with force upload option
-      console.log('🔄 Testing voice cloning with force upload...');
-      const forceUploadOptions = {
-        speed: 1.2,
-        voiceFile: voiceCloneFile,
-        forceUpload: true
-      } as any; // Type assertion to bypass TypeScript checking
+      // Test 3b: Basic TTS (single signature) for comparison  
+      console.log('🔄 Testing basic TTS (single signature) for comparison...');
       
-      console.log('📋 Force upload options:', forceUploadOptions);
-      
-      const forceUploadResult: Speech = await model.transform(
-        Text.fromString('This is a second test with forced upload to ensure the upload mechanism works properly.'),
-        forceUploadOptions
+      const basicTTSResult: Speech = await model.transform(
+        Text.fromString('This is basic TTS without voice cloning.')
       );
 
-      assert(!!forceUploadResult, 'Force upload result exists');
-      assert(forceUploadResult.isValid(), 'Force upload result is valid audio');
-      assert(forceUploadResult.data.length > 0, 'Force upload result has audio data');
-      console.log(`🎵 Force upload result: Audio(${forceUploadResult.getFormat().toUpperCase()})`);
-      console.log('✅ Voice cloning with automatic upload handling completed successfully');
+      assert(!!basicTTSResult, 'Basic TTS result exists');
+      assert(basicTTSResult.isValid(), 'Basic TTS result is valid audio');
+      assert(basicTTSResult.data.length > 0, 'Basic TTS result has audio data');
+      console.log(`🎵 Basic TTS result: Audio(${basicTTSResult.getFormat().toUpperCase()})`);
+      console.log('✅ Dual-signature TTS interface pattern completed successfully');
     }
 
     // Stop Docker service
@@ -155,9 +149,9 @@ async function runIntegrationTest() {
     console.log('\n🎉 ALL TESTS PASSED! Integration test successful.');
     console.log('✅ Text-to-Speech from string');
     console.log('✅ Text-to-Speech from file');
-    console.log('✅ Custom options (voice and speed)');
-    console.log('✅ Voice cloning with automatic upload handling');
-    console.log('✅ Voice cloning with force upload option');
+    console.log('✅ Custom options (speed)');
+    console.log('✅ Voice cloning with clean dual-signature interface');
+    console.log('✅ Basic TTS vs Voice cloning comparison');
     console.log('✅ Docker service lifecycle management');
 
   } catch (error) {

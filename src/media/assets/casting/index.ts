@@ -19,13 +19,13 @@ import {
 /**
  * Cast an input to Speech, supporting Speech objects and anything with SpeechRole
  */
-export function castToSpeech(input: Speech | Audio | Video | (Asset & SpeechRole)): Speech {
+export async function castToSpeech(input: Speech | Audio | Video | (Asset & SpeechRole)): Promise<Speech> {
   if (input instanceof Speech) {
     return input;
   }
 
   if (hasSpeechRole(input)) {
-    return input.asSpeech();
+    return await input.asSpeech();
   }
 
   throw new Error('Input cannot be cast to Speech: missing SpeechRole capability');
@@ -34,13 +34,13 @@ export function castToSpeech(input: Speech | Audio | Video | (Asset & SpeechRole
 /**
  * Cast an input to Audio, supporting both direct Audio objects and Assets with AudioRole
  */
-export function castToAudio(input: Audio | (Asset & AudioRole)): Audio {
+export async function castToAudio(input: Audio | (Asset & AudioRole)): Promise<Audio> {
   if (input instanceof Audio) {
     return input;
   }
   
   if (input instanceof Asset && hasAudioRole(input)) {
-    return input.asAudio();
+    return await input.asAudio();
   }
   
   throw new Error('Input cannot be cast to Audio: missing AudioRole capability');
@@ -49,13 +49,13 @@ export function castToAudio(input: Audio | (Asset & AudioRole)): Audio {
 /**
  * Cast an input to Video, supporting both direct Video objects and Assets with VideoRole
  */
-export function castToVideo(input: Video | (Asset & VideoRole)): Video {
+export async function castToVideo(input: Video | (Asset & VideoRole)): Promise<Video> {
   if (input instanceof Video) {
     return input;
   }
   
   if (input instanceof Asset && hasVideoRole(input)) {
-    return input.asVideo();
+    return await input.asVideo();
   }
   
   throw new Error('Input cannot be cast to Video: missing VideoRole capability');
@@ -64,13 +64,13 @@ export function castToVideo(input: Video | (Asset & VideoRole)): Video {
 /**
  * Cast an input to Text, supporting both direct Text objects and Assets with TextRole
  */
-export function castToText(input: Text | (Asset & TextRole)): Text {
+export async function castToText(input: Text | (Asset & TextRole)): Promise<Text> {
   if (input instanceof Text) {
     return input;
   }
   
   if (input instanceof Asset && hasTextRole(input)) {
-    return input.asText();
+    return await input.asText();
   }
   
   throw new Error('Input cannot be cast to Text: missing TextRole capability');
@@ -115,10 +115,10 @@ export function canCastToText(input: any): input is Text | (Asset & TextRole) {
 /**
  * Safely cast to Speech, returning undefined if not possible
  */
-export function safeCastToSpeech(input: any): Speech | undefined {
+export async function safeCastToSpeech(input: any): Promise<Speech | undefined> {
   try {
     if (canCastToSpeech(input)) {
-      return castToSpeech(input);
+      return await castToSpeech(input);
     }
   } catch {
     // Ignore casting errors
@@ -129,10 +129,10 @@ export function safeCastToSpeech(input: any): Speech | undefined {
 /**
  * Safely cast to Audio, returning undefined if not possible
  */
-export function safeCastToAudio(input: any): Audio | undefined {
+export async function safeCastToAudio(input: any): Promise<Audio | undefined> {
   try {
     if (canCastToAudio(input)) {
-      return castToAudio(input);
+      return await castToAudio(input);
     }
   } catch {
     // Ignore casting errors
@@ -143,10 +143,10 @@ export function safeCastToAudio(input: any): Audio | undefined {
 /**
  * Safely cast to Video, returning undefined if not possible
  */
-export function safeCastToVideo(input: any): Video | undefined {
+export async function safeCastToVideo(input: any): Promise<Video | undefined> {
   try {
     if (canCastToVideo(input)) {
-      return castToVideo(input);
+      return await castToVideo(input);
     }
   } catch {
     // Ignore casting errors
@@ -157,10 +157,10 @@ export function safeCastToVideo(input: any): Video | undefined {
 /**
  * Safely cast to Text, returning undefined if not possible
  */
-export function safeCastToText(input: any): Text | undefined {
+export async function safeCastToText(input: any): Promise<Text | undefined> {
   try {
     if (canCastToText(input)) {
-      return castToText(input);
+      return await castToText(input);
     }
   } catch {
     // Ignore casting errors
@@ -175,12 +175,12 @@ export function safeCastToText(input: any): Text | undefined {
 /**
  * Cast Asset to multiple roles it supports
  */
-export function castAssetToAllRoles(asset: Asset): {
+export async function castAssetToAllRoles(asset: Asset): Promise<{
   speech?: Speech;
   audio?: Audio;
   video?: Video;
   text?: Text;
-} {
+}> {
   const result: {
     speech?: Speech;
     audio?: Audio;
@@ -189,19 +189,19 @@ export function castAssetToAllRoles(asset: Asset): {
   } = {};
 
   if (hasSpeechRole(asset)) {
-    result.speech = asset.asSpeech();
+    result.speech = await asset.asSpeech();
   }
 
   if (hasAudioRole(asset)) {
-    result.audio = asset.asAudio();
+    result.audio = await asset.asAudio();
   }
 
   if (hasVideoRole(asset)) {
-    result.video = asset.asVideo();
+    result.video = await asset.asVideo();
   }
 
   if (hasTextRole(asset)) {
-    result.text = asset.asText();
+    result.text = await asset.asText();
   }
 
   return result;
@@ -253,36 +253,36 @@ export class RoleCastingError extends Error {
 /**
  * Enhanced casting functions that provide better error messages
  */
-export function castToSpeechWithError(input: any): Speech {
+export async function castToSpeechWithError(input: any): Promise<Speech> {
   if (canCastToSpeech(input)) {
-    return castToSpeech(input);
+    return await castToSpeech(input);
   }
 
   const availableRoles = input instanceof Asset ? getAvailableRoles(input) : [];
   throw new RoleCastingError(input, 'speech', availableRoles);
 }
 
-export function castToAudioWithError(input: any): Audio {
+export async function castToAudioWithError(input: any): Promise<Audio> {
   if (canCastToAudio(input)) {
-    return castToAudio(input);
+    return await castToAudio(input);
   }
 
   const availableRoles = input instanceof Asset ? getAvailableRoles(input) : [];
   throw new RoleCastingError(input, 'audio', availableRoles);
 }
 
-export function castToVideoWithError(input: any): Video {
+export async function castToVideoWithError(input: any): Promise<Video> {
   if (canCastToVideo(input)) {
-    return castToVideo(input);
+    return await castToVideo(input);
   }
 
   const availableRoles = input instanceof Asset ? getAvailableRoles(input) : [];
   throw new RoleCastingError(input, 'video', availableRoles);
 }
 
-export function castToTextWithError(input: any): Text {
+export async function castToTextWithError(input: any): Promise<Text> {
   if (canCastToText(input)) {
-    return castToText(input);
+    return await castToText(input);
   }
 
   const availableRoles = input instanceof Asset ? getAvailableRoles(input) : [];
@@ -317,3 +317,12 @@ export type TextInput = Text | (Asset & TextRole);
  * Union type for any media input
  */
 export type MediaInput = SpeechInput | AudioInput | VideoInput | TextInput;
+
+// Export enhanced casting functions
+export {
+  EnhancedAssetCasting,
+  castToAudioSmart,
+  castToSpeechSmart,
+  extractAudioFromVideoFile,
+  extractSpeechFromVideoFile
+} from './enhanced';

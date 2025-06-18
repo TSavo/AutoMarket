@@ -12,6 +12,7 @@ import {
   AudioMetadata, VideoMetadata, TextMetadata,
   AudioFormat, VideoFormat
 } from '../roles';
+import { FFmpegService } from '../../services/FFmpegService';
 
 // ============================================================================
 // SPEECH ROLE MIXIN
@@ -24,9 +25,50 @@ export function withSpeechRole<T extends Constructor<BaseAsset>>(Base: T) {
   return class extends Base implements SpeechRole {
     /**
      * Convert this Asset to Speech data
+     * For video assets, extracts audio using FFmpeg
      */
-    asSpeech(): Speech {
+    async asSpeech(): Promise<Speech> {
+      console.log(`[SpeechRole Mixin] asSpeech() called on format: ${this.metadata.format}`);
+      
+      // Check if this is a video format that needs audio extraction
+      if (this.isVideoFormatForSpeech()) {
+        console.log('[SpeechRole Mixin] Video format detected, extracting speech from video using FFmpeg...');
+        return await this.extractSpeechFromVideo();
+      }
+      
+      console.log('[SpeechRole Mixin] Audio format detected, direct conversion to Speech');
+      // For audio formats, return as Speech
       return new Speech(this.data, this);
+    }
+
+    /**
+     * Extract speech from video using FFmpeg
+     */
+    private async extractSpeechFromVideo(): Promise<Speech> {
+      console.log('[SpeechRole Mixin] Starting FFmpeg audio extraction...');
+      const ffmpegService = FFmpegService.getInstance();
+      
+      try {
+        console.log(`[SpeechRole Mixin] Calling FFmpeg extractAudio with format: ${this.getFileExtension()}`);
+        const audioBuffer = await ffmpegService.extractAudio(this.data, this.getFileExtension());
+        console.log(`[SpeechRole Mixin] FFmpeg extraction successful, audio buffer size: ${audioBuffer.length} bytes`);
+        return new Speech(audioBuffer, this);
+      } catch (error) {
+        console.error('[SpeechRole Mixin] Failed to extract speech from video:', error);
+        // Fallback: return speech object with original data
+        return new Speech(this.data, this);
+      }
+    }
+
+    /**
+     * Check if this Asset represents a video format (for speech extraction)
+     */
+    private isVideoFormatForSpeech(): boolean {
+      const videoFormats = ['mp4', 'avi', 'mov', 'wmv', 'flv', 'webm', 'mkv'];
+      const format = this.metadata.format?.toLowerCase() || '';
+      const isVideo = videoFormats.includes(format);
+      console.log(`[SpeechRole Mixin] isVideoFormatForSpeech check: format="${format}", isVideo=${isVideo}`);
+      return isVideo;
     }
 
     /**
@@ -84,9 +126,40 @@ export function withAudioRole<T extends Constructor<BaseAsset>>(Base: T) {
   return class extends Base implements AudioRole {
     /**
      * Convert this Asset to Audio data
+     * For video assets, extracts audio using FFmpeg
      */
-    asAudio(): Audio {
+    async asAudio(): Promise<Audio> {
+      // Check if this is a video format that needs audio extraction
+      if (this.isVideoFormatForAudio()) {
+        return await this.extractAudioFromVideo();
+      }
+      
+      // For audio formats, return as-is
       return new Audio(this.data, this);
+    }
+
+    /**
+     * Extract audio from video using FFmpeg
+     */
+    private async extractAudioFromVideo(): Promise<Audio> {
+      const ffmpegService = FFmpegService.getInstance();
+      
+      try {
+        const audioBuffer = await ffmpegService.extractAudio(this.data, this.getFileExtension());
+        return new Audio(audioBuffer, this);
+      } catch (error) {
+        console.error('Failed to extract audio from video:', error);
+        // Fallback to original data
+        return new Audio(this.data, this);
+      }
+    }
+
+    /**
+     * Check if this Asset represents a video format (for audio extraction)
+     */
+    private isVideoFormatForAudio(): boolean {
+      const videoFormats = ['mp4', 'avi', 'mov', 'wmv', 'flv', 'webm', 'mkv'];
+      return videoFormats.includes(this.metadata.format?.toLowerCase() || '');
     }
 
 
@@ -149,7 +222,7 @@ export function withVideoRole<T extends Constructor<BaseAsset>>(Base: T) {
     /**
      * Convert this Asset to Video data
      */
-    asVideo(): Video {
+    async asVideo(): Promise<Video> {
       const videoMetadata = this.getVideoMetadata();
       const format = videoMetadata.format || this.detectVideoFormat();
 
@@ -244,7 +317,7 @@ export function withTextRole<T extends Constructor<BaseAsset>>(Base: T) {
     /**
      * Convert this Asset to Text data
      */
-    asText(): Text {
+    async asText(): Promise<Text> {
       const textMetadata = this.getTextMetadata();
       const content = this.extractTextContent();
 

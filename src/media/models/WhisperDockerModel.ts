@@ -63,7 +63,7 @@ export class WhisperDockerModel extends SpeechToTextModel {
     const startTime = Date.now();
 
     // Cast input to Speech
-    const speech = castToSpeech(input);
+    const speech = await castToSpeech(input);
     
     // Validate speech data
     if (!speech.isValid()) {

@@ -124,7 +124,60 @@ try {
 }
 ```
 
-## 🏗️ SEPARATION OF CONCERNS ARCHITECTURE
+## � TTS DUAL-SIGNATURE PATTERN
+
+### **Problem: Voice Cloning as Options Breaks Clean Interface**
+Previous approach mixed different operation modes through options:
+```typescript
+// INCONSISTENT - Basic TTS and voice cloning look the same
+await model.transform(text, { voice: 'default' });
+await model.transform(text, { voiceFile: 'voice.wav' }); // Different operation, same signature
+```
+
+### **Solution: Dual Transform Signatures - Same Pattern as Whisper STT**
+Voice cloning is a fundamentally different operation that takes different inputs:
+
+```typescript
+// CONSISTENT WITH WHISPER PATTERN
+// Whisper STT: Multiple input types, same method name
+await whisperModel.transform(audio);     // Audio → Text
+await whisperModel.transform(video);     // Video → Text (extracts audio)
+
+// TTS: Multiple input combinations, same method name  
+await ttsModel.transform(text);                    // Text → Speech (basic TTS)
+await ttsModel.transform(text, voiceAudio);        // Text + Audio → Speech (voice cloning)
+```
+
+### **Key Benefits**
+1. **Type Safety** - Compiler knows exactly what inputs are expected for each mode
+2. **Consistency** - Same pattern as Whisper's multi-input handling  
+3. **Separation of Concerns** - Voice cloning is clearly a different operation, not just an option
+4. **Discoverability** - Developers can see all available transform signatures
+5. **Clean Interface** - No magic options that change behavior dramatically
+
+### **Implementation Pattern**
+```typescript
+abstract class TextToSpeechModel extends Model {
+  // Basic text-to-speech transformation
+  abstract transform(input: Text | (Asset & TextRole)): Promise<Speech>;
+  
+  // Voice cloning transformation - accepts Speech (which Audio can play the role of)
+  abstract transform(text: Text | (Asset & TextRole), voiceSpeech: Speech | (Asset & SpeechRole)): Promise<Speech>;
+}
+
+// Usage Examples
+const text = Text.fromString('Hello world');
+const voiceAudio = Audio.fromFile('voice-sample.wav');
+const voiceSpeech = voiceAudio.asSpeech(); // Audio can play Speech role
+
+// Basic TTS
+const basicSpeech = await model.transform(text);
+
+// Voice cloning - clearly different signature
+const clonedSpeech = await model.transform(text, voiceSpeech);
+```
+
+## �🏗️ SEPARATION OF CONCERNS ARCHITECTURE
 
 ### **Current Problem: Monolithic Services**
 The existing `ChatterboxTTSDockerService` and `WhisperSTTService` mix multiple concerns:
@@ -391,11 +444,17 @@ async function runTTSTest(): Promise<void> {
   await provider.startService();
   const model: TextToSpeechModel = await provider.createTextToSpeechModel('chatterbox-tts');
 
+  // Basic TTS - same clean interface as Whisper STT
   const textFromString: Text = Text.fromString('Hello, this is a test');
   const stringResult: Speech = await model.transform(textFromString);
 
   const textFromFile: Text = Text.fromFile(testTextPath);
   const fileResult: Speech = await model.transform(textFromFile);
+
+  // Voice cloning TTS - dual input signature, same clean interface pattern
+  const voiceAudio: Audio = Audio.fromFile('voice-sample.wav');
+  const voiceSpeech: Speech = voiceAudio.asSpeech(); // Audio can play Speech role
+  const clonedResult: Speech = await model.transform(textFromString, voiceSpeech);
 
   await provider.stopService();
 }
@@ -517,7 +576,11 @@ abstract class SpeechToTextModel extends Model {
 }
 
 abstract class TextToSpeechModel extends Model {
+  // Basic text-to-speech transformation
   abstract transform(input: Text | (Asset & TextRole)): Promise<Speech>;
+  
+  // Voice cloning transformation - accepts Speech (which Audio can play the role of)
+  abstract transform(text: Text | (Asset & TextRole), voiceSpeech: Speech | (Asset & SpeechRole)): Promise<Speech>;
 }
 
 // Usage with Automatic Role Casting
