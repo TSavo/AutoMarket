@@ -3,122 +3,150 @@
 ## 🎯 CURRENT STATE
 
 ### ✅ Completed Foundation Work
-- ✅ **Clean Interface Pattern** - Universal `Audio.fromFile()`, `Video.fromFile()` with `model.transform()`
-- ✅ **Role-Based Casting System** - Audio/Video implement SpeechRole, models handle casting internally
+- ✅ **Smart Asset Loading System** - Format-agnostic `AssetLoader.load()` with auto-detection and role mixins
+- ✅ **Async Role Casting System** - Universal async role methods with intelligent FFmpeg integration
+- ✅ **Clean Interface Pattern** - Universal asset loading with `model.transform()` for all formats
+- ✅ **Role-Based Casting System** - Assets implement appropriate roles, models handle casting internally
+- ✅ **FFmpeg Integration** - Automatic video-to-audio extraction for speech/audio roles
 - ✅ **Docker Self-Management Pattern** - Working reference implementation with DockerComposeService
 - ✅ **Basic Repository Structure** - Organized codebase with proper TypeScript setup
 - ✅ **Testing Infrastructure** - Vitest setup with unit and integration test patterns
-- ✅ **Working Provider Implementations** - Whisper STT with clean interface, Chatterbox TTS needs update
+- ✅ **Working Provider Implementations** - Whisper STT and Chatterbox TTS with clean interfaces
 - ✅ **Extensive Provider Reference Code** - FAL.ai and Replicate implementations exist
-- ✅ **Multi-Format Support** - WAV, MP3, MP4 all work with same clean interface
+- ✅ **Multi-Format Support** - WAV, MP3, MP4, AVI, MOV, TXT all work with same clean interface
 
-## 🔧 ARCHITECTURE ACHIEVED: CLEAN INTERFACE PATTERN
+## 🔧 ARCHITECTURE ACHIEVED: SMART ASSET LOADING SYSTEM
 
 ### **Problem Solved**
-Complex media type constructors requiring metadata we don't have, and manual role conversion calls.
+Complex media type constructors requiring metadata we don't have, format-specific asset classes, and manual role conversion calls.
 
-### **Solution: Universal Clean Interfaces with Automatic Role Casting**
+### **Solution: Smart Asset Loading with Automatic Format Detection and Role Assignment**
 
-**Core Achievement**: Same clean interface for all media types, models handle complexity internally
+**Core Achievement**: Single loading interface for all formats with intelligent role mixin application
 ```typescript
-// UNIVERSAL CLEAN INTERFACE - SAME FOR ALL FORMATS
-const wavAudio = Audio.fromFile('confusion.wav');      // WAV audio
-const mp3Audio = Audio.fromFile('debug-test.mp3');     // MP3 audio
-const mp4Video = Video.fromFile('video.mp4');          // MP4 video
+// SMART ASSET LOADING - FORMAT AGNOSTIC
+const videoAsset = AssetLoader.load('video.mp4');      // Auto-detects MP4, applies video+speech+audio roles
+const audioAsset = AssetLoader.load('audio.mp3');      // Auto-detects MP3, applies speech+audio roles  
+const textAsset = AssetLoader.load('document.txt');    // Auto-detects TXT, applies text role
 
-// UNIVERSAL MODEL TRANSFORM - HANDLES ALL TYPES
-const wavResult = await model.transform(wavAudio);     // Audio → Text
-const mp3Result = await model.transform(mp3Audio);     // Audio → Text
-const mp4Result = await model.transform(mp4Video);     // Video → Text (extracts audio)
+// UNIVERSAL MODEL TRANSFORM - HANDLES ALL TYPES WITH ASYNC ROLE CASTING
+const mp4Result = await model.transform(videoAsset);   // Video → Text (FFmpeg extracts audio automatically)
+const mp3Result = await model.transform(audioAsset);   // Audio → Text (direct conversion)
+const wavResult = await model.transform(wavAsset);     // Audio → Text (direct conversion)
 
 // SAME MODEL, DIFFERENT PROVIDERS (FUTURE)
 const dockerModel = await whisperDockerProvider.createModel('whisper');
 const openaiModel = await openaiProvider.createModel('whisper');
-const result1 = await dockerModel.transform(audio);    // Uses Docker
-const result2 = await openaiModel.transform(audio);    // Uses OpenAI API
+const result1 = await dockerModel.transform(asset);    // Uses Docker
+const result2 = await openaiModel.transform(asset);    // Uses OpenAI API
 ```
 
 ### **Key Principles Achieved**
-1. **Clean Universal Interfaces** - `Audio.fromFile()`, `Video.fromFile()` work for all formats
-2. **Automatic Role Casting** - Models accept any SpeechRole-capable input, handle conversion internally
+1. **Smart Format-Agnostic Loading** - `AssetLoader.load()` auto-detects format and applies appropriate role mixins
+2. **Async Role Casting with FFmpeg** - Video assets automatically extract audio using FFmpeg when cast to speech/audio
 3. **No Metadata Pollution** - Only use data we actually have (file path, format detection)
-4. **Format Agnostic** - Same interface whether WAV, MP3, MP4, or any other format
+4. **Format Agnostic** - Same interface whether WAV, MP3, MP4, AVI, MOV, TXT, or any other format
 5. **Promise-Based Error Handling** - Unsupported inputs rejected with clear error messages
 6. **Type Safety** - `SpeechInput = Speech | Audio | Video | (Asset & SpeechRole)`
+7. **Intelligent Role Assignment** - Video files get video+audio+speech roles, audio files get audio+speech roles
 
-## 🎯 CLEAN INTERFACE IMPLEMENTATION (ACHIEVED)
+## 🎯 SMART ASSET LOADING IMPLEMENTATION (ACHIEVED)
 
-### **Universal Media Loading**
+### **Smart Format Detection and Role Assignment**
 ```typescript
-// CLEAN - No metadata we don't have
-const audio = Audio.fromFile('audio.mp3');     // Just file path
-const video = Video.fromFile('video.mp4');     // Just file path
+// SMART - Auto-detects format, applies appropriate role mixins
+const videoAsset = AssetLoader.load('video.mp4');     // Auto-applies video+speech+audio roles
+const audioAsset = AssetLoader.load('audio.mp3');     // Auto-applies speech+audio roles
+const textAsset = AssetLoader.load('document.txt');   // Auto-applies text role
 
-// DIRTY - Metadata we don't actually have (REMOVED)
-// const speech = new Speech(buffer, 'en', 'speaker1', metadata); ❌
+// LEGACY (still supported) - Format-specific loading
+const audio = Audio.fromFile('audio.mp3');            // Still works, but less powerful
+const video = Video.fromFile('video.mp4');            // Still works, but less powerful
 ```
 
-### **Automatic Format Detection**
+### **Intelligent FFmpeg Integration**
 ```typescript
-class Audio {
-  getFormat(): AudioFormat {
-    // Detects from file extension or metadata
-    // Can be enhanced with ffprobe later
-    // Defaults to sensible fallback
-  }
+// When video assets are cast to speech/audio roles:
+const videoAsset = AssetLoader.load('video.mp4');     // Loaded with all video capabilities
+
+// These trigger automatic FFmpeg audio extraction:
+const speech = await videoAsset.asSpeech();           // FFmpeg extracts audio → Speech object
+const audio = await videoAsset.asAudio();             // FFmpeg extracts audio → Audio object
+const video = await videoAsset.asVideo();             // Direct access → Video object
+
+// Audio assets get direct conversion (no FFmpeg overhead):
+const audioAsset = AssetLoader.load('audio.wav');
+const speech2 = await audioAsset.asSpeech();          // Direct conversion → Speech object
+```
+
+### **Type-Safe Loading with Role Guarantees**
+```typescript
+// Generic loading with role guarantees
+interface VideoAsset {
+  asSpeech(): Promise<Speech>;
+  asAudio(): Promise<Audio>;
+  asVideo(): Promise<Video>;
 }
+
+const typedAsset = AssetLoader.fromFile<VideoAsset>('video.mp4');
+// TypeScript guarantees these methods exist and return the right types
 ```
 
-### **Role-Based Casting System**
+### **Async Role-Based Casting System**
 ```typescript
-// Audio implements SpeechRole automatically
-class Audio implements SpeechRole {
-  asSpeech(): Speech {
-    return new Speech(this.data, this.sourceAsset);
+// Assets implement async role interfaces automatically
+class VideoAssetWithMixins implements SpeechRole, AudioRole, VideoRole {
+  async asSpeech(): Promise<Speech> {
+    // Intelligent format detection → triggers FFmpeg for video formats
+    if (this.isVideoFormat()) {
+      return await this.extractSpeechFromVideo(); // Uses FFmpeg
+    }
+    return new Speech(this.data, this.sourceAsset); // Direct for audio
+  }
+
+  async asAudio(): Promise<Audio> {
+    // Intelligent format detection → triggers FFmpeg for video formats  
+    if (this.isVideoFormat()) {
+      return await this.extractAudioFromVideo(); // Uses FFmpeg
+    }
+    return new Audio(this.data, this.sourceAsset); // Direct for audio
+  }
+
+  async asVideo(): Promise<Video> {
+    return new Video(this.data, this.sourceAsset); // Direct access
   }
 
   canPlaySpeechRole(): boolean {
-    return this.isValid(); // Any valid audio can be speech
-  }
-}
-
-// Video implements SpeechRole automatically
-class Video implements SpeechRole {
-  asSpeech(): Speech {
-    return new Speech(this.data, this.sourceAsset); // TODO: Extract audio track
-  }
-
-  canPlaySpeechRole(): boolean {
-    return this.isValid(); // Any valid video can have speech
+    return this.isValid(); // Any valid media can potentially have speech
   }
 }
 ```
 
-### **Model Input Flexibility**
+### **Model Input Flexibility with Async Casting**
 ```typescript
-// Models accept union types with automatic casting
+// Models accept union types with automatic async casting
 abstract class SpeechToTextModel {
   abstract transform(input: SpeechInput, options?: SpeechToTextOptions): Promise<Text>;
 }
 
 // SpeechInput = Speech | Audio | Video | (Asset & SpeechRole)
-// Model calls castToSpeech(input) internally which calls input.asSpeech()
+// Model calls await castToSpeech(input) internally which calls await input.asSpeech()
 ```
 
-### **Clean Usage Pattern**
+### **Smart Usage Pattern**
 ```typescript
-// STEP 1: Load media with clean interface
-const audio = Audio.fromFile('file.mp3');
-const video = Video.fromFile('file.mp4');
+// STEP 1: Load media with smart auto-detection
+const videoAsset = AssetLoader.load('file.mp4');  // Auto-detects format, applies role mixins
+const audioAsset = AssetLoader.load('file.mp3');  // Auto-detects format, applies role mixins
 
-// STEP 2: Transform with universal interface
-const result1 = await model.transform(audio);  // Model handles role conversion
-const result2 = await model.transform(video);  // Model handles role conversion
+// STEP 2: Transform with universal interface (FFmpeg happens automatically)
+const result1 = await model.transform(videoAsset); // Model calls asSpeech() → FFmpeg extraction
+const result2 = await model.transform(audioAsset); // Model calls asSpeech() → direct conversion
 
 // STEP 3: Error handling via promise rejection
 try {
-  const text = Text.fromString('hello');
-  await model.transform(text); // Throws: missing SpeechRole capability
+  const textAsset = AssetLoader.load('document.txt');
+  await model.transform(textAsset); // Throws: missing SpeechRole capability
 } catch (error) {
   // Clear error message about unsupported input
 }
@@ -165,10 +193,15 @@ abstract class TextToSpeechModel extends Model {
   abstract transform(text: Text | (Asset & TextRole), voiceSpeech: Speech | (Asset & SpeechRole)): Promise<Speech>;
 }
 
-// Usage Examples
-const text = Text.fromString('Hello world');
-const voiceAudio = Audio.fromFile('voice-sample.wav');
-const voiceSpeech = voiceAudio.asSpeech(); // Audio can play Speech role
+// Usage Examples with Smart Asset Loading
+const text = AssetLoader.load('script.txt');       // Auto-detects text format
+const voiceAudio = AssetLoader.load('voice.wav');  // Auto-detects audio, applies speech role
+
+// Basic TTS
+const basicSpeech = await ttsModel.transform(text);
+
+// Voice cloning - voiceAudio automatically has asSpeech() due to smart loading
+const clonedSpeech = await ttsModel.transform(text, voiceAudio); // Async role casting happens automatically
 
 // Basic TTS
 const basicSpeech = await model.transform(text);
@@ -206,25 +239,30 @@ ReplicateAPIClient       // HTTP calls to Replicate API
 ElevenLabsAPIClient      // HTTP calls to ElevenLabs API
 ```
 
-#### **Layer 3: Asset-Based Architecture with Role Mixins** (Business Logic)
+#### **Layer 3: Smart Asset System with Dynamic Role Mixins** (Business Logic)
 ```typescript
-// Asset-Based System with TypeScript Mixins
-Asset (base class)
-├── Role Interfaces
-│   ├── SpeechRole      // Can be used as Speech input/output
-│   ├── AudioRole       // Can be used as Audio input/output
-│   ├── VideoRole       // Can be used as Video input/output
-│   └── TextRole        // Can be used as Text input/output
-├── Mixin Functions
-│   ├── withSpeechRole(Asset) → Asset & SpeechRole
-│   ├── withAudioRole(Asset) → Asset & AudioRole
+// Smart Asset System with Dynamic Role Assignment
+AssetLoader (smart factory)
+├── Format Detection Registry
+│   ├── Audio formats: MP3, WAV, FLAC → SpeechRole + AudioRole
+│   ├── Video formats: MP4, AVI, MOV → VideoRole + SpeechRole + AudioRole (with FFmpeg)
+│   ├── Text formats: TXT, MD, JSON → TextRole
+│   └── Extensible for new formats
+├── Dynamic Mixin Application
+│   ├── withSpeechRole(Asset) → Asset & SpeechRole (with FFmpeg for video)
+│   ├── withAudioRole(Asset) → Asset & AudioRole (with FFmpeg for video)
 │   ├── withVideoRole(Asset) → Asset & VideoRole
 │   └── withTextRole(Asset) → Asset & TextRole
-└── Concrete Asset Types
-    ├── MP3Asset extends withSpeechRole(withAudioRole(Asset))
-    ├── MP4Asset extends withSpeechRole(withAudioRole(withVideoRole(Asset)))
-    ├── WAVAsset extends withSpeechRole(withAudioRole(Asset))
-    └── TextAsset extends withTextRole(Asset)
+└── Smart Loading Interface
+    ├── AssetLoader.load(filePath) → Auto-detects format, applies appropriate mixins
+    ├── AssetLoader.fromFile<T>(filePath) → Type-safe loading with role guarantees
+    └── AssetLoader.fromBuffer(buffer, format) → Buffer-based loading with format specification
+
+// Legacy Asset Types (still supported but superseded by smart loading)
+├── MP3Asset extends withSpeechRole(withAudioRole(Asset))      // ⚠️ Legacy
+├── MP4Asset extends withSpeechRole(withAudioRole(withVideoRole(Asset))) // ⚠️ Legacy
+├── WAVAsset extends withSpeechRole(withAudioRole(Asset))      // ⚠️ Legacy
+└── TextAsset extends withTextRole(Asset)                     // ⚠️ Legacy
 
 // Model Hierarchy with Asset-Role Inputs/Outputs
 Model (abstract base)
@@ -419,17 +457,17 @@ async function runIntegrationTest(): Promise<void> {
   const isAvailable: boolean = await model.isAvailable();
   assert(isAvailable, 'Model is available');
 
-  // Clean transformation interface
-  const wavAudio: Audio = Audio.fromFile(wavPath);
+  // Smart Asset Loading - Auto-detects formats and applies role mixins
+  const wavAudio = AssetLoader.load(wavPath);        // Auto-detects WAV, applies speech+audio roles
   const wavResult: Text = await model.transform(wavAudio);
   assert(!!wavResult.content, 'WAV result has content property');
 
-  const mp3Audio: Audio = Audio.fromFile(mp3Path);
+  const mp3Audio = AssetLoader.load(mp3Path);        // Auto-detects MP3, applies speech+audio roles
   const mp3Result: Text = await model.transform(mp3Audio);
   assert(!!mp3Result.content, 'MP3 result has content property');
 
-  const mp4Video: Video = Video.fromFile(mp4Path);
-  const mp4Result: Text = await model.transform(mp4Video);
+  const mp4Video = AssetLoader.load(mp4Path);        // Auto-detects MP4, applies video+speech+audio roles
+  const mp4Result: Text = await model.transform(mp4Video); // FFmpeg extraction happens automatically
   assert(!!mp4Result.content, 'MP4 result has content property');
 
   // Service cleanup
@@ -444,439 +482,110 @@ async function runTTSTest(): Promise<void> {
   await provider.startService();
   const model: TextToSpeechModel = await provider.createTextToSpeechModel('chatterbox-tts');
 
-  // Basic TTS - same clean interface as Whisper STT
+  // Basic TTS - smart asset loading
   const textFromString: Text = Text.fromString('Hello, this is a test');
   const stringResult: Speech = await model.transform(textFromString);
 
-  const textFromFile: Text = Text.fromFile(testTextPath);
+  const textFromFile = AssetLoader.load(testTextPath);     // Auto-detects text format, applies text role
   const fileResult: Speech = await model.transform(textFromFile);
 
-  // Voice cloning TTS - dual input signature, same clean interface pattern
-  const voiceAudio: Audio = Audio.fromFile('voice-sample.wav');
-  const voiceSpeech: Speech = voiceAudio.asSpeech(); // Audio can play Speech role
-  const clonedResult: Speech = await model.transform(textFromString, voiceSpeech);
+  // Voice cloning TTS - smart asset loading with automatic async role casting
+  const voiceAudio = AssetLoader.load('voice-sample.wav'); // Auto-detects WAV, applies speech+audio roles
+  const clonedResult: Speech = await model.transform(textFromString, voiceAudio); // Async asSpeech() called automatically
 
   await provider.stopService();
 }
 ```
 
-## 🎯 STRONG ASSET-ROLE INTERFACES
+## 🚀 SMART ASSET LOADING ACHIEVEMENTS (NEW)
 
-Assets with role mixins provide strong typing with automatic role casting:
+### **Revolutionary Format-Agnostic Architecture**
 
+**Before (Format-Specific):**
 ```typescript
-// Base Asset class
-abstract class Asset {
-  constructor(
-    public data: Buffer,
-    public metadata: Record<string, any> = {}
-  ) {}
-
-  static fromFile(filePath: string): Asset;
-  static fromBuffer(buffer: Buffer, metadata?: Record<string, any>): Asset;
-  toFile(outputPath: string): Promise<void>;
-  toBuffer(): Buffer;
-}
-
-// Role Interfaces - what an Asset can "play"
-interface SpeechRole {
-  asSpeech(): Speech;
-  getSpeechMetadata(): SpeechMetadata;
-}
-
-interface AudioRole {
-  asAudio(): Audio;
-  getAudioMetadata(): AudioMetadata;
-}
-
-interface VideoRole {
-  asVideo(): Video;
-  getVideoMetadata(): VideoMetadata;
-}
-
-interface TextRole {
-  asText(): Text;
-  getTextMetadata(): TextMetadata;
-}
-
-// Core Media Types with Source Asset Preservation
-class Speech {
-  constructor(
-    public data: Buffer,
-    public language?: string,
-    public speaker?: string,
-    public metadata?: SpeechMetadata,
-    public sourceAsset?: Asset  // CRITICAL: Preserves reference to original Asset
-  ) {}
-}
-
-class Audio {
-  constructor(
-    public data: Buffer,
-    public format: AudioFormat,
-    public metadata?: AudioMetadata,
-    public sourceAsset?: Asset  // CRITICAL: Preserves reference to original Asset
-  ) {}
-}
-
-class Video {
-  constructor(
-    public data: Buffer,
-    public format: VideoFormat,
-    public metadata?: VideoMetadata,
-    public sourceAsset?: Asset  // CRITICAL: Preserves reference to original Asset
-  ) {}
-}
-
-class Text {
-  constructor(
-    public content: string,
-    public language?: string,
-    public confidence?: number,
-    public metadata?: TextMetadata,
-    public sourceAsset?: Asset  // CRITICAL: Preserves reference to original Asset
-  ) {}
-}
-
-// TypeScript Mixin Functions
-function withSpeechRole<T extends Constructor<Asset>>(Base: T) {
-  return class extends Base implements SpeechRole {
-    asSpeech(): Speech {
-      return new Speech(this.data, this.metadata.language, this.metadata.speaker, this.metadata);
-    }
-    getSpeechMetadata(): SpeechMetadata {
-      return this.metadata.speech || {};
-    }
-  };
-}
-
-function withAudioRole<T extends Constructor<Asset>>(Base: T) {
-  return class extends Base implements AudioRole {
-    asAudio(): Audio {
-      return new Audio(this.data, this.metadata.format, this.metadata);
-    }
-    getAudioMetadata(): AudioMetadata {
-      return this.metadata.audio || {};
-    }
-  };
-}
-
-// Concrete Asset Types with Role Mixins
-class MP3Asset extends withSpeechRole(withAudioRole(Asset)) {
-  // Can play both Audio and Speech roles
-}
-
-class MP4Asset extends withSpeechRole(withAudioRole(withVideoRole(Asset))) {
-  // Can play Video, Audio, and Speech roles
-}
-
-// Model Interfaces with Type-Safe Role Acceptance
-abstract class SpeechToTextModel extends Model {
-  abstract transform(input: Speech | (Asset & SpeechRole)): Promise<Text>;
-}
-
-abstract class TextToSpeechModel extends Model {
-  // Basic text-to-speech transformation
-  abstract transform(input: Text | (Asset & TextRole)): Promise<Speech>;
-  
-  // Voice cloning transformation - accepts Speech (which Audio can play the role of)
-  abstract transform(text: Text | (Asset & TextRole), voiceSpeech: Speech | (Asset & SpeechRole)): Promise<Speech>;
-}
-
-// Usage with Automatic Role Casting
-const mp4Asset = MP4Asset.fromFile('video.mp4');
-const transcript = await whisperModel.transform(mp4Asset);  // Auto-casts to Speech
-const newSpeech = await chatterboxModel.transform(transcript);  // Text → Speech
+// Required format-specific knowledge and classes
+const mp4Asset = MP4Asset.fromFile('video.mp4');     // ❌ Format-specific
+const mp3Asset = MP3Asset.fromFile('audio.mp3');     // ❌ Format-specific  
+const wavAsset = WAVAsset.fromFile('audio.wav');     // ❌ Format-specific
 ```
 
-## 🔗 CRITICAL: SOURCE ASSET PRESERVATION PATTERN
-
-### **Problem: Role Narrowing Loses Context**
-When an MP4Asset (Video+Audio+Speech) is passed to a speech-to-text model, we get back Text, but lose the connection to the broader video capabilities. This breaks pipeline flexibility.
-
-### **Solution: Linked Asset Chain**
-All role objects (Speech, Audio, Video, Text) maintain a reference to their source Asset, enabling access to broader capabilities later in the pipeline.
-
+**After (Smart Auto-Detection):**
 ```typescript
-// Create multi-role asset
-const mp4Asset = MP4Asset.fromFile('video.mp4'); // Video + Audio + Speech
-
-// Transform: Video → Speech → Text (role narrowing)
-const text = await whisperModel.transform(mp4Asset); // Returns Text
-
-// 🎯 CRITICAL: Access broader capabilities later!
-text.sourceAsset === mp4Asset; // ✅ true - preserved reference
-
-// Can still access video capabilities from the text result
-if (text.sourceAsset && hasVideoRole(text.sourceAsset)) {
-  const video = text.sourceAsset.asVideo(); // ✅ Get original video data
-  const audio = text.sourceAsset.asAudio(); // ✅ Get original audio data
-}
-
-// Transformation chain preserves source
-const mp4Asset = MP4Asset.fromFile('video.mp4');
-const speech1 = mp4Asset.asSpeech();                    // sourceAsset: mp4Asset
-const text = await whisperModel.transform(speech1);     // sourceAsset: mp4Asset
-const speech2 = await ttsModel.transform(text);         // sourceAsset: mp4Asset
-
-// At any point in the pipeline, access the original video!
-speech2.sourceAsset.asVideo(); // ✅ Still works!
+// Universal format-agnostic loading
+const videoAsset = AssetLoader.load('video.mp4');    // ✅ Auto-detects MP4, applies video+speech+audio roles
+const audioAsset = AssetLoader.load('audio.mp3');    // ✅ Auto-detects MP3, applies speech+audio roles
+const wavAsset = AssetLoader.load('audio.wav');      // ✅ Auto-detects WAV, applies speech+audio roles
 ```
 
-### **Key Benefits**
-1. **Context Preservation**: Never lose the fact that text came from video
-2. **Pipeline Flexibility**: Later stages can access both derived data and original source
-3. **Clean Interfaces**: Models still work with simple role types (no type explosion)
-4. **Memory Efficient**: Original Asset is shared, not duplicated
-5. **Backward Compatibility**: Existing code works unchanged
+### **Intelligent FFmpeg Integration**
 
-### **Implementation Pattern**
+**Video Files → Audio Extraction:**
 ```typescript
-// Mixins pass source Asset reference when creating role objects
-function withSpeechRole<T extends Constructor<Asset>>(Base: T) {
-  return class extends Base implements SpeechRole {
-    asSpeech(): Speech {
-      return new Speech(
-        this.data,
-        this.metadata.language,
-        this.metadata.speaker,
-        this.metadata,
-        this  // 🎯 Pass reference to source Asset
-      );
-    }
-  };
-}
+const videoAsset = AssetLoader.load('video.mp4');
 
-// Models preserve source Asset through transformations
-class WhisperSTTModel {
-  async transform(input: SpeechInput): Promise<Text> {
-    const speech = castToSpeech(input);
-    const result = await this.processTranscription(speech);
-
-    return new Text(
-      result.text,
-      result.language,
-      result.confidence,
-      result.metadata,
-      speech.sourceAsset  // 🎯 Preserve source Asset reference
-    );
-  }
-}
+// These automatically trigger FFmpeg audio extraction:
+const speech = await videoAsset.asSpeech();          // FFmpeg: MP4 → WAV audio → Speech
+const audio = await videoAsset.asAudio();            // FFmpeg: MP4 → WAV audio → Audio
+const video = await videoAsset.asVideo();            // Direct: MP4 → Video (no FFmpeg)
 ```
 
-### **Architectural Principle: "Narrowing is Always One Way"**
-- Role casting extracts specific data for processing (Speech from MP4Asset)
-- Original Asset maintains all its role capabilities unchanged
-- Transformation outputs preserve source context through `sourceAsset` reference
-- Pipeline stages can access broader capabilities when needed
-
-## 🔄 EXTRACTION STRATEGY FROM EXISTING CODE
-
-### **What to Extract from ChatterboxTTSDockerService**
+**Audio Files → Direct Conversion:**
 ```typescript
-// EXTRACT: Pure Docker management
-ChatterboxDockerService {
-  startService(), stopService(), getServiceStatus(), isServiceHealthy()
-}
+const audioAsset = AssetLoader.load('audio.wav');
 
-// EXTRACT: Pure API client
-ChatterboxAPIClient {
-  generateTTS(text, options), checkHealth(), uploadVoiceFile()
-}
-
-// CREATE: Model implementation
-ChatterboxDockerModel {
-  transform(input) {
-    await dockerService.startService()
-    return await apiClient.generateTTS(input.text, input.options)
-  }
-}
+// These use direct conversion (no FFmpeg overhead):
+const speech = await audioAsset.asSpeech();          // Direct: WAV → Speech
+const audio = await audioAsset.asAudio();            // Direct: WAV → Audio
 ```
 
-### **What to Extract from WhisperSTTService**
-```typescript
-// EXTRACT: Pure Docker management
-WhisperDockerService {
-  startService(), stopService(), getServiceStatus(), isServiceHealthy()
-}
+### **Integration Test Results**
 
-// EXTRACT: Pure API client
-WhisperAPIClient {
-  transcribeAudio(audioData, options), checkHealth()
-}
-
-// CREATE: Model implementation
-WhisperDockerModel {
-  transform(input) {
-    await dockerService.startService()
-    return await apiClient.transcribeAudio(input.audio, input.options)
-  }
-}
+**Whisper STT (Video Processing):**
+```
+🎬 Testing MP4 Video...
+[SpeechRole Mixin] asSpeech() called on format: mp4
+[SpeechRole Mixin] Video format detected, extracting speech from video using FFmpeg...
+[FFmpegService] extractAudio called with format: mp4, buffer size: 96365415 bytes
+[FFmpegService] Audio extraction successful, output size: 29544998 bytes
+📝 MP4 result: "300 million job massacre. Goldman Sachs AI displacement analysis..."
 ```
 
-### **Provider Implementation Pattern: Clean Separation of Concerns**
-
-**CRITICAL ARCHITECTURE INSIGHT**: Models should NOT manage service lifecycle!
-
-```typescript
-// WRONG - Model managing service lifecycle (current problem)
-class WhisperSTTModel {
-  async transform(speech: Speech): Promise<Text> {
-    await this.dockerService.startService(); // ❌ Model shouldn't know about Docker!
-    await this.dockerService.waitForHealthy(); // ❌ Infrastructure concern!
-    // ... transformation logic
-  }
-}
-
-// RIGHT - Provider manages service lifecycle, Model handles transformation
-class WhisperDockerProvider implements SpeechToTextProvider {
-  private dockerService = new WhisperDockerService();
-
-  async createSpeechToTextModel(modelId: 'whisper'): Promise<WhisperSTTModel> {
-    // ✅ Provider handles infrastructure
-    await this.dockerService.startService();
-    await this.dockerService.waitForHealthy();
-
-    // ✅ Provider creates model with pre-configured dependencies
-    return new WhisperSTTModel({
-      apiClient: new WhisperAPIClient(), // Pre-configured, ready to use
-      // No dockerService passed - model doesn't need it!
-    });
-  }
-
-  // ✅ Provider exposes service management
-  async startService(): Promise<boolean> {
-    return this.dockerService.startService(); // Delegate to service
-  }
-
-  async stopService(): Promise<boolean> {
-    return this.dockerService.stopService(); // Delegate to service
-  }
-}
-
-class WhisperSTTModel {
-  constructor(private apiClient: WhisperAPIClient) {}
-
-  async transform(speech: Speech): Promise<Text> {
-    // ✅ Pure transformation logic - no infrastructure concerns!
-    const response = await this.apiClient.transcribeAudio(speech.data);
-    return new Text(response.text, response.language, response.confidence);
-  }
-}
-
-// Usage: Provider manages lifecycle, Model handles transformation
-const provider = new WhisperDockerProvider();
-await provider.startService(); // Provider handles infrastructure
-const model = await provider.createSpeechToTextModel('whisper');
-const result = await model.transform(speech); // Model handles transformation
-await provider.stopService(); // Provider cleans up infrastructure
+**Chatterbox TTS (Voice Cloning):**
+```
+🎵 Testing voice cloning with Audio input...
+[SpeechRole Mixin] asSpeech() called on format: wav
+[SpeechRole Mixin] Audio format detected, direct conversion to Speech
+✅ Voice cloning result exists and has audio data
 ```
 
-**Architectural Benefits:**
-1. **Clean Separation**: Infrastructure vs Business Logic
-2. **Testability**: Models can be unit tested without Docker
-3. **Flexibility**: Same model works with different providers
-4. **Responsibility**: Provider = Infrastructure, Model = Transformation
+### **Key Benefits Delivered**
 
-## 🎯 REFACTOR REQUIREMENTS
+1. **✅ Format Agnostic** - Same loading interface for all media formats
+2. **✅ Intelligent Processing** - Automatic FFmpeg integration for video files
+3. **✅ Performance Optimized** - Direct conversion for audio files (no unnecessary FFmpeg)
+4. **✅ Type Safe** - Generic loading with role guarantees via TypeScript
+5. **✅ Extensible** - Easy to add new formats by updating the format registry
+6. **✅ Backward Compatible** - Legacy format-specific classes still work
+7. **✅ Clean API** - Single loading method replaces dozens of format-specific classes
 
-### **PRESERVE EXISTING FUNCTIONALITY**
-- ✅ All existing unit tests must pass
-- ✅ Docker self-management must work unchanged
-- ✅ API interfaces should remain compatible
-- ✅ No breaking changes to consumer code
-- ✅ All working Docker/API logic preserved
+### **Supported Formats & Auto-Applied Roles**
 
-### **REFACTOR STEPS**
-1. **Create ModelRegistry and Provider base classes**
-2. **Extract API clients from existing monolithic services**
-3. **Extract Docker services from existing monolithic services**
-4. **Create Model implementations that coordinate extracted components**
-5. **Create Provider classes that manage models**
-6. **Register models with their providers**
-7. **Update existing code to use new pattern**
-8. **Verify all tests still pass**
+| Format Category | Extensions | Roles Applied | FFmpeg Used |
+|-----------------|------------|---------------|-------------|
+| **Video** | MP4, AVI, MOV, WMV, FLV, WEBM, MKV | Video + Audio + Speech | ✅ For audio extraction |
+| **Audio** | MP3, WAV, FLAC, OGG | Audio + Speech | ❌ Direct conversion |
+| **Text** | TXT, MD, JSON, XML, HTML, CSS, JS, TS | Text | ❌ Direct conversion |
 
-## 🎉 SUCCESS CRITERIA
+### **Migration Path**
 
-### **Clean Interface Success (ACHIEVED)**
-- ✅ **Universal Media Loading**: `Audio.fromFile()`, `Video.fromFile()` work for all formats
-- ✅ **Automatic Role Casting**: Models accept Audio/Video directly, handle speech conversion internally
-- ✅ **No Metadata Pollution**: Only use data we actually have (file paths, format detection)
-- ✅ **Format Agnostic**: Same interface for WAV, MP3, MP4, and any future formats
-- ✅ **Type Safety**: `SpeechInput` union type with proper casting validation
-- ✅ **Promise-Based Errors**: Clear error messages for unsupported inputs
-
-### **Functional Success (ACHIEVED)**
-- ✅ **Multi-Format Support**: WAV, MP3, MP4 all work with same interface
-- ✅ **Docker Integration**: Whisper Docker service works with clean interface
-- ✅ **Performance**: ~1.5-2.0s transcription times across all formats
-- ✅ **Error Handling**: Graceful failures with clear error messages
-- ✅ **Integration Tests**: Comprehensive test coverage for all formats
-
-### **Architecture Success (ACHIEVED)**
-- ✅ **Role-Based Design**: Audio/Video implement SpeechRole automatically
-- ✅ **Clean Casting Logic**: `castToSpeech()` handles any SpeechRole-capable input
-- ✅ **Separation of Concerns**: Models handle transformation, casting handles role conversion
-- ✅ **Extensibility**: Easy to add new formats by implementing SpeechRole
-- ✅ **Type Safety**: Strong TypeScript types prevent runtime errors
-
-### **Provider Architecture Success (ACHIEVED)**
-- ✅ **Interface Compliance**: Providers implement role interfaces with required service methods
-- ✅ **Service Management**: Docker providers properly manage service lifecycle
-- ✅ **Type Safety**: Full TypeScript compliance with explicit type annotations
-- ✅ **Clean Integration Tests**: Both STT and TTS integration tests with comprehensive type assertions
-- ✅ **No Optional Methods**: Service management methods are required, not optional
-- ✅ **Direct Implementation**: Providers directly implement interfaces without complex mixin patterns
-- ✅ **Error Prevention**: TypeScript prevents undefined method calls at compile time
-
-## 🎉 CURRENT ACHIEVEMENT: COMPLETE PROVIDER ARCHITECTURE
-
-**FULLY IMPLEMENTED**: Both Whisper STT and Chatterbox TTS with clean interface and provider architecture
-
-### **Whisper STT Implementation (COMPLETE)**
+**Legacy Code (still works):**
 ```typescript
-// Clean interface working perfectly
-const provider: SpeechToTextProvider = new WhisperDockerProvider();
-await provider.startService();
-const model: SpeechToTextModel = await provider.createSpeechToTextModel('whisper-stt');
-
-const wavAudio: Audio = Audio.fromFile('confusion.wav');
-const mp3Audio: Audio = Audio.fromFile('debug-test.mp3');
-const mp4Video: Video = Video.fromFile('video.mp4');
-
-const wavResult: Text = await model.transform(wavAudio);
-const mp3Result: Text = await model.transform(mp3Audio);
-const mp4Result: Text = await model.transform(mp4Video);
-
-await provider.stopService();
+const mp4Asset = MP4Asset.fromFile('video.mp4');     // ⚠️ Legacy but functional
+const result = await model.transform(mp4Asset);
 ```
 
-### **Chatterbox TTS Implementation (COMPLETE)**
+**Modern Code (recommended):**
 ```typescript
-// Clean interface working perfectly
-const provider: TextToSpeechProvider = new ChatterboxDockerProvider();
-await provider.startService();
-const model: TextToSpeechModel = await provider.createTextToSpeechModel('chatterbox-tts');
-
-const textFromString: Text = Text.fromString('Hello, this is a test');
-const textFromFile: Text = Text.fromFile('script.txt');
-
-const stringResult: Speech = await model.transform(textFromString);
-const fileResult: Speech = await model.transform(textFromFile);
-
-await provider.stopService();
+const videoAsset = AssetLoader.load('video.mp4');    // ✅ Smart, format-agnostic
+const result = await model.transform(videoAsset);    // Same result, better architecture
 ```
-
-### **Architecture Achievements**:
-- ✅ **Provider Role Interfaces**: Required service management methods (not optional)
-- ✅ **Type Safety**: Comprehensive TypeScript type annotations throughout
-- ✅ **Integration Tests**: Full test coverage with explicit type assertions
-- ✅ **Service Management**: Proper Docker lifecycle management
-- ✅ **Clean Interfaces**: Universal media loading with automatic role casting
-- ✅ **Error Prevention**: Compile-time prevention of undefined method calls
-- ✅ **Separation of Concerns**: Provider = Infrastructure, Model = Transformation
-
-**NEXT GOALS**: Extend to additional providers (OpenAI, Replicate) and media types (Image, Video generation)
-
-**This completes**: Bidirectional clean interface (Audio ↔ Text) with universal pattern that can extend to any media transformation.
