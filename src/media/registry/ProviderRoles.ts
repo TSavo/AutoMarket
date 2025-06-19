@@ -7,6 +7,8 @@
 
 import { SpeechToTextModel } from '../models/SpeechToTextModel';
 import { TextToSpeechModel } from '../models/TextToSpeechModel';
+import { VideoToAudioModel } from '../models/VideoToAudioModel';
+import { VideoCompositionModel } from '../models/VideoCompositionModel';
 
 /**
  * Provider Role Interfaces - what capabilities a provider can offer
@@ -76,17 +78,81 @@ export interface TextToSpeechProvider {
   getServiceStatus(): Promise<{ running: boolean; healthy: boolean; error?: string }>;
 }
 
+export interface VideoToAudioProvider {
+  /**
+   * Create a video-to-audio model instance
+   */
+  createVideoToAudioModel(modelId: string): Promise<VideoToAudioModel>;
+
+  /**
+   * Get supported video-to-audio models
+   */
+  getSupportedVideoToAudioModels(): string[];
+
+  /**
+   * Check if provider supports a specific video-to-audio model
+   */
+  supportsVideoToAudioModel(modelId: string): boolean;
+
+  /**
+   * Start the underlying service (no-op for remote providers, functional for Docker providers)
+   */
+  startService(): Promise<boolean>;
+
+  /**
+   * Stop the underlying service (no-op for remote providers, functional for Docker providers)
+   */
+  stopService(): Promise<boolean>;
+
+  /**
+   * Get service status (no-op for remote providers, functional for Docker providers)
+   */
+  getServiceStatus(): Promise<{ running: boolean; healthy: boolean; error?: string }>;
+}
+
+export interface VideoCompositionProvider {
+  /**
+   * Create a video composition model instance (composition, overlay, etc.)
+   */
+  createVideoCompositionModel(modelId: string): Promise<VideoCompositionModel>;
+
+  /**
+   * Get supported video composition models
+   */
+  getSupportedVideoCompositionModels(): string[];
+
+  /**
+   * Check if provider supports a specific video composition model
+   */
+  supportsVideoCompositionModel(modelId: string): boolean;
+
+  /**
+   * Start the underlying service (no-op for remote providers, functional for Docker providers)
+   */
+  startService(): Promise<boolean>;
+
+  /**
+   * Stop the underlying service (no-op for remote providers, functional for Docker providers)
+   */
+  stopService(): Promise<boolean>;
+
+  /**
+   * Get service status (no-op for remote providers, functional for Docker providers)
+   */
+  getServiceStatus(): Promise<{ running: boolean; healthy: boolean; error?: string }>;
+}
+
 export interface TextToImageProvider {
   /**
    * Create a text-to-image model instance
    */
   createTextToImageModel(modelId: string): Promise<any>; // TODO: Define TextToImageModel
-  
+
   /**
    * Get supported text-to-image models
    */
   getSupportedTextToImageModels(): string[];
-  
+
   /**
    * Check if provider supports a specific text-to-image model
    */
@@ -158,25 +224,112 @@ export function withTextToSpeechProvider<T extends Constructor>(Base: T) {
     async createTextToSpeechModel(modelId: string): Promise<TextToSpeechModel> {
       // Delegate to base provider's getModel method
       const model = await (this as any).getModel(modelId);
-      
+
       if (!(model instanceof TextToSpeechModel)) {
         throw new Error(`Model '${modelId}' is not a TextToSpeechModel`);
       }
-      
+
       return model;
     }
-    
+
     getSupportedTextToSpeechModels(): string[] {
       // Filter supported models to only TTS models
       const allModels = (this as any).getSupportedModels();
       // TODO: Add model type filtering based on registry metadata
-      return allModels.filter((modelId: string) => 
+      return allModels.filter((modelId: string) =>
         modelId.includes('tts') || modelId.includes('text-to-speech') || modelId.includes('chatterbox')
       );
     }
-    
+
     supportsTextToSpeechModel(modelId: string): boolean {
       return this.getSupportedTextToSpeechModels().includes(modelId);
+    }
+  };
+}
+
+/**
+ * Add VideoToAudioProvider capabilities to a provider
+ */
+export function withVideoToAudioProvider<T extends Constructor>(Base: T) {
+  return class extends Base implements VideoToAudioProvider {
+    async createVideoToAudioModel(modelId: string): Promise<VideoToAudioModel> {
+      // Delegate to base provider's getModel method
+      const model = await (this as any).getModel(modelId);
+
+      if (!(model instanceof VideoToAudioModel)) {
+        throw new Error(`Model '${modelId}' is not a VideoToAudioModel`);
+      }
+
+      return model;
+    }
+
+    getSupportedVideoToAudioModels(): string[] {
+      // Filter supported models to only video-to-audio models
+      const allModels = (this as any).getSupportedModels();
+      // TODO: Add model type filtering based on registry metadata
+      return allModels.filter((modelId: string) =>
+        modelId.includes('ffmpeg') || modelId.includes('video-to-audio') || modelId.includes('extract-audio')
+      );
+    }
+
+    supportsVideoToAudioModel(modelId: string): boolean {
+      return this.getSupportedVideoToAudioModels().includes(modelId);
+    }
+  };
+}
+
+/**
+ * Add VideoCompositionProvider capabilities to a provider
+ */
+export function withVideoCompositionProvider<T extends Constructor>(Base: T) {
+  return class extends Base implements VideoCompositionProvider {
+    async createVideoCompositionModel(modelId: string): Promise<VideoCompositionModel> {
+      // Delegate to base provider's getModel method
+      const model = await (this as any).getModel(modelId);
+
+      // Check if model has the right capabilities for video composition
+      if (!model || typeof model.composeVideos !== 'function') {
+        throw new Error(`Model '${modelId}' is not a VideoCompositionModel`);
+      }
+
+      return model;
+    }
+
+    getSupportedVideoCompositionModels(): string[] {
+      // Filter supported models to only video composition models
+      const allModels = (this as any).getSupportedModels();
+      // TODO: Add model type filtering based on registry metadata
+      return allModels.filter((modelId: string) =>
+        modelId.includes('video') || modelId.includes('composition') || modelId.includes('overlay')
+      );
+    }
+
+    supportsVideoCompositionModel(modelId: string): boolean {
+      return this.getSupportedVideoCompositionModels().includes(modelId);
+    }
+
+    async startService(): Promise<boolean> {
+      // Delegate to base provider's startService method if it exists
+      if (typeof (this as any).startService === 'function') {
+        return await (this as any).startService();
+      }
+      return true; // No-op for providers that don't need service management
+    }
+
+    async stopService(): Promise<boolean> {
+      // Delegate to base provider's stopService method if it exists
+      if (typeof (this as any).stopService === 'function') {
+        return await (this as any).stopService();
+      }
+      return true; // No-op for providers that don't need service management
+    }
+
+    async getServiceStatus(): Promise<{ running: boolean; healthy: boolean; error?: string }> {
+      // Delegate to base provider's getServiceStatus method if it exists
+      if (typeof (this as any).getServiceStatus === 'function') {
+        return await (this as any).getServiceStatus();
+      }
+      return { running: true, healthy: true }; // Default for providers that don't need service management
     }
   };
 }
@@ -249,6 +402,16 @@ export function hasTextToSpeechRole(provider: any): provider is TextToSpeechProv
          typeof provider.getSupportedTextToSpeechModels === 'function';
 }
 
+export function hasVideoToAudioRole(provider: any): provider is VideoToAudioProvider {
+  return typeof provider.createVideoToAudioModel === 'function' &&
+         typeof provider.getSupportedVideoToAudioModels === 'function';
+}
+
+export function hasVideoCompositionRole(provider: any): provider is VideoCompositionProvider {
+  return typeof provider.createVideoCompositionModel === 'function' &&
+         typeof provider.getSupportedVideoCompositionModels === 'function';
+}
+
 export function hasTextToImageRole(provider: any): provider is TextToImageProvider {
   return typeof provider.createTextToImageModel === 'function' &&
          typeof provider.getSupportedTextToImageModels === 'function';
@@ -264,11 +427,13 @@ export function hasTextGenerationRole(provider: any): provider is TextGeneration
  */
 export function getProviderRoles(provider: any): string[] {
   const roles: string[] = [];
-  
+
   if (hasSpeechToTextRole(provider)) roles.push('speech-to-text');
   if (hasTextToSpeechRole(provider)) roles.push('text-to-speech');
+  if (hasVideoToAudioRole(provider)) roles.push('video-to-audio');
+  if (hasVideoCompositionRole(provider)) roles.push('video-composition');
   if (hasTextToImageRole(provider)) roles.push('text-to-image');
   if (hasTextGenerationRole(provider)) roles.push('text-generation');
-  
+
   return roles;
 }

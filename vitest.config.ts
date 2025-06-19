@@ -47,7 +47,7 @@ export default defineConfig({
     hookTimeout: 10000,
     
     // Reporter configuration
-    reporter: ['verbose'],
+    reporters: ['verbose'],
     
     // Mock configuration
     clearMocks: true,

@@ -1,0 +1,110 @@
+services:
+  # Production service
+  ffmpeg-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    image: ffmpeg-service:latest
+    container_name: ffmpeg-service
+    ports:
+      - "${PORT:-8006}:8006"
+    volumes:
+      # Persistent data directories
+      - ./uploads:/app/uploads
+      - ./outputs:/app/outputs
+      - ./logs:/app/logs
+      # Optional: Mount custom FFmpeg binaries or configs
+      # - ./ffmpeg-config:/app/ffmpeg-config:ro
+    environment:
+      - NODE_ENV=production
+      - PORT=8006
+      - HOST=0.0.0.0
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - MAX_FILE_SIZE=${MAX_FILE_SIZE:-500}
+      - CORS_ORIGIN=${CORS_ORIGIN:-*}
+    restart: unless-stopped
+    
+    # Health check
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8006/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    
+    # Resource limits and GPU support
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '2.0'
+        reservations:
+          memory: 512M
+          cpus: '0.5'
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    
+    # Logging configuration
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    
+    networks:
+      - ffmpeg-network
+
+  # Development service (optional)
+  ffmpeg-service-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development
+    image: ffmpeg-service:dev
+    container_name: ffmpeg-service-dev
+    ports:
+      - "${DEV_PORT:-8007}:8006"
+      - "9229:9229"  # Debug port
+    volumes:
+      # Mount source code for live development
+      - .:/app
+      - /app/node_modules  # Prevent overwriting node_modules
+    environment:
+      - NODE_ENV=development
+      - PORT=8006
+      - HOST=0.0.0.0
+      - LOG_LEVEL=debug
+      - MAX_FILE_SIZE=500
+      - CORS_ORIGIN=*
+    
+    # Health check
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8006/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    
+    networks:
+      - ffmpeg-network
+    
+    profiles:
+      - dev  # Only start with --profile dev
+
+# Networks
+networks:
+  ffmpeg-network:
+    driver: bridge
+    name: ffmpeg-network
+
+# Volumes (optional named volumes for better performance)
+volumes:
+  ffmpeg_uploads:
+    driver: local
+  ffmpeg_outputs:
+    driver: local
+  ffmpeg_logs:
+    driver: local

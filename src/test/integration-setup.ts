@@ -37,6 +37,6 @@ vi.unmock('form-data');
 
 // Set environment for integration tests
 beforeAll(() => {
-  process.env.NODE_ENV = 'test';
+  (process.env as any).NODE_ENV = 'test';
   console.log('🧪 Integration test setup complete - real implementations enabled');
 });

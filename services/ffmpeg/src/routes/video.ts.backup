@@ -1,0 +1,760 @@
+/**
+ * Video processing routes for FFMPEG Service
+ */
+
+import { Router, Request, Response } from 'express';
+import path from 'path';
+import fs from 'fs';
+import ffmpeg from 'fluent-ffmpeg';
+import { v4 as uuidv4 } from 'uuid';
+import { asyncHandler, createError } from '../middleware/errorHandler';
+import { FFmpegOptions, AudioExtractionResult, VideoCompositionOptions, VideoCompositionResult } from '../types';
+
+export const videoRoutes = Router();
+
+/**
+ * POST /video/extractAudio
+ * Extract audio from video file
+ */
+videoRoutes.post('/extractAudio', asyncHandler(async (req: Request, res: Response) => {
+  const upload = req.app.locals.upload;
+  const logger = req.app.locals.logger;
+  const outputDir = req.app.locals.outputDir;
+
+  // Handle file upload
+  await new Promise<void>((resolve, reject) => {
+    upload.single('video')(req, res, (err: any) => {
+      if (err) reject(err);
+      else resolve();
+    });
+  });
+
+  if (!req.file) {
+    throw createError('No video file provided', 400);
+  }
+
+  const startTime = Date.now();
+  const inputPath = req.file.path;
+  const outputId = uuidv4();
+  
+  // Parse options from request body
+  const options: FFmpegOptions = {
+    outputFormat: req.body.outputFormat || 'wav',
+    sampleRate: req.body.sampleRate ? parseInt(req.body.sampleRate) : undefined,
+    channels: req.body.channels ? parseInt(req.body.channels) : undefined,
+    bitrate: req.body.bitrate,
+    quality: req.body.quality,
+    startTime: req.body.startTime ? parseFloat(req.body.startTime) : undefined,
+    duration: req.body.duration ? parseFloat(req.body.duration) : undefined,
+    volume: req.body.volume ? parseFloat(req.body.volume) : undefined,
+    normalize: req.body.normalize === 'true'
+  };
+
+  const outputFilename = `audio_${outputId}.${options.outputFormat}`;
+  const outputPath = path.join(outputDir, outputFilename);
+
+  logger.info('Starting audio extraction', {
+    inputFile: req.file.originalname,
+    outputFile: outputFilename,
+    options
+  });
+
+  try {
+    // Get input file metadata first
+    const metadata = await new Promise<any>((resolve, reject) => {
+      ffmpeg.ffprobe(inputPath, (err, metadata) => {
+        if (err) reject(err);
+        else resolve(metadata);
+      });
+    });
+
+    // Extract audio using fluent-ffmpeg with GPU acceleration for decoding
+    await new Promise<void>((resolve, reject) => {
+      let command = ffmpeg(inputPath)
+        .inputOptions([
+          '-hwaccel', 'cuda',
+          '-hwaccel_output_format', 'cuda'
+        ])
+        .noVideo()
+        .audioCodec('pcm_s16le'); // Default to PCM for WAV
+
+      // Apply format-specific settings
+      if (options.outputFormat === 'mp3') {
+        command = command.audioCodec('libmp3lame');
+      } else if (options.outputFormat === 'flac') {
+        command = command.audioCodec('flac');
+      } else if (options.outputFormat === 'm4a') {
+        command = command.audioCodec('aac');
+      } else if (options.outputFormat === 'aac') {
+        command = command.audioCodec('aac');
+      } else if (options.outputFormat === 'ogg') {
+        command = command.audioCodec('libvorbis');
+      }
+
+      // Apply options
+      if (options.sampleRate) {
+        command = command.audioFrequency(options.sampleRate);
+      }
+      if (options.channels) {
+        command = command.audioChannels(options.channels);
+      }
+      if (options.bitrate) {
+        command = command.audioBitrate(options.bitrate);
+      }
+      if (options.quality) {
+        command = command.audioQuality(parseInt(options.quality));
+      }
+      if (options.startTime) {
+        command = command.seekInput(options.startTime);
+      }
+      if (options.duration) {
+        command = command.duration(options.duration);
+      }
+      if (options.volume && options.volume !== 1.0) {
+        command = command.audioFilters(`volume=${options.volume}`);
+      }
+      if (options.normalize) {
+        command = command.audioFilters('loudnorm');
+      }
+
+      command
+        .output(outputPath)
+        .on('start', (commandLine) => {
+          logger.info('FFmpeg command started', { command: commandLine });
+        })
+        .on('progress', (progress) => {
+          logger.debug('Processing progress', progress);
+        })
+        .on('end', () => {
+          logger.info('Audio extraction completed', { outputFile: outputFilename });
+          resolve();
+        })
+        .on('error', (err) => {
+          logger.error('FFmpeg error', { error: err.message });
+          reject(err);
+        })
+        .run();
+    });
+
+    // Get output file stats
+    const outputStats = fs.statSync(outputPath);
+    const processingTime = Date.now() - startTime;
+
+    // Get audio metadata from extracted file
+    const audioMetadata = await new Promise<any>((resolve, reject) => {
+      ffmpeg.ffprobe(outputPath, (err, metadata) => {
+        if (err) reject(err);
+        else resolve(metadata);
+      });
+    });
+
+    const result: AudioExtractionResult = {
+      success: true,
+      outputPath: `/outputs/${outputFilename}`,
+      filename: outputFilename,
+      format: options.outputFormat || 'wav',
+      metadata: {
+        duration: audioMetadata.format?.duration,
+        sampleRate: audioMetadata.streams?.[0]?.sample_rate,
+        channels: audioMetadata.streams?.[0]?.channels,
+        size: outputStats.size,
+        bitrate: audioMetadata.format?.bit_rate
+      },
+      processingTime
+    };
+
+    // Clean up input file
+    fs.unlinkSync(inputPath);
+
+    // Return the audio file directly instead of JSON metadata
+    const audioBuffer = fs.readFileSync(outputPath);
+
+    // Set appropriate headers for audio streaming
+    const mimeType = options.outputFormat === 'mp3' ? 'audio/mpeg' :
+                     options.outputFormat === 'wav' ? 'audio/wav' :
+                     options.outputFormat === 'flac' ? 'audio/flac' :
+                     options.outputFormat === 'm4a' ? 'audio/mp4' :
+                     options.outputFormat === 'aac' ? 'audio/aac' :
+                     options.outputFormat === 'ogg' ? 'audio/ogg' :
+                     'audio/wav';
+
+    res.set({
+      'Content-Type': mimeType,
+      'Content-Length': audioBuffer.length.toString(),
+      'Content-Disposition': `attachment; filename="${outputFilename}"`,
+      'X-Processing-Time': processingTime.toString(),
+      'X-Audio-Duration': result.metadata.duration?.toString() || '',
+      'X-Audio-Channels': result.metadata.channels?.toString() || '',
+      'X-Audio-Sample-Rate': result.metadata.sampleRate?.toString() || ''
+    });
+
+    res.send(audioBuffer);
+
+    // Clean up output file after sending
+    fs.unlinkSync(outputPath);
+
+  } catch (error) {
+    // Clean up files on error
+    if (fs.existsSync(inputPath)) {
+      fs.unlinkSync(inputPath);
+    }
+    if (fs.existsSync(outputPath)) {
+      fs.unlinkSync(outputPath);
+    }
+
+    logger.error('Audio extraction failed', { error: error instanceof Error ? error.message : 'Unknown error' });
+    throw createError(`Audio extraction failed: ${error instanceof Error ? error.message : 'Unknown error'}`, 500);
+  }
+}));
+
+/**
+ * POST /video/filter
+ * Apply filter complex to N videos (N >= 1)
+ */
+videoRoutes.post('/filter', asyncHandler(async (req: Request, res: Response) => {
+  const upload = req.app.locals.upload;
+  const logger = req.app.locals.logger;
+  const outputDir = req.app.locals.outputDir;
+  // Handle multiple file uploads (any number of videos)
+  await new Promise<void>((resolve, reject) => {
+    upload.any()(req, res, (err: any) => {
+      if (err) {
+        logger.error('File upload error:', err);
+        reject(createError(`File upload failed: ${err.message}`, 400));
+      } else {
+        resolve();
+      }
+    });
+  });
+
+  const files = req.files as Express.Multer.File[];
+  
+  if (!files || files.length < 1) {
+    throw createError('At least one video file is required', 400);
+  }
+  const startTime = Date.now();
+  const outputId = uuidv4();
+  
+  // Parse options from request body
+  const options: VideoCompositionOptions = {
+    outputFormat: req.body.outputFormat || 'mp4',
+    codec: req.body.codec || 'h264_nvenc',
+    bitrate: req.body.bitrate,
+    resolution: req.body.resolution,
+    filterComplex: req.body.filterComplex,
+    videoOutputLabel: req.body.videoOutputLabel || 'final_video',
+    audioOutputLabel: req.body.audioOutputLabel || 'mixed_audio',
+    customAudioMapping: req.body.customAudioMapping === 'true'
+  };
+
+  // Add fps if provided
+  if (req.body.fps) {
+    options.fps = parseInt(req.body.fps);
+  }
+  // filterComplex is required for all operations
+  const customFilterComplex = req.body.filterComplex;
+
+  if (!customFilterComplex) {
+    throw createError('filterComplex is required in the request body', 400);
+  }
+
+  const outputFilename = `filtered_${outputId}.${options.outputFormat}`;
+  const outputPath = path.join(outputDir, outputFilename);
+
+  logger.info('Starting video filtering', {
+    videoCount: files.length,
+    videoFiles: files.map(f => f.originalname),
+    outputFile: outputFilename,
+    options,
+    filterComplex: customFilterComplex
+  });
+
+  try {
+    // Get metadata for all input videos
+    const videoMetadatas = await Promise.all(
+      files.map(file => new Promise<any>((resolve, reject) => {
+        ffmpeg.ffprobe(file.path, (err, metadata) => {
+          if (err) reject(err);
+          else resolve(metadata);
+        });
+      }))
+    );
+      new Promise<any>((resolve, reject) => {
+        ffmpeg.ffprobe(video2Path, (err, metadata) => {
+          if (err) reject(err);
+          else resolve(metadata);
+        });
+      })
+    ]);
+
+    // Get video dimensions
+    const video1Stream = video1Metadata.streams.find((s: any) => s.codec_type === 'video');
+    const video2Stream = video2Metadata.streams.find((s: any) => s.codec_type === 'video');
+    
+    const v1Width = video1Stream?.width || 1920;
+    const v1Height = video1Stream?.height || 1080;
+    const v2Width = video2Stream?.width || 1920;
+    const v2Height = video2Stream?.height || 1080;
+
+    // Compose videos using fluent-ffmpeg
+    await new Promise<void>((resolve, reject) => {
+      let command = ffmpeg()
+        .input(video1Path)
+        .input(video2Path);
+
+      let filterComplex: string;
+      let outputWidth: number = v1Width;
+      let outputHeight: number = v1Height;
+
+      // Require custom filter complex - no more hardcoded layouts
+      if (!customFilterComplex) {
+        reject(new Error('Custom filter complex is required. Please provide filterComplex in the request body.'));
+        return;
+      }
+
+      filterComplex = customFilterComplex;
+      logger.info('Using custom filter complex', { filterComplex });
+
+      // Add GPU hardware acceleration for composition (CPU input, GPU encoding)
+      const hwaccelOptions: string[] = [
+        // '-hwaccel', 'cuda',
+        // '-hwaccel_output_format', 'cuda'
+      ];
+
+      // Choose GPU-accelerated codec
+      const gpuCodec = options.codec || 'h264_nvenc';
+
+      // Apply filter complex and output settings with GPU acceleration
+      command = command
+        .inputOptions(hwaccelOptions)  // Add hardware acceleration for both inputs
+        .complexFilter(filterComplex)
+        .videoCodec(gpuCodec)
+        // Use appropriate audio codec based on whether we have custom audio processing
+        .audioCodec(options.customAudioMapping && options.audioOutputLabel ? 'aac' : 'copy')
+        .outputOptions([
+          '-map', `[${options.videoOutputLabel}]`,  // Map the video output from the filter complex (configurable)
+          // Map audio based on options
+          ...(options.customAudioMapping && options.audioOutputLabel 
+            ? ['-map', `[${options.audioOutputLabel}]`]  // Use custom audio output
+            : ['-map', '0:a?']),  // Use first input audio (default)
+          '-pix_fmt', 'yuv420p',  // Standard pixel format for compatibility
+          '-preset', 'fast',  // Fast encoding preset for NVENC
+          '-rc', 'vbr',  // Variable bitrate for better quality
+          '-movflags', '+faststart',  // Enable fast start for web playback
+          '-avoid_negative_ts', 'make_zero',  // Avoid negative timestamps
+          '-shortest'  // End when shortest input ends
+        ]);
+
+      // Apply additional options
+      if (options.bitrate) {
+        command = command.videoBitrate(options.bitrate);
+      }
+      if (options.fps) {
+        command = command.fps(options.fps);
+      }
+      if (options.resolution) {
+        command = command.size(options.resolution);
+      }
+
+      command
+        .output(outputPath)
+        .on('start', (commandLine) => {
+          logger.info('FFmpeg composition command started', { command: commandLine });
+        })
+        .on('progress', (progress) => {
+          logger.debug('Composition progress', progress);
+        })
+        .on('end', () => {
+          logger.info('Video composition completed', { outputFile: outputFilename });
+          resolve();
+        })
+        .on('error', (err) => {
+          logger.error('FFmpeg composition error', { error: err.message });
+          reject(err);
+        })
+        .run();
+    });
+
+    // Get output file stats
+    const outputStats = fs.statSync(outputPath);
+    const processingTime = Date.now() - startTime;
+
+    // Get output video metadata
+    const outputMetadata = await new Promise<any>((resolve, reject) => {
+      ffmpeg.ffprobe(outputPath, (err, metadata) => {
+        if (err) reject(err);
+        else resolve(metadata);
+      });
+    });
+
+    const outputVideoStream = outputMetadata.streams.find((s: any) => s.codec_type === 'video');
+
+    const result: VideoCompositionResult = {
+      success: true,
+      outputPath: `/outputs/${outputFilename}`,
+      filename: outputFilename,
+      format: options.outputFormat || 'mp4',
+      metadata: {
+        duration: outputMetadata.format?.duration,
+        width: outputVideoStream?.width,
+        height: outputVideoStream?.height,
+        fps: outputVideoStream?.r_frame_rate ? eval(outputVideoStream.r_frame_rate) : undefined,
+        size: outputStats.size,
+        bitrate: outputMetadata.format?.bit_rate,
+        codec: outputVideoStream?.codec_name
+      },
+      processingTime
+    };
+
+    // Clean up input files
+    fs.unlinkSync(video1Path);
+    fs.unlinkSync(video2Path);
+
+    // Return the video file directly instead of JSON metadata
+    const videoBuffer = fs.readFileSync(outputPath);
+
+    // Set appropriate headers for video streaming
+    const mimeType = options.outputFormat === 'mp4' ? 'video/mp4' :
+                     options.outputFormat === 'avi' ? 'video/x-msvideo' :
+                     options.outputFormat === 'mov' ? 'video/quicktime' :
+                     options.outputFormat === 'webm' ? 'video/webm' :
+                     'video/mp4';
+
+    res.set({
+      'Content-Type': mimeType,
+      'Content-Length': videoBuffer.length.toString(),
+      'Content-Disposition': `attachment; filename="${outputFilename}"`,
+      'X-Processing-Time': processingTime.toString(),
+      'X-Video-Duration': result.metadata.duration?.toString() || '',
+      'X-Video-Width': result.metadata.width?.toString() || '',
+      'X-Video-Height': result.metadata.height?.toString() || '',
+      'X-Video-FPS': result.metadata.fps?.toString() || '',
+      'X-Video-Codec': result.metadata.codec || ''
+    });
+
+    res.send(videoBuffer);
+
+    // Clean up output file after sending
+    fs.unlinkSync(outputPath);
+
+  } catch (error) {
+    // Clean up files on error
+    if (fs.existsSync(video1Path)) {
+      fs.unlinkSync(video1Path);
+    }
+    if (fs.existsSync(video2Path)) {
+      fs.unlinkSync(video2Path);
+    }
+    if (fs.existsSync(outputPath)) {
+      fs.unlinkSync(outputPath);
+    }
+
+    logger.error('Video composition failed', { error: error instanceof Error ? error.message : 'Unknown error' });
+    throw createError(`Video composition failed: ${error instanceof Error ? error.message : 'Unknown error'}`, 500);
+  }
+}));
+
+/**
+ * POST /video/filter
+ * Apply filter complex to a single video
+ */
+videoRoutes.post('/filter', asyncHandler(async (req: Request, res: Response) => {
+  const upload = req.app.locals.upload;
+  const logger = req.app.locals.logger;
+  const outputDir = req.app.locals.outputDir;
+
+  // Handle single file upload
+  await new Promise<void>((resolve, reject) => {
+    upload.single('video')(req, res, (err: any) => {
+      if (err) reject(err);
+      else resolve();
+    });
+  });
+
+  if (!req.file) {
+    throw createError('No video file provided', 400);
+  }
+
+  const startTime = Date.now();
+  const inputPath = req.file.path;
+  const outputId = uuidv4();
+
+  // Parse options from request body
+  const options: VideoCompositionOptions = {
+    outputFormat: req.body.outputFormat || 'mp4',
+    codec: req.body.codec, // Don't set default here - let the codec selection logic handle it
+    bitrate: req.body.bitrate,
+    resolution: req.body.resolution,
+    filterComplex: req.body.filterComplex
+  };
+
+  // Add fps if provided
+  if (req.body.fps) {
+    options.fps = parseInt(req.body.fps);
+  }
+
+  // Extract custom filter complex (required)
+  const customFilterComplex = req.body.filterComplex;
+
+  if (!customFilterComplex) {
+    throw createError('Custom filter complex is required. Please provide filterComplex in the request body.', 400);
+  }
+
+  const outputFilename = `filtered_${outputId}.${options.outputFormat}`;
+  const outputPath = path.join(outputDir, outputFilename);
+
+  logger.info('Starting single video filter operation', {
+    inputFile: req.file.originalname,
+    outputFile: outputFilename,
+    options,
+    filterComplex: customFilterComplex
+  });
+
+  console.log('🔍 Video filter debug - Input file:', req.file.originalname);
+  console.log('🔍 Video filter debug - Filter complex:', customFilterComplex);
+  console.log('🔍 Video filter debug - Options:', options);
+
+  try {
+    // Get input video metadata
+    const inputMetadata = await new Promise<any>((resolve, reject) => {
+      ffmpeg.ffprobe(inputPath, (err, metadata) => {
+        if (err) reject(err);
+        else resolve(metadata);
+      });
+    });
+
+    // Apply filter complex to single video using fluent-ffmpeg
+    await new Promise<void>((resolve, reject) => {
+      let command = ffmpeg()
+        .input(inputPath);
+
+      // Apply filter complex and output settings
+      console.log('🔍 Video filter debug - About to apply filter complex:', customFilterComplex);
+
+      // Choose appropriate codec based on output format with GPU acceleration
+      let videoCodec = options.codec;
+      let pixelFormat = 'yuv420p';
+      let outputOptions = ['-avoid_negative_ts', 'make_zero'];
+      let hwaccelOptions: string[] = [];
+
+      // Add GPU hardware acceleration
+      hwaccelOptions = [
+        '-hwaccel', 'cuda',
+        '-hwaccel_output_format', 'cuda'
+      ];
+
+      if (options.outputFormat === 'webm') {
+        videoCodec = videoCodec || 'libvpx-vp9';  // Use VP9 for WebM (no GPU encoder available)
+        pixelFormat = 'yuva420p';  // Use yuva420p for alpha support in WebM
+        // Don't add movflags for WebM
+      } else {
+        videoCodec = videoCodec || 'h264_nvenc';  // Use NVIDIA GPU encoder for H.264
+        outputOptions.push('-movflags', '+faststart');  // Enable fast start for web playback
+        outputOptions.push('-preset', 'fast');  // Fast encoding preset for NVENC
+        outputOptions.push('-rc', 'vbr');  // Variable bitrate for better quality
+      }
+
+      console.log('🔍 Video filter debug - Selected codec:', videoCodec, 'for format:', options.outputFormat);
+
+      command = command
+        .inputOptions(hwaccelOptions)  // Add hardware acceleration input options
+        .complexFilter(customFilterComplex)
+        .videoCodec(videoCodec)
+        .outputOptions(['-pix_fmt', pixelFormat, ...outputOptions]);
+
+      console.log('🔍 Video filter debug - Applied filter complex, setting output options');
+
+      // Apply additional options
+      if (options.bitrate) {
+        command = command.videoBitrate(options.bitrate);
+      }
+      if (options.fps) {
+        command = command.fps(options.fps);
+      }
+      if (options.resolution) {
+        command = command.size(options.resolution);
+      }
+
+      command
+        .output(outputPath)
+        .on('start', (commandLine) => {
+          logger.info('FFmpeg filter command started', { command: commandLine });
+          console.log('🔍 Video filter debug - FFmpeg command line:', commandLine);
+        })
+        .on('progress', (progress) => {
+          logger.debug('Filter progress', progress);
+          console.log('🔍 Video filter debug - Progress:', progress);
+        })
+        .on('end', () => {
+          logger.info('Video filter completed', { outputFile: outputFilename });
+          console.log('🔍 Video filter debug - Filter operation completed successfully');
+          resolve();
+        })
+        .on('error', (err) => {
+          logger.error('FFmpeg filter error', { error: err.message });
+          console.error('🔍 Video filter debug - FFmpeg error:', err);
+          console.error('🔍 Video filter debug - Error message:', err.message);
+          console.error('🔍 Video filter debug - Error stack:', err.stack);
+          reject(err);
+        })
+        .run();
+    });
+
+    // Get output file stats
+    const outputStats = fs.statSync(outputPath);
+    const processingTime = Date.now() - startTime;
+
+    // Get output video metadata
+    const outputMetadata = await new Promise<any>((resolve, reject) => {
+      ffmpeg.ffprobe(outputPath, (err, metadata) => {
+        if (err) reject(err);
+        else resolve(metadata);
+      });
+    });
+
+    const outputVideoStream = outputMetadata.streams.find((s: any) => s.codec_type === 'video');
+
+    const result: VideoCompositionResult = {
+      success: true,
+      outputPath: `/outputs/${outputFilename}`,
+      filename: outputFilename,
+      format: options.outputFormat || 'mp4',
+      metadata: {
+        duration: outputMetadata.format?.duration,
+        width: outputVideoStream?.width,
+        height: outputVideoStream?.height,
+        fps: outputVideoStream?.r_frame_rate ? eval(outputVideoStream.r_frame_rate) : undefined,
+        size: outputStats.size,
+        bitrate: outputMetadata.format?.bit_rate,
+        codec: outputVideoStream?.codec_name
+      },
+      processingTime
+    };
+
+    // Clean up input file
+    fs.unlinkSync(inputPath);
+
+    // Return the video file directly instead of JSON metadata
+    const videoBuffer = fs.readFileSync(outputPath);
+
+    // Set appropriate headers for video streaming
+    const mimeType = options.outputFormat === 'mp4' ? 'video/mp4' :
+                     options.outputFormat === 'avi' ? 'video/x-msvideo' :
+                     options.outputFormat === 'mov' ? 'video/quicktime' :
+                     options.outputFormat === 'webm' ? 'video/webm' :
+                     'video/mp4';
+
+    res.set({
+      'Content-Type': mimeType,
+      'Content-Length': videoBuffer.length.toString(),
+      'Content-Disposition': `attachment; filename="${outputFilename}"`,
+      'X-Processing-Time': processingTime.toString(),
+      'X-Video-Duration': result.metadata.duration?.toString() || '',
+      'X-Video-Width': result.metadata.width?.toString() || '',
+      'X-Video-Height': result.metadata.height?.toString() || '',
+      'X-Video-FPS': result.metadata.fps?.toString() || '',
+      'X-Video-Codec': result.metadata.codec || ''
+    });
+
+    res.send(videoBuffer);
+
+    // Clean up output file after sending
+    fs.unlinkSync(outputPath);
+
+  } catch (error) {
+    // Clean up files on error
+    if (fs.existsSync(inputPath)) {
+      fs.unlinkSync(inputPath);
+    }
+    if (fs.existsSync(outputPath)) {
+      fs.unlinkSync(outputPath);
+    }
+
+    logger.error('Video filter failed', { error: error instanceof Error ? error.message : 'Unknown error' });
+    console.error('🔍 Video filter debug - Catch block error:', error);
+    console.error('🔍 Video filter debug - Error details:', {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : 'No stack trace',
+      inputPath,
+      outputPath,
+      filterComplex: customFilterComplex
+    });
+    throw createError(`Video filter failed: ${error instanceof Error ? error.message : 'Unknown error'}`, 500);
+  }
+}));
+
+// Get video metadata endpoint
+videoRoutes.post('/metadata', asyncHandler(async (req: Request, res: Response) => {
+  const upload = req.app.locals.upload;
+  const logger = req.app.locals.logger;
+
+  // Handle file upload
+  await new Promise<void>((resolve, reject) => {
+    upload.single('video')(req, res, (err: any) => {
+      if (err) reject(err);
+      else resolve();
+    });
+  });
+
+  if (!req.file) {
+    throw createError('No video file provided', 400);
+  }
+
+  const videoPath = req.file.path;
+
+  logger.info('Extracting video metadata', {
+    file: req.file.originalname
+  });
+
+  try {
+    // Get video metadata using ffprobe
+    const metadata = await new Promise<any>((resolve, reject) => {
+      ffmpeg.ffprobe(videoPath, (err, metadata) => {
+        if (err) reject(err);
+        else resolve(metadata);
+      });
+    });
+
+    // Extract relevant metadata fields
+    const videoStream = metadata.streams.find((s: any) => s.codec_type === 'video');
+    const audioStream = metadata.streams.find((s: any) => s.codec_type === 'audio');
+
+    const result = {
+      format: metadata.format.format_name,
+      duration: metadata.format.duration,
+      size: metadata.format.size,
+      bitrate: metadata.format.bit_rate,
+      width: videoStream?.width,
+      height: videoStream?.height,
+      fps: videoStream?.r_frame_rate ? eval(videoStream.r_frame_rate) : undefined,
+      videoCodec: videoStream?.codec_name,
+      audioCodec: audioStream?.codec_name,
+      channels: audioStream?.channels,
+      sampleRate: audioStream?.sample_rate
+    };
+
+    logger.info('Video metadata extracted', {
+      file: req.file.originalname,
+      metadata: result
+    });
+
+    res.json({
+      success: true,
+      data: result,
+      timestamp: new Date()
+    });
+
+  } catch (error) {
+    logger.error('Metadata extraction failed', { error: error instanceof Error ? error.message : 'Unknown error' });
+    throw createError(`Metadata extraction failed: ${error instanceof Error ? error.message : 'Unknown error'}`, 500);
+  } finally {
+    // Clean up uploaded file
+    if (req.file?.path) {
+      fs.unlink(req.file.path, (err) => {
+        if (err) logger.error('Failed to delete uploaded file', { file: req.file!.path, error: err.message });
+      });
+    }
+  }
+}));
+
+

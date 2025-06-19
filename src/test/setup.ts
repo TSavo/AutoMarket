@@ -19,21 +19,22 @@ beforeAll(() => {
   global.fetch = vi.fn()
   
   // Mock console methods to reduce noise in tests
+  const originalConsole = global.console;
   global.console = {
-    ...console,
+    ...originalConsole,
     // Uncomment to suppress console.log in tests
     // log: vi.fn(),
     warn: vi.fn(),
     error: vi.fn(),
-  }
+  } as Console;
   
   // Mock environment variables
-  process.env.NODE_ENV = 'test'
+  (process.env as any).NODE_ENV = 'test'
   process.env.OLLAMA_URL = 'http://localhost:11434'
   
   // Mock node-fetch for Node.js compatibility
   vi.mock('node-fetch', async (importOriginal) => {
-    const actual = await importOriginal()
+    const actual = await importOriginal() as any;
     return {
       ...actual,
       default: vi.fn(),
@@ -56,7 +57,7 @@ beforeAll(() => {
   
   // Mock child_process
   vi.mock('child_process', async (importOriginal) => {
-    const actual = await importOriginal()
+    const actual = await importOriginal() as any;
     return {
       ...actual,
       exec: vi.fn(),

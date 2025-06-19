@@ -318,11 +318,3 @@ export type TextInput = Text | (Asset & TextRole);
  */
 export type MediaInput = SpeechInput | AudioInput | VideoInput | TextInput;
 
-// Export enhanced casting functions
-export {
-  EnhancedAssetCasting,
-  castToAudioSmart,
-  castToSpeechSmart,
-  extractAudioFromVideoFile,
-  extractSpeechFromVideoFile
-} from './enhanced';

@@ -222,7 +222,8 @@ export class FFMPEGCommandBuilder {
     if (clip.scale && clip.scale !== 1.0) {
       const scaledWidth = Math.round(asset.width * clip.scale);
       const scaledHeight = Math.round(asset.height * clip.scale);
-      overlayStreamLabel = this.addFilter(overlayStreamLabel, `scale=${scaledWidth}:${scaledHeight}`);
+      // Preserve alpha channel during scaling by explicitly setting flags for proper alpha handling
+      overlayStreamLabel = this.addFilter(overlayStreamLabel, `scale=${scaledWidth}:${scaledHeight}:flags=+accurate_rnd+full_chroma_inp`);
     }
 
     overlayStreamLabel = this.addFilter(

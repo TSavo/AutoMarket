@@ -12,7 +12,44 @@ import {
   AudioMetadata, VideoMetadata, TextMetadata,
   AudioFormat, VideoFormat
 } from '../roles';
-import { FFmpegService } from '../../services/FFmpegService';
+import { FFMPEGDockerProvider } from '../../providers/FFMPEGDockerProvider';
+import { VideoToAudioProvider } from '../../registry/ProviderRoles';
+
+// ============================================================================
+// SMART FFMPEG PROVIDER SINGLETON
+// ============================================================================
+
+/**
+ * Singleton FFMPEG provider for smart asset processing
+ * Replaces the old hardcoded FFmpegService with provider-based architecture
+ */
+class SmartFFMPEGProvider {
+  private static instance: VideoToAudioProvider | null = null;
+
+  static async getInstance(): Promise<VideoToAudioProvider> {
+    if (!SmartFFMPEGProvider.instance) {
+      console.log('[SmartFFMPEGProvider] Initializing FFMPEG Docker Provider...');
+      SmartFFMPEGProvider.instance = new FFMPEGDockerProvider({
+        baseUrl: 'http://localhost:8006',
+        serviceName: 'ffmpeg-service',
+        containerName: 'ffmpeg-service',
+        composeFile: 'services/ffmpeg/docker-compose.yml'
+      });
+
+      // Ensure service is started
+      const started = await SmartFFMPEGProvider.instance.startService();
+      if (!started) {
+        console.warn('[SmartFFMPEGProvider] Failed to start FFMPEG service, will retry on demand');
+      }
+    }
+
+    return SmartFFMPEGProvider.instance;
+  }
+
+  static reset() {
+    SmartFFMPEGProvider.instance = null;
+  }
+}
 
 // ============================================================================
 // SPEECH ROLE MIXIN
@@ -42,19 +79,39 @@ export function withSpeechRole<T extends Constructor<BaseAsset>>(Base: T) {
     }
 
     /**
-     * Extract speech from video using FFmpeg
+     * Extract speech from video using Smart FFMPEG Provider
      */
     private async extractSpeechFromVideo(): Promise<Speech> {
-      console.log('[SpeechRole Mixin] Starting FFmpeg audio extraction...');
-      const ffmpegService = FFmpegService.getInstance();
+      console.log('[SpeechRole Mixin] Starting Smart FFMPEG provider audio extraction...');
       
       try {
-        console.log(`[SpeechRole Mixin] Calling FFmpeg extractAudio with format: ${this.getFileExtension()}`);
-        const audioBuffer = await ffmpegService.extractAudio(this.data, this.getFileExtension());
-        console.log(`[SpeechRole Mixin] FFmpeg extraction successful, audio buffer size: ${audioBuffer.length} bytes`);
-        return new Speech(audioBuffer, this);
+        // Get the provider and model
+        const provider = await SmartFFMPEGProvider.getInstance();
+        const model = await provider.createVideoToAudioModel('ffmpeg-extract-audio');
+
+        console.log(`[SpeechRole Mixin] Using Smart FFMPEG provider for format: ${this.getFileExtension()}`);
+        
+        // For video files, we need to ensure we have VideoRole capabilities
+        // Use Smart Asset Loading to get a properly composed asset with all roles
+        let audio;
+        if (this.metadata?.sourceFile) {
+          const { AssetLoader } = await import('../SmartAssetFactory');
+          const smartAsset = AssetLoader.load(this.metadata.sourceFile);
+          audio = await model.transform(smartAsset, {
+            outputFormat: 'wav',
+            sampleRate: 44100,
+            channels: 2
+          });
+        } else {
+          throw new Error('Cannot extract speech from video: source file information missing');
+        }
+        
+        console.log(`[SpeechRole Mixin] Smart FFMPEG extraction successful, audio buffer size: ${audio.data.length} bytes`);
+        
+        // Convert Audio to Speech (Audio can play Speech role)
+        return new Speech(audio.data, this);
       } catch (error) {
-        console.error('[SpeechRole Mixin] Failed to extract speech from video:', error);
+        console.error('[SpeechRole Mixin] Failed to extract speech from video using Smart FFMPEG:', error);
         // Fallback: return speech object with original data
         return new Speech(this.data, this);
       }
@@ -139,16 +196,37 @@ export function withAudioRole<T extends Constructor<BaseAsset>>(Base: T) {
     }
 
     /**
-     * Extract audio from video using FFmpeg
+     * Extract audio from video using Smart FFMPEG Provider
      */
     private async extractAudioFromVideo(): Promise<Audio> {
-      const ffmpegService = FFmpegService.getInstance();
+      console.log('[AudioRole Mixin] Starting Smart FFMPEG provider audio extraction...');
       
       try {
-        const audioBuffer = await ffmpegService.extractAudio(this.data, this.getFileExtension());
-        return new Audio(audioBuffer, this);
+        // Get the provider and model
+        const provider = await SmartFFMPEGProvider.getInstance();
+        const model = await provider.createVideoToAudioModel('ffmpeg-extract-audio');
+
+        console.log(`[AudioRole Mixin] Using Smart FFMPEG provider for format: ${this.getFileExtension()}`);
+        
+        // For video files, we need to ensure we have VideoRole capabilities
+        // Use Smart Asset Loading to get a properly composed asset with all roles
+        let audio;
+        if (this.metadata?.sourceFile) {
+          const { AssetLoader } = await import('../SmartAssetFactory');
+          const smartAsset = AssetLoader.load(this.metadata.sourceFile);
+          audio = await model.transform(smartAsset, {
+            outputFormat: 'wav',
+            sampleRate: 44100,
+            channels: 2
+          });
+        } else {
+          throw new Error('Cannot extract audio from video: source file information missing');
+        }
+        
+        console.log(`[AudioRole Mixin] Smart FFMPEG extraction successful, audio buffer size: ${audio.data.length} bytes`);
+        return audio;
       } catch (error) {
-        console.error('Failed to extract audio from video:', error);
+        console.error('[AudioRole Mixin] Failed to extract audio from video using Smart FFMPEG:', error);
         // Fallback to original data
         return new Audio(this.data, this);
       }

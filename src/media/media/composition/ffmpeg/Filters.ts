@@ -40,7 +40,7 @@ export function createScalePadFilter(
     padX = Math.round((targetWidth - scaleWidth) / 2);
   }
   
-  return `scale=${scaleWidth}:${scaleHeight},pad=${targetWidth}:${targetHeight}:${padX}:${padY}:black`;
+  return `scale=${scaleWidth}:${scaleHeight}:flags=+accurate_rnd+full_chroma_inp,pad=${targetWidth}:${targetHeight}:${padX}:${padY}:black`;
 }
 
 /**

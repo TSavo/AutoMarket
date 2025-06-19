@@ -23,7 +23,7 @@ export default defineConfig({
     restoreMocks: false,
     
     // Reporters
-    reporter: ['verbose', 'json'],
+    reporters: ['verbose', 'json'],
     
     // Coverage (optional)
     coverage: {
