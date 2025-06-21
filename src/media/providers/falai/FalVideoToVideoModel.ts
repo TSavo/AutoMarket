@@ -6,7 +6,7 @@
  */
 
 import { ModelMetadata } from '../../models/abstracts/Model';
-import { VideoToVideoModel, VideoCompositionOptions, VideoCompositionResult } from '../../models/abstracts/VideoToVideoModel';
+import { VideoToVideoModel, VideoCompositionOptions } from '../../models/abstracts/VideoToVideoModel';
 import { Video, VideoRole } from '../../assets/roles';
 import { FalAiClient, FalModelMetadata } from './FalAiClient';
 import { SmartAssetFactory } from '../../assets/SmartAssetFactory';
@@ -46,37 +46,40 @@ export class FalVideoToVideoModel extends VideoToVideoModel {
     this.client = config.client;
     this.modelMetadata = config.modelMetadata;
     this.falAiClient = config.falAiClient;
-  }
-  /**
+  }  /**
    * Transform video to video using specific fal.ai video-to-video model
    */
-  async transform(baseVideo: VideoRole, overlayVideos: VideoRole | VideoRole[], options?: VideoCompositionOptions): Promise<VideoCompositionResult> {
-    // Cast input to Video
-    const video = await baseVideo.asVideo();
+  async transform(baseVideo: VideoRole | VideoRole[], options?: VideoCompositionOptions): Promise<Video> {
+    if (!Array.isArray(baseVideo)) {
+      baseVideo = [baseVideo];
+    }
+    const videos = await Promise.all(baseVideo.map(v => v.asVideo()));
 
-    if (!video.isValid()) {
-      throw new Error('Invalid video data provided');
+    for (const video of videos) {
+      if (!video.isValid()) {
+        throw new Error('Invalid video data provided');
+      }
     }
 
     try {
-      // Upload video to fal.ai
-      console.log(`[FalVideoToVideo] Uploading video to fal.ai...`);
-      const uploadResult = await this.falAiClient.uploadAsset(video.data, 'input_video.mp4');
-      const videoUrl = uploadResult.url;
-      console.log(`[FalVideoToVideo] Video uploaded: ${videoUrl}`);
+      // Upload primary video to fal.ai
+      const primaryVideo = videos[0];
+      console.log(`[FalVideoToVideo] Uploading primary video to fal.ai...`);
+      const uploadResult = await this.falAiClient.uploadAsset(primaryVideo.data, 'primary_video.mp4');
+      const primaryVideoUrl = uploadResult.url;
+      console.log(`[FalVideoToVideo] Primary video uploaded: ${primaryVideoUrl}`);
 
-      // Handle overlay video if provided (for face swap, etc.)
-      let overlayVideoUrl: string | undefined;
-      if (overlayVideos && !Array.isArray(overlayVideos)) {
-        const overlay = await overlayVideos.asVideo();
-        console.log(`[FalVideoToVideo] Uploading overlay video to fal.ai...`);
-        const overlayUploadResult = await this.falAiClient.uploadAsset(overlay.data, 'overlay_video.mp4');
-        overlayVideoUrl = overlayUploadResult.url;
-        console.log(`[FalVideoToVideo] Overlay video uploaded: ${overlayVideoUrl}`);
+      // Upload secondary video if provided (for face swap, etc.)
+      let secondaryVideoUrl: string | undefined;
+      if (videos.length > 1) {
+        console.log(`[FalVideoToVideo] Uploading secondary video to fal.ai...`);
+        const secondaryUploadResult = await this.falAiClient.uploadAsset(videos[1].data, 'secondary_video.mp4');
+        secondaryVideoUrl = secondaryUploadResult.url;
+        console.log(`[FalVideoToVideo] Secondary video uploaded: ${secondaryVideoUrl}`);
       }
 
       // Prepare input for this specific fal.ai video-to-video model
-      const falInput = this.prepareFalInput(videoUrl, overlayVideoUrl, options);
+      const falInput = this.prepareFalInput(primaryVideoUrl, secondaryVideoUrl, options);
 
       console.log(`[FalVideoToVideo] Processing video with model: ${this.modelMetadata.id}`);
       console.log(`[FalVideoToVideo] Input:`, falInput);
@@ -107,49 +110,20 @@ export class FalVideoToVideoModel extends VideoToVideoModel {
           resultVideoUrl = result.data;
         } else {
           throw new Error('Unexpected output format from fal.ai');
-        }
-
-        console.log(`[FalVideoToVideo] Video processed:`, resultVideoUrl);
-          // Create Video from result URL - ACTUALLY DOWNLOAD THE FILE
+        }        console.log(`[FalVideoToVideo] Video processed:`, resultVideoUrl);
+        
+        // Create Video from result URL - ACTUALLY DOWNLOAD THE FILE
         const resultVideo = await this.createVideoFromUrl(
           resultVideoUrl,
           {
-            originalVideoSize: video.getSize(),
+            originalVideoSize: primaryVideo.getSize(),
             modelUsed: this.modelMetadata.id,
             options: options,
             requestId: result.requestId
           }
         );
 
-        // Return VideoCompositionResult
-        const compositionResult: VideoCompositionResult = {
-          composedVideo: resultVideo,
-          metadata: {
-            duration: resultVideo.getDuration() || 0,
-            resolution: `${resultVideo.getDimensions()?.width || 0}x${resultVideo.getDimensions()?.height || 0}`,
-            aspectRatio: `${resultVideo.getDimensions()?.width || 16}:${resultVideo.getDimensions()?.height || 9}`,
-            framerate: 30, // Default framerate
-            baseVideoInfo: {
-              duration: video.getDuration() || 0,
-              resolution: `${video.getDimensions()?.width || 0}x${video.getDimensions()?.height || 0}`
-            },
-            overlayInfo: {
-              count: overlayVideoUrl ? 1 : 0,
-              overlays: overlayVideoUrl ? [{
-                index: 0,
-                startTime: 0,
-                duration: resultVideo.getDuration() || 0,
-                position: 'overlay',
-                finalSize: { 
-                  width: resultVideo.getDimensions()?.width || 0, 
-                  height: resultVideo.getDimensions()?.height || 0 
-                }
-              }] : []
-            }
-          }
-        };
-
-        return compositionResult;
+        return resultVideo; // Return the video directly, not wrapped in VideoCompositionResult
       } else {
         throw new Error(`fal.ai generation failed: No data returned`);
       }
@@ -249,43 +223,73 @@ export class FalVideoToVideoModel extends VideoToVideoModel {
       });
     });
   }
-
   /**
    * Prepare input for specific fal.ai video-to-video model based on its parameters
    */
-  private prepareFalInput(videoUrl: string, overlayVideoUrl?: string, options?: VideoCompositionOptions): any {
-    const input: any = {
-      video_url: videoUrl
-    };
+  private prepareFalInput(primaryVideoUrl: string, secondaryVideoUrl?: string, options?: VideoCompositionOptions): any {
+    const input: any = {};
+    const params = this.modelMetadata.parameters || {};
+    const modelId = this.modelMetadata.id.toLowerCase();
 
-    // Add model-specific parameters based on the model's parameter schema
-    const params = this.modelMetadata.parameters || {};    // Face swap specific parameters
-    if (this.modelMetadata.id.includes('face-swap')) {
-      if (overlayVideoUrl && params.target_video) {
-        input.target_video = overlayVideoUrl;
+    // Face swap models
+    if (modelId.includes('face-swap') || modelId.includes('faceswap')) {
+      // Primary video is usually the target (where we want to put the face)
+      input.target_video = primaryVideoUrl;
+      
+      // Secondary video is the source (face to extract)
+      if (secondaryVideoUrl) {
+        input.source_video = secondaryVideoUrl;
+      } else {
+        throw new Error('Face swap requires two videos: target video and source video with the face to swap');
       }
-      // Use opacity as similarity measure for face swap
-      if (options?.opacity && params.similarity) {
+      
+      // Face swap specific parameters
+      if (options?.opacity !== undefined && params.similarity) {
         input.similarity = options.opacity;
       }
+      if (params.face_restore) {
+        input.face_restore = true;
+      }
+      if (params.background_enhance) {
+        input.background_enhance = true;
+      }
     }
-
-    // Video enhancement specific parameters
-    if (this.modelMetadata.id.includes('enhance') || this.modelMetadata.id.includes('upscale')) {
-      // Use outputResolution for scale
+    
+    // Video enhancement/upscaling models
+    else if (modelId.includes('enhance') || modelId.includes('upscale') || modelId.includes('interpolate')) {
+      input.video_url = primaryVideoUrl;
+      
+      // Scale/resolution parameters
       if (options?.outputResolution && params.scale) {
         const resolution = options.outputResolution.split('x');
         const width = parseInt(resolution[0]);
         const height = parseInt(resolution[1]);
         input.scale = Math.max(width / 1920, height / 1080); // Scale relative to 1080p
       }
-      // Default denoise to true for enhancement
+        // Quality parameters
       if (params.denoise) {
         input.denoise = true;
       }
+      if (params.sharpen) {
+        // For quality strings, convert to boolean based on quality level
+        const qualityLevel = options?.outputQuality;
+        input.sharpen = qualityLevel === 'high' || qualityLevel === 'ultra';
+      }
+    }
+    
+    // Style transfer or general video-to-video models
+    else {
+      input.video_url = primaryVideoUrl;
+      
+      // If there's a second video, it might be a style reference
+      if (secondaryVideoUrl && params.style_video) {
+        input.style_video = secondaryVideoUrl;
+      } else if (secondaryVideoUrl && params.reference_video) {
+        input.reference_video = secondaryVideoUrl;
+      }
     }
 
-    // General video processing parameters
+    // General parameters that apply to most models
     if (options?.outputFormat && params.output_format) {
       input.output_format = options.outputFormat;
     }
@@ -294,6 +298,12 @@ export class FalVideoToVideoModel extends VideoToVideoModel {
       input.quality = options.outputQuality;
     }
 
+    // Add any additional model-specific parameters from options
+    if (options?.customParameters) {
+      Object.assign(input, options.customParameters);
+    }
+
+    console.log(`[FalVideoToVideo] Prepared input for ${modelId}:`, input);
     return input;
   }
 

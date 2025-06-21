@@ -61,9 +61,9 @@ export interface VideoCompositionOptions {
   outputResolution?: string; // e.g., '1920x1080', '1280x720'
   framerate?: number; // Output framerate
   codec?: 'libx264' | 'libx265' | 'libvpx' | 'h264_nvenc' | 'h265_nvenc' | 'av1_nvenc';
-  
-  // Advanced options
+    // Advanced options
   customFilterComplex?: string; // Custom filter complex string for advanced users
+  customParameters?: Record<string, any>; // Model-specific custom parameters
   
   // Smart positioning (handles different aspect ratios)
   smartPositioning?: boolean; // Enable smart aspect ratio handling

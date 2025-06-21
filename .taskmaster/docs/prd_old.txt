@@ -1,0 +1,1585 @@
+# AutoMarket Media Processing Platform - Provider Architecture & Video Composition
+
+## 🎯 CURRENT STATE - PRODUCTION ARCHITECTURE
+
+### ✅ Completed Production Systems
+- ✅ **Multi-Provider Architecture** - Local Docker services + Remote API providers unified under MediaProvider interface
+- ✅ **Capability-Driven Provider Discovery** - MediaProvider interface with capability enumeration and automatic selection
+- ✅ **Smart Asset Loading System** - Format-agnostic `AssetLoader.load()` with auto-detection and role mixins
+- ✅ **Production Provider Implementations** - FAL.ai, Replicate, Together.ai, OpenRouter, Docker-based (FFMPEG, Chatterbox, Whisper)
+- ✅ **Dynamic Model Discovery** - Providers scrape/discover available models dynamically
+- ✅ **Comprehensive Video Composition** - N-video composition with FFMPEG, overlay support, concatenation
+- ✅ **Docker Service Management** - Local FFMPEG, Chatterbox TTS, Whisper STT services
+- ✅ **Type-Safe Provider System** - Consistent interfaces across all providers with validation
+- ✅ **Role-Based Asset System** - Audio, Video, Text roles with automatic format detection
+
+## 🏗️ PRODUCTION ARCHITECTURE: PROVIDER SYSTEM
+
+### **Core Achievement: Unified Provider Interface**
+
+The system implements a consistent MediaProvider interface that works across both remote API providers and local Docker services, enabling seamless provider switching and capability-based selection.
+
+```typescript
+// CURRENT PRODUCTION PATTERN - Provider System
+import { FalAiProvider, ReplicateProvider, TogetherProvider } from './src/media/providers';
+
+// 1. Provider configuration and discovery
+const falAiProvider = new FalAiProvider();
+await falAiProvider.configure({ apiKey: process.env.FALAI_API_KEY });
+
+const replicateProvider = new ReplicateProvider();
+await replicateProvider.configure({ apiKey: process.env.REPLICATE_API_TOKEN });
+
+// 2. Capability-based model discovery
+const imageModels = falAiProvider.getModelsForCapability(MediaCapability.IMAGE_GENERATION);
+const videoModels = falAiProvider.getModelsForCapability(MediaCapability.VIDEO_ANIMATION);
+
+// 3. Dynamic model creation and execution
+const textToImageModel = await falAiProvider.createTextToImageModel('fal-ai/flux-pro');
+const result = await textToImageModel.transform(textInput);
+```
+
+### **Key Architectural Principles Achieved**
+
+1. **Unified Provider Interface** - All providers implement MediaProvider with consistent methods
+2. **Capability-Driven Discovery** - Providers declare capabilities (IMAGE_GENERATION, VIDEO_ANIMATION, etc.)
+3. **Dynamic Model Discovery** - Models are discovered at runtime via API scraping or provider APIs
+4. **Local + Remote Providers** - Docker services and API providers use the same interface
+5. **Type-Safe Operations** - Full TypeScript support with proper validation
+6. **Automatic Provider Selection** - Choose providers based on capabilities and availability
+7. **Smart Asset System** - Format-agnostic loading with role-based transformations
+
+## 🎯 PRODUCTION PROVIDER ARCHITECTURE
+
+### **Layer 1: MediaProvider Interface** (Capability Declaration)
+
+**Achievement**: Unified interface for all providers (local Docker + remote APIs) with capability-driven discovery.
+
+```typescript
+// PRODUCTION INTERFACE - All providers implement this
+interface MediaProvider {
+  readonly id: string;
+  readonly name: string;
+  readonly type: ProviderType;                    // 'local' | 'remote'
+  readonly capabilities: MediaCapability[];      // What this provider can do
+  readonly models: ProviderModel[];              // Available models per capability
+  
+  configure(config: ProviderConfig): Promise<void>;
+  isAvailable(): Promise<boolean>;
+  getModelsForCapability(capability: MediaCapability): ProviderModel[];
+  getHealth(): Promise<HealthStatus>;
+}
+
+// PRODUCTION ENUM - Extensive capability coverage
+enum MediaCapability {
+  // Core capabilities currently supported
+  IMAGE_GENERATION = 'image-generation',
+  IMAGE_UPSCALING = 'image-upscaling', 
+  IMAGE_ENHANCEMENT = 'image-enhancement',
+  VIDEO_GENERATION = 'video-generation',
+  VIDEO_ANIMATION = 'video-animation',
+  VIDEO_UPSCALING = 'video-upscaling',
+  AUDIO_GENERATION = 'audio-generation',
+  TEXT_GENERATION = 'text-generation',
+  TEXT_TO_TEXT = 'text-to-text',
+  // ... many more capabilities
+}
+```
+
+### **Layer 2: Provider Implementations** (Production Providers)
+
+**Remote API Providers**:
+```typescript
+// PRODUCTION IMPLEMENTATION - FAL.ai Provider
+export class FalAiProvider implements MediaProvider, 
+  TextToImageProvider, TextToVideoProvider, VideoToVideoProvider, TextToAudioProvider {
+  readonly id = 'fal-ai';
+  readonly capabilities = [
+    MediaCapability.IMAGE_GENERATION,
+    MediaCapability.VIDEO_GENERATION,
+    MediaCapability.VIDEO_ANIMATION,
+    MediaCapability.AUDIO_GENERATION
+  ];
+  
+  async configure(config: ProviderConfig): Promise<void> {
+    this.client = new FalAiClient(config.apiKey);
+    await this.discoverModels(); // Dynamic model discovery
+  }
+  
+  async createTextToImageModel(modelId: string): Promise<TextToImageModel> {
+    return new FalTextToImageModel(this.client, modelId);
+  }
+}
+```
+
+**Local Docker Providers**:
+```typescript
+// PRODUCTION IMPLEMENTATION - FFMPEG Docker Provider
+export class FFMPEGDockerProvider implements MediaProvider {
+  readonly id = 'ffmpeg-docker';
+  readonly capabilities = [
+    MediaCapability.VIDEO_GENERATION,
+    MediaCapability.VIDEO_ANIMATION,
+    MediaCapability.AUDIO_ENHANCEMENT
+  ];
+  
+  async configure(config: FFMPEGDockerConfig): Promise<void> {
+    this.dockerService = new DockerComposeService('ffmpeg');
+    await this.dockerService.ensureRunning();
+  }
+}
+```
+
+### **Layer 3: Video Composition System** (Advanced FFmpeg Pipeline)
+
+**Production Achievement**: Comprehensive N-video composition with FFMPEG supporting concatenation, overlays, and complex filter operations.
+
+```typescript
+// PRODUCTION PATTERN - Video Composition Builder
+export class FFMPEGCompositionBuilder {
+  // Fluent API for complex video compositions
+  prepend(...videos: Video[]): FFMPEGCompositionBuilder;
+  compose(...videos: Video[]): FFMPEGCompositionBuilder;
+  append(...videos: Video[]): FFMPEGCompositionBuilder;
+  addOverlay(video: Video, options: OverlayOptions): FFMPEGCompositionBuilder;
+  
+  // Advanced overlay options
+  interface OverlayOptions {
+    position: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'center';
+    opacity?: number;
+    width?: string | number;
+    height?: string | number;
+    startTime?: number;
+    duration?: number;
+    colorKey?: string;          // Green screen removal
+    colorKeySimilarity?: number;
+    colorKeyBlend?: number;
+  }
+  
+  // Dynamic filter complex generation
+  buildFilterComplex(): string;
+  transform(model: VideoToVideoModel): Promise<Video>;
+}
+
+// PRODUCTION USAGE - Complex video composition
+const composer = new FFMPEGCompositionBuilder()
+  .prepend(introVideo)                    // Add intro
+  .compose(mainVideo)                     // Main content
+  .append(outroVideo)                     // Add outro
+  .addOverlay(logoVideo, {               // Logo overlay
+    position: 'top-right',
+    opacity: 0.8,
+    width: '20%',
+    colorKey: '#000000'                   // Remove black background
+  })
+  .addOverlay(watermarkVideo, {          // Watermark overlay
+    position: 'bottom-left',
+    opacity: 0.6,
+    startTime: 5,                        // Appears after 5 seconds
+    duration: 10                         // Lasts 10 seconds
+  });
+
+const finalVideo = await composer.transform(ffmpegModel);
+```
+
+**Docker Services**:
+```typescript
+// PRODUCTION SERVICES - Docker service management
+DockerComposeService     // Base class for Docker management
+├── FFMPEGDockerService  // FFMPEG video processing
+├── ChatterboxService    // Text-to-speech service  
+└── WhisperService       // Speech-to-text service
+
+// PRODUCTION CLIENTS - API communication
+FFMPEGAPIClient          // Docker FFMPEG API communication
+├── composeVideo()       // N-video composition
+├── filterVideo()        // Video filtering
+└── getMetadata()        // Video metadata extraction
+
+FFMPEGLocalClient        // Local FFMPEG fallback
+├── Same interface as API client
+└── Direct ffmpeg binary execution
+```
+
+### **Layer 4: Smart Asset System** (Role-Based Architecture)
+
+**Production Achievement**: Format-agnostic asset loading with automatic role detection and transformation capabilities.
+
+```typescript
+// PRODUCTION PATTERN - Smart asset loading
+export class AssetLoader {
+  static load(filePath: string): BaseAsset & AnyRole;
+  static fromBuffer(buffer: Buffer, format: string): BaseAsset & AnyRole;
+}
+
+// PRODUCTION ROLES - Runtime role assignment
+export interface AudioRole {
+  asAudio(): Promise<Audio>;
+  getDuration(): Promise<number>;
+  getSampleRate(): Promise<number>;
+}
+
+export interface VideoRole {
+  asVideo(): Promise<Video>;
+  getDuration(): Promise<number>;
+  getResolution(): Promise<{ width: number; height: number }>;
+  extractAudio(): Promise<Audio>;  // Video → Audio conversion via FFmpeg
+}
+
+export interface TextRole {
+  asText(): Promise<Text>;
+  getContent(): Promise<string>;
+  getLanguage(): Promise<string>;
+}
+
+// PRODUCTION USAGE - Automatic format detection
+const asset = AssetLoader.load('video.mp4');  // Auto-detects as VideoRole + AudioRole
+const video = await asset.asVideo();          // Access video functionality
+const audio = await asset.asAudio();          // Extract audio via FFmpeg
+
+// Type-safe role checking
+if (hasVideoRole(asset)) {
+  const metadata = await asset.getResolution();
+}
+```
+## 🛠️ CURRENT PROVIDER ECOSYSTEM
+
+### **Remote API Providers** (Production Status: ✅ Complete)
+
+#### **1. FAL.ai Provider**
+- **Capabilities**: Image generation, video animation, video generation, audio generation
+- **Models**: 100+ models discovered dynamically via scraping
+- **Features**: AI-powered model categorization, file downloads, progress tracking
+- **Implementation**: `FalAiProvider`, supports all major model types
+
+#### **2. Replicate Provider** 
+- **Capabilities**: Image generation, video generation, image upscaling
+- **Models**: Dynamic discovery via Replicate API
+- **Features**: Model metadata caching, automatic capability mapping
+- **Implementation**: `ReplicateProvider`, full API integration
+
+#### **3. Together.ai Provider**
+- **Capabilities**: Text generation, image generation, audio generation
+- **Models**: 150+ models with free tier support
+- **Features**: Model discovery, pricing information, parameter optimization
+- **Implementation**: `TogetherProvider`, comprehensive model support
+
+#### **4. OpenRouter Provider**
+- **Capabilities**: Text generation, LLM access
+- **Models**: Popular models with fallback support
+- **Features**: Free model detection, rate limiting, error handling
+- **Implementation**: `OpenRouterProvider`, lightweight LLM access
+
+### **Local Docker Providers** (Production Status: ✅ Complete)
+
+#### **1. FFMPEG Provider**
+- **Capabilities**: Video generation, video animation, audio enhancement
+- **Services**: Docker containerized FFMPEG with REST API
+- **Features**: N-video composition, overlay support, filter complex generation
+- **Implementation**: `FFMPEGDockerProvider`, `FFMPEGAPIClient`, `FFMPEGLocalClient`
+
+#### **2. Chatterbox TTS Provider**
+- **Capabilities**: Text-to-speech, voice cloning
+- **Services**: Docker TTS service with multiple voice options
+- **Features**: Voice cloning, natural speech synthesis
+- **Implementation**: `ChatterboxDockerProvider`, full TTS pipeline
+
+#### **3. Whisper STT Provider**
+- **Capabilities**: Speech-to-text, audio transcription
+- **Services**: Docker Whisper service with OpenAI Whisper
+- **Features**: Multi-language support, high accuracy transcription
+- **Implementation**: `WhisperDockerProvider`, complete STT pipeline
+
+### **Provider Usage Patterns**
+
+```typescript
+// Dynamic provider configuration
+const providers = [
+  new FalAiProvider(),
+  new ReplicateProvider(), 
+  new TogetherProvider(),
+  new FFMPEGDockerProvider()
+];
+
+// Configure all providers
+for (const provider of providers) {
+  await provider.configure({
+    apiKey: process.env[`${provider.id.toUpperCase()}_API_KEY`]
+  });
+}
+
+// Capability-based selection
+const imageProviders = providers.filter(p => 
+  p.capabilities.includes(MediaCapability.IMAGE_GENERATION)
+);
+
+const videoProviders = providers.filter(p =>
+  p.capabilities.includes(MediaCapability.VIDEO_GENERATION)
+);
+
+// Usage example
+const textToImageModel = await falAiProvider.createTextToImageModel('fal-ai/flux-pro');
+const image = await textToImageModel.transform(textInput);
+
+const textToVideoModel = await falAiProvider.createTextToVideoModel('fal-ai/runway-gen3');
+const video = await textToVideoModel.transform(textInput);
+```
+
+  const status: { running: boolean; healthy: boolean; error?: string } = await provider.getServiceStatus();
+  assert(status.running, 'Docker service is running');
+  assert(status.healthy, 'Docker service is healthy');
+
+  // Model creation using interface method
+  const model: SpeechToTextModel = await provider.createSpeechToTextModel('whisper-stt');
+  const isAvailable: boolean = await model.isAvailable();
+  assert(isAvailable, 'Model is available');
+
+  // Smart Asset Loading - Auto-detects formats and applies role mixins
+  const wavAudio = AssetLoader.load(wavPath);        // Auto-detects WAV, applies speech+audio roles
+  const wavResult: Text = await model.transform(wavAudio);
+  assert(!!wavResult.content, 'WAV result has content property');
+
+  const mp3Audio = AssetLoader.load(mp3Path);        // Auto-detects MP3, applies speech+audio roles
+  const mp3Result: Text = await model.transform(mp3Audio);
+  assert(!!mp3Result.content, 'MP3 result has content property');
+
+  const mp4Video = AssetLoader.load(mp4Path);        // Auto-detects MP4, applies video+speech+audio roles
+  const mp4Result: Text = await model.transform(mp4Video); // FFmpeg extraction happens automatically
+  assert(!!mp4Result.content, 'MP4 result has content property');
+
+  // Service cleanup
+  const stopped: boolean = await provider.stopService();
+  assert(stopped, 'Service is stopped');
+}
+
+// TTS Implementation follows same pattern
+async function runTTSTest(): Promise<void> {
+  const provider: TextToSpeechProvider = new ChatterboxDockerProvider();
+
+  await provider.startService();
+  const model: TextToSpeechModel = await provider.createTextToSpeechModel('chatterbox-tts');
+
+  // Basic TTS - smart asset loading
+  const textFromString: Text = Text.fromString('Hello, this is a test');
+  const stringResult: Speech = await model.transform(textFromString);
+
+  const textFromFile = AssetLoader.load(testTextPath);     // Auto-detects text format, applies text role
+  const fileResult: Speech = await model.transform(textFromFile);
+
+  // Voice cloning TTS - smart asset loading with automatic async role casting
+  const voiceAudio = AssetLoader.load('voice-sample.wav'); // Auto-detects WAV, applies speech+audio roles
+  const clonedResult: Speech = await model.transform(textFromString, voiceAudio); // Async asSpeech() called automatically
+
+  await provider.stopService();
+}
+```
+
+## 🎯 FAL.AI INTEGRATION ARCHITECTURE (NEW)
+
+### **Multi-Capability Provider System with Model-Specific Interfaces**
+
+**Core Achievement**: Single fal.ai provider implementing multiple XProvider interfaces, with each model exposing its own specialized API while sharing common infrastructure.
+
+### **XProvider → XtoYModel → Specialized Model Pattern**
+
+**The Pattern**: fal.ai supports multiple transformation types through one provider, but each model needs its own specialized interface:
+
+```typescript
+// 1. ONE PROVIDER, MULTIPLE CAPABILITIES
+export class FalAiProvider implements 
+  TextToImageProvider,
+  ImageToVideoProvider, 
+  TextToVideoProvider,
+  VideoToVideoProvider {
+  
+  constructor(private falAdapter: FalAiAdapter) {}
+  
+  // TextToImageProvider interface
+  async createTextToImageModel(modelId: string): Promise<TextToImageModel> {
+    switch(modelId) {
+      case 'flux-pro':
+        return new FalFluxProModel(this.falAdapter, modelId);
+      case 'flux-dev':
+        return new FalFluxDevModel(this.falAdapter, modelId);
+      default:
+        throw new Error(`Unsupported text-to-image model: ${modelId}`);
+    }
+  }
+  
+  // ImageToVideoProvider interface
+  async createImageToVideoModel(modelId: string): Promise<ImageToVideoModel> {
+    switch(modelId) {
+      case 'framepack':
+        return new FalFramePackModel(this.falAdapter, modelId);
+      default:
+        throw new Error(`Unsupported image-to-video model: ${modelId}`);
+    }
+  }
+  
+  // TextToVideoProvider interface
+  async createTextToVideoModel(modelId: string): Promise<TextToVideoModel> {
+    switch(modelId) {
+      case 'runway-gen3':
+        return new FalRunwayGen3Model(this.falAdapter, modelId);
+      case 'stable-video-diffusion':
+        return new FalStableVideoModel(this.falAdapter, modelId);
+      default:
+        throw new Error(`Unsupported text-to-video model: ${modelId}`);
+    }
+  }
+  
+  // VideoToVideoProvider interface
+  async createVideoToVideoModel(modelId: string): Promise<VideoToVideoModel> {
+    switch(modelId) {
+      case 'face-swap':
+        return new FalFaceSwapModel(this.falAdapter, modelId);
+      case 'video-enhance':
+        return new FalVideoEnhanceModel(this.falAdapter, modelId);
+      default:
+        throw new Error(`Unsupported video-to-video model: ${modelId}`);
+    }
+  }
+}
+```
+
+### **Model-Specific Interfaces with Shared Infrastructure**
+
+**Key Innovation**: Each fal.ai model gets its own specialized interface that matches its actual API, while sharing common infrastructure:
+
+```typescript
+// 2. SPECIALIZED MODEL IMPLEMENTATIONS
+export class FalFramePackModel extends ImageToVideoModel {
+  constructor(private falAdapter: FalAiAdapter, private modelId: string) {
+    super({
+      id: 'fal-framepack',
+      name: 'FAL FramePack Animation',
+      description: 'Animate static images with AI',
+      version: '1.0.0',
+      provider: 'fal.ai',
+      capabilities: ['image-to-video', 'animation'],
+      inputTypes: ['image'],
+      outputTypes: ['video']
+    });
+  }
+  
+  // Standard transform method - unified interface
+  async transform(image: ImageInput, options: {
+    prompt: string;             // Required for FramePack
+    num_frames?: number;        // 50-300, default 150
+    fps?: number;              // 15-60, default 30
+    guidance_scale?: number;   // 1-20, default 7.5
+    video_length?: number;     // 2-10 seconds, default 5
+    aspect_ratio?: '16:9' | '9:16' | '1:1';
+    teacache?: boolean;        // Performance optimization
+  }): Promise<Video> {
+    const imageAsset = await castToImage(image);
+    
+    // Convert to fal.ai format
+    const requestData = {
+      prompt: options.prompt,
+      image_url: await this.uploadAsset(imageAsset),
+      num_frames: options.num_frames || 150,
+      fps: options.fps || 30,
+      guidance_scale: options.guidance_scale || 7.5,
+      video_length: options.video_length || 5,
+      aspect_ratio: options.aspect_ratio || '16:9',
+      teacache: options.teacache !== false
+    };
+    
+    // Call fal.ai API through adapter
+    const result = await this.falAdapter.invoke('framepack', requestData);
+    
+    // Convert back to our Video asset
+    return Video.fromUrl(result.video.url);
+  }
+}
+
+export class FalFaceSwapModel extends VideoToVideoModel {
+  // Standard transform method - unified VideoToVideoModel interface
+  async transform(
+    baseVideo: VideoInput, 
+    overlayVideos: VideoInput | VideoInput[], 
+    options: {
+      face_restore?: boolean;
+      background_enhance?: boolean;
+      detection_threshold?: number;
+    } = {}
+  ): Promise<VideoCompositionResult> {
+    // For face swap, overlayVideos should be the source image/video
+    if (Array.isArray(overlayVideos)) {
+      throw new Error('Face swap only supports single source image');
+    }
+    
+    const sourceAsset = await castToImage(overlayVideos); // Source face
+    const targetAsset = await castToVideo(baseVideo);     // Target video
+    
+    const requestData = {
+      source_image: await this.uploadAsset(sourceAsset),
+      target_video: await this.uploadAsset(targetAsset),
+      face_restore: options.face_restore !== false,
+      background_enhance: options.background_enhance !== false,
+      detection_threshold: options.detection_threshold || 0.6
+    };
+    
+    const result = await this.falAdapter.invoke('face-swap', requestData);
+    const resultVideo = Video.fromUrl(result.video.url);
+    
+    return {
+      composedVideo: resultVideo,
+      metadata: {
+        duration: result.duration || 0,
+        resolution: result.resolution || '',
+        aspectRatio: result.aspect_ratio || '',
+        framerate: result.fps || 0,
+        baseVideoInfo: { 
+          duration: targetAsset.duration || 0, 
+          resolution: targetAsset.resolution || '' 
+        },
+        overlayInfo: { 
+          count: 1, 
+          overlays: [{
+            index: 0,
+            startTime: 0,
+            duration: result.duration || 0,
+            position: 'face-swap',
+            finalSize: { width: 0, height: 0 }
+          }]
+        }
+      }
+    };
+  }
+}
+
+export class FalRunwayGen3Model extends TextToVideoModel {
+  // Standard transform method - unified TextToVideoModel interface
+  async transform(text: TextInput, options: {
+    duration?: number;              // 2-10 seconds
+    aspect_ratio?: '16:9' | '9:16' | '1:1';
+    resolution?: '480p' | '720p' | '1080p';
+    motion_strength?: number;       // 0.0-1.0
+    camera_motion?: 'static' | 'pan' | 'zoom' | 'rotate';
+    seed?: number;                  // For reproducibility
+  } = {}): Promise<Video> {
+    const textAsset = await castToText(text);
+    
+    const requestData = {
+      prompt: textAsset.content,
+      duration: options.duration || 5,
+      aspect_ratio: options.aspect_ratio || '16:9',
+      resolution: options.resolution || '720p',
+      motion_strength: options.motion_strength || 0.5,
+      camera_motion: options.camera_motion || 'static',
+      seed: options.seed
+    };
+    
+    const result = await this.falAdapter.invoke('runway-gen3', requestData);
+    return Video.fromUrl(result.video.url);
+  }
+}
+```
+
+### **Usage Patterns - Type-Safe Model-Specific APIs**
+
+**Clients use the unified transform() interface with model-specific options:**
+
+```typescript
+// 1. IMAGE ANIMATION with FramePack-specific options
+const provider = ProviderFactory.getImageToVideoProvider('fal-ai');
+const framePackModel = await provider.createImageToVideoModel('framepack');
+
+const image = AssetLoader.load('photo.jpg');
+const animatedVideo = await framePackModel.transform(image, {
+  prompt: "dancing cat",
+  num_frames: 150,
+  fps: 30,
+  aspect_ratio: '16:9',
+  guidance_scale: 8.0,
+  teacache: true
+});
+
+// 2. FACE SWAPPING with FaceSwap-specific options
+const videoProvider = ProviderFactory.getVideoToVideoProvider('fal-ai');
+const faceSwapModel = await videoProvider.createVideoToVideoModel('face-swap');
+
+const sourceImage = AssetLoader.load('face.jpg');     // Source face (overlay)
+const targetVideo = AssetLoader.load('video.mp4');    // Target video (base)
+const result = await faceSwapModel.transform(targetVideo, sourceImage, {
+  face_restore: true,
+  background_enhance: true,
+  detection_threshold: 0.7
+});
+const swappedVideo = result.composedVideo;
+
+// 3. TEXT-TO-VIDEO with Runway-specific options
+const textVideoProvider = ProviderFactory.getTextToVideoProvider('fal-ai');
+const runwayModel = await textVideoProvider.createTextToVideoModel('runway-gen3');
+
+const text = Text.fromString("a cat playing piano");
+const generatedVideo = await runwayModel.transform(text, {
+  duration: 8,
+  aspect_ratio: '16:9',
+  resolution: '1080p',
+  motion_strength: 0.8,
+  camera_motion: 'pan'
+});
+
+// 4. UNIVERSAL PATTERN - same transform() method across all models
+const models = [framePackModel, faceSwapModel, runwayModel];
+for (const model of models) {
+  const result = await model.transform(input, modelSpecificOptions);
+  // Each model interprets options according to its capabilities
+}
+```
+
+## 🤖 TEXT-TO-TEXT LLM ARCHITECTURE (NEW)
+
+### **TextToTextProvider Pattern for Large Language Models**
+
+**Goal**: Integrate major LLM providers (Ollama, Anthropic, OpenAI, OpenRouter, Together) using the same provider/model/client architecture pattern as existing media providers.
+
+### **Layer 1: TextToTextProvider Interface**
+
+**Achievement**: Unified interface for all LLM providers with consistent capability declaration.
+
+```typescript
+// PRODUCTION INTERFACE - TextToText Provider Role
+export interface TextToTextProvider {
+  /**
+   * Create a text-to-text model instance
+   */
+  createTextToTextModel(modelId: string): Promise<TextToTextModel>;
+
+  /**
+   * Get supported text-to-text models
+   */
+  getSupportedTextToTextModels(): string[];
+
+  /**
+   * Check if provider supports a specific LLM model
+   */
+  supportsTextToTextModel(modelId: string): boolean;
+
+  /**
+   * Start the underlying service (functional for Docker/local providers, no-op for remote APIs)
+   */
+  startService(): Promise<boolean>;
+
+  /**
+   * Stop the underlying service (functional for Docker/local providers, no-op for remote APIs)
+   */
+  stopService(): Promise<boolean>;
+
+  /**
+   * Get service status (functional for Docker/local providers, basic health check for remote APIs)
+   */
+  getServiceStatus(): Promise<{ running: boolean; healthy: boolean; error?: string }>;
+}
+
+// Add TEXT_GENERATION to MediaCapability enum
+enum MediaCapability {
+  TEXT_TO_SPEECH = 'text-to-speech',
+  SPEECH_TO_TEXT = 'speech-to-text',
+  TEXT_GENERATION = 'text-generation',    // NEW - LLM text generation
+  TEXT_TO_TEXT = 'text-to-text',         // NEW - Alias for text generation
+  IMAGE_GENERATION = 'image-generation',
+  VIDEO_ANIMATION = 'video-animation',
+  VIDEO_GENERATION = 'video-generation',
+  // ... existing capabilities
+}
+```
+
+### **Layer 2: Provider Implementations**
+
+**Local Provider Pattern** (Ollama Docker/Local):
+```typescript
+// PRODUCTION IMPLEMENTATION - OllamaProvider
+export class OllamaProvider extends LocalProvider implements TextToTextProvider {
+  readonly id = 'ollama';
+  readonly name = 'Ollama Local LLM Provider';
+  readonly capabilities = [MediaCapability.TEXT_GENERATION];
+
+  private dockerService?: OllamaDockerService;
+  private apiClient?: OllamaAPIClient;
+
+  // TextToTextProvider interface implementation
+  async createTextToTextModel(modelId: string): Promise<TextToTextModel> {
+    const dockerService = await this.getDockerService();
+    const apiClient = await this.getAPIClient();
+
+    return new OllamaTextToTextModel({
+      dockerService,
+      apiClient,
+      modelId
+    });
+  }
+
+  getSupportedTextToTextModels(): string[] {
+    return ['llama3.2', 'llama3.1', 'codellama', 'mistral', 'qwen2.5'];
+  }
+
+  supportsTextToTextModel(modelId: string): boolean {
+    return this.getSupportedTextToTextModels().includes(modelId);
+  }
+
+  // Service management (functional for local Ollama)
+  async startService(): Promise<boolean> {
+    const dockerService = await this.getDockerService();
+    const started = await dockerService.startService();
+    
+    if (started) {
+      return await dockerService.waitForHealthy(60000);
+    }
+    return false;
+  }
+
+  async stopService(): Promise<boolean> {
+    const dockerService = await this.getDockerService();
+    return await dockerService.stopService();
+  }
+
+  async getServiceStatus(): Promise<{ running: boolean; healthy: boolean; error?: string }> {
+    const dockerService = await this.getDockerService();
+    const status = await dockerService.getServiceStatus();
+
+    return {
+      running: status.running || false,
+      healthy: status.health === 'healthy',
+      error: status.error
+    };
+  }
+
+  // Infrastructure delegation
+  protected async getDockerService(): Promise<OllamaDockerService> {
+    if (!this.dockerService) {
+      this.dockerService = new OllamaDockerService();
+    }
+    return this.dockerService;
+  }
+
+  protected async getAPIClient(): Promise<OllamaAPIClient> {
+    if (!this.apiClient) {
+      const baseUrl = await this.getBaseUrl();
+      this.apiClient = new OllamaAPIClient(baseUrl);
+    }
+    return this.apiClient;
+  }
+}
+```
+
+**Remote Provider Pattern** (OpenAI, Anthropic, OpenRouter, Together):
+```typescript
+// PRODUCTION IMPLEMENTATION - OpenAIProvider
+export class OpenAIProvider implements MediaProvider, TextToTextProvider {
+  readonly id = 'openai';
+  readonly name = 'OpenAI';
+  readonly type = ProviderType.REMOTE;
+  readonly capabilities = [
+    MediaCapability.TEXT_GENERATION,
+    MediaCapability.IMAGE_GENERATION, // DALL-E
+    MediaCapability.SPEECH_TO_TEXT,   // Whisper API
+    MediaCapability.TEXT_TO_SPEECH    // TTS API
+  ];
+
+  private config?: ProviderConfig;
+  private apiClient?: OpenAIAPIClient;
+
+  async configure(config: ProviderConfig): Promise<void> {
+    this.config = config;
+    
+    if (!config.apiKey) {
+      throw new Error('OpenAI API key is required');
+    }
+
+    this.apiClient = new OpenAIAPIClient({
+      apiKey: config.apiKey,
+      organization: config.organization
+    });
+  }
+
+  async isAvailable(): Promise<boolean> {
+    if (!this.apiClient) {
+      return false;
+    }
+
+    try {
+      return await this.apiClient.testConnection();
+    } catch (error) {
+      console.warn('OpenAI availability check failed:', error);
+      return false;
+    }
+  }
+
+  // TextToTextProvider interface implementation
+  async createTextToTextModel(modelId: string): Promise<TextToTextModel> {
+    if (!this.apiClient) {
+      throw new Error('Provider not configured');
+    }
+
+    return new OpenAITextToTextModel({
+      apiClient: this.apiClient,
+      modelId
+    });
+  }
+
+  getSupportedTextToTextModels(): string[] {
+    return ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo', 'gpt-3.5-turbo', 'o1-preview', 'o1-mini'];
+  }
+
+  supportsTextToTextModel(modelId: string): boolean {
+    return this.getSupportedTextToTextModels().includes(modelId);
+  }
+
+  // Service management (no-ops for remote API providers)
+  async startService(): Promise<boolean> {
+    return true; // Remote APIs are always "started"
+  }
+
+  async stopService(): Promise<boolean> {
+    return true; // No service to stop for remote APIs
+  }
+
+  async getServiceStatus(): Promise<{ running: boolean; healthy: boolean; error?: string }> {
+    const isAvailable = await this.isAvailable();
+    return {
+      running: true, // Remote APIs are always "running"
+      healthy: isAvailable,
+      error: isAvailable ? undefined : 'API connection failed'
+    };
+  }
+
+  // ... MediaProvider interface methods
+  get models(): ProviderModel[] {
+    return this.getSupportedTextToTextModels().map(modelId => ({
+      id: modelId,
+      name: modelId,
+      description: `OpenAI ${modelId} model`,
+      capabilities: [MediaCapability.TEXT_GENERATION],
+      parameters: {},
+      pricing: {
+        inputCost: 0, // Would need real pricing data
+        outputCost: 0,
+        currency: 'USD'
+      }
+    }));
+  }
+}
+
+// PRODUCTION IMPLEMENTATION - AnthropicProvider
+export class AnthropicProvider implements MediaProvider, TextToTextProvider {
+  readonly id = 'anthropic';
+  readonly name = 'Anthropic';
+  readonly type = ProviderType.REMOTE;
+  readonly capabilities = [MediaCapability.TEXT_GENERATION];
+
+  // Same pattern as OpenAI but with Anthropic-specific models
+  getSupportedTextToTextModels(): string[] {
+    return ['claude-3-5-sonnet-20241022', 'claude-3-5-haiku-20241022', 'claude-3-opus-20240229'];
+  }
+
+  async createTextToTextModel(modelId: string): Promise<TextToTextModel> {
+    return new AnthropicTextToTextModel({
+      apiClient: this.apiClient!,
+      modelId
+    });
+  }
+
+  // ... rest follows same pattern as OpenAI
+}
+
+// PRODUCTION IMPLEMENTATION - OpenRouterProvider
+export class OpenRouterProvider implements MediaProvider, TextToTextProvider {
+  readonly id = 'openrouter';
+  readonly name = 'OpenRouter';
+  readonly type = ProviderType.REMOTE;
+  readonly capabilities = [MediaCapability.TEXT_GENERATION];
+
+  // OpenRouter provides access to many models from different providers
+  getSupportedTextToTextModels(): string[] {
+    return [
+      'anthropic/claude-3.5-sonnet',
+      'openai/gpt-4o',
+      'google/gemini-pro-1.5',
+      'meta-llama/llama-3.2-90b-vision-instruct',
+      'qwen/qwen-2.5-72b-instruct',
+      'deepseek/deepseek-chat'
+    ];
+  }
+
+  async createTextToTextModel(modelId: string): Promise<TextToTextModel> {
+    return new OpenRouterTextToTextModel({
+      apiClient: this.apiClient!,
+      modelId
+    });
+  }
+
+  // ... rest follows same pattern
+}
+
+// PRODUCTION IMPLEMENTATION - TogetherProvider
+export class TogetherProvider implements MediaProvider, TextToTextProvider {
+  readonly id = 'together';
+  readonly name = 'Together AI';
+  readonly type = ProviderType.REMOTE;
+  readonly capabilities = [MediaCapability.TEXT_GENERATION];
+
+  getSupportedTextToTextModels(): string[] {
+    return [
+      'meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo',
+      'meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo',
+      'mistralai/Mixtral-8x7B-Instruct-v0.1',
+      'Qwen/Qwen2.5-7B-Instruct-Turbo'
+    ];
+  }
+
+  async createTextToTextModel(modelId: string): Promise<TextToTextModel> {
+    return new TogetherTextToTextModel({
+      apiClient: this.apiClient!,
+      modelId
+    });
+  }
+
+  // ... rest follows same pattern
+}
+```
+
+### **Layer 3: Service & Client Infrastructure**
+
+**Docker Service Layer** (Ollama):
+```typescript
+// PRODUCTION PATTERN - Ollama Docker Service
+export class OllamaDockerService extends DockerComposeService {
+  protected getServiceName(): string { 
+    return 'ollama'; 
+  }
+  
+  protected getDockerComposePath(): string { 
+    return './services/ollama'; 
+  }
+  
+  async isServiceHealthy(): Promise<boolean> {
+    return await this.checkContainerHealth('ollama');
+  }
+
+  async pullModel(modelName: string): Promise<boolean> {
+    // Execute docker exec ollama ollama pull <model>
+    try {
+      await this.executeCommand(`docker exec ollama ollama pull ${modelName}`);
+      return true;
+    } catch (error) {
+      console.error(`Failed to pull Ollama model ${modelName}:`, error);
+      return false;
+    }
+  }
+
+  async listModels(): Promise<string[]> {
+    try {
+      const result = await this.executeCommand('docker exec ollama ollama list');
+      // Parse ollama list output to extract model names
+      return this.parseModelList(result);
+    } catch (error) {
+      console.error('Failed to list Ollama models:', error);
+      return [];
+    }
+  }
+}
+```
+
+**API Client Layer** (Pure HTTP Communication):
+```typescript
+// PRODUCTION PATTERN - Ollama API Client
+export class OllamaAPIClient {
+  constructor(private baseUrl: string) {}
+
+  async generateText(request: {
+    model: string;
+    prompt: string;
+    stream?: boolean;
+    options?: {
+      temperature?: number;
+      top_p?: number;
+      max_tokens?: number;
+    };
+  }): Promise<OllamaResponse> {
+    const response = await fetch(`${this.baseUrl}/api/generate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: request.model,
+        prompt: request.prompt,
+        stream: request.stream || false,
+        options: request.options
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`Ollama API error: ${response.statusText}`);
+    }
+
+    return await response.json();
+  }
+
+  async testConnection(): Promise<boolean> {
+    try {
+      const response = await fetch(`${this.baseUrl}/api/tags`);
+      return response.ok;
+    } catch (error) {
+      return false;
+    }
+  }
+}
+
+// PRODUCTION PATTERN - OpenAI API Client
+export class OpenAIAPIClient {
+  constructor(private config: { apiKey: string; organization?: string }) {}
+
+  async generateText(request: {
+    model: string;
+    messages: Array<{ role: string; content: string }>;
+    temperature?: number;
+    max_tokens?: number;
+    stream?: boolean;
+  }): Promise<OpenAIResponse> {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${this.config.apiKey}`,
+        'Content-Type': 'application/json',
+        ...(this.config.organization && { 'OpenAI-Organization': this.config.organization })
+      },
+      body: JSON.stringify(request)
+    });
+
+    if (!response.ok) {
+      throw new Error(`OpenAI API error: ${response.statusText}`);
+    }
+
+    return await response.json();
+  }
+
+  async testConnection(): Promise<boolean> {
+    try {
+      const response = await fetch('https://api.openai.com/v1/models', {
+        headers: { 'Authorization': `Bearer ${this.config.apiKey}` }
+      });
+      return response.ok;
+    } catch (error) {
+      return false;
+    }
+  }
+}
+
+// PRODUCTION PATTERN - Anthropic API Client
+export class AnthropicAPIClient {
+  constructor(private config: { apiKey: string }) {}
+
+  async generateText(request: {
+    model: string;
+    messages: Array<{ role: string; content: string }>;
+    max_tokens: number;
+    temperature?: number;
+  }): Promise<AnthropicResponse> {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'x-api-key': this.config.apiKey,
+        'Content-Type': 'application/json',
+        'anthropic-version': '2023-06-01'
+      },
+      body: JSON.stringify(request)
+    });
+
+    if (!response.ok) {
+      throw new Error(`Anthropic API error: ${response.statusText}`);
+    }
+
+    return await response.json();
+  }
+
+  async testConnection(): Promise<boolean> {
+    try {
+      // Anthropic doesn't have a simple health check endpoint
+      // Try a minimal request to test authentication
+      const response = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'x-api-key': this.config.apiKey,
+          'Content-Type': 'application/json',
+          'anthropic-version': '2023-06-01'
+        },
+        body: JSON.stringify({
+          model: 'claude-3-haiku-20240307',
+          max_tokens: 1,
+          messages: [{ role: 'user', content: 'test' }]
+        })
+      });
+      return response.status !== 401; // Authentication error = bad API key
+    } catch (error) {
+      return false;
+    }
+  }
+}
+```
+
+### **Layer 4: TextToTextModel Implementation**
+
+**Model Pattern** (Pure Transformation Logic):
+```typescript
+// PRODUCTION PATTERN - TextToTextModel Base
+export abstract class TextToTextModel extends Model {
+  /**
+   * Transform text input into text output using LLM
+   */
+  abstract transform(
+    input: TextInput, 
+    options?: TextToTextOptions
+  ): Promise<Text>;
+
+  /**
+   * Multi-turn conversation support
+   */
+  abstract transformConversation(
+    messages: ConversationMessage[],
+    options?: TextToTextOptions
+  ): Promise<Text>;
+
+  /**
+   * Streaming response support
+   */
+  abstract transformStream(
+    input: TextInput,
+    options?: TextToTextOptions
+  ): AsyncGenerator<Text, Text, unknown>;
+}
+
+// TextInput = Text | string | (Asset & TextRole)
+// TextToTextOptions = { temperature?, max_tokens?, system_prompt?, etc. }
+
+// PRODUCTION IMPLEMENTATION - OllamaTextToTextModel
+export class OllamaTextToTextModel extends TextToTextModel {
+  constructor(private context: {
+    dockerService: OllamaDockerService;
+    apiClient: OllamaAPIClient;
+    modelId: string;
+  }) {
+    super({
+      id: `ollama-${context.modelId}`,
+      name: `Ollama ${context.modelId}`,
+      description: `Local Ollama model: ${context.modelId}`,
+      version: '1.0.0',
+      provider: 'ollama',
+      capabilities: ['text-generation'],
+      inputTypes: ['text'],
+      outputTypes: ['text']
+    });
+  }
+
+  async transform(
+    input: TextInput,
+    options: TextToTextOptions = {}
+  ): Promise<Text> {
+    // 1. Ensure Ollama service is running
+    await this.ensureServiceRunning();
+
+    // 2. Cast input to Text
+    const text = await castToText(input);
+
+    // 3. Call Ollama API
+    const response = await this.context.apiClient.generateText({
+      model: this.context.modelId,
+      prompt: text.content,
+      options: {
+        temperature: options.temperature,
+        top_p: options.top_p,
+        max_tokens: options.max_tokens
+      }
+    });
+
+    // 4. Return typed result
+    return new Text(response.response, 'en', 1.0, {
+      model: this.context.modelId,
+      provider: 'ollama',
+      usage: response.eval_count ? {
+        prompt_tokens: response.prompt_eval_count,
+        completion_tokens: response.eval_count,
+        total_tokens: (response.prompt_eval_count || 0) + (response.eval_count || 0)
+      } : undefined
+    });
+  }
+
+  async transformConversation(
+    messages: ConversationMessage[],
+    options: TextToTextOptions = {}
+  ): Promise<Text> {
+    // Convert conversation to single prompt for Ollama
+    const prompt = this.formatConversationAsPrompt(messages);
+    return await this.transform(Text.fromString(prompt), options);
+  }
+
+  async *transformStream(
+    input: TextInput,
+    options: TextToTextOptions = {}
+  ): AsyncGenerator<Text, Text, unknown> {
+    await this.ensureServiceRunning();
+    const text = await castToText(input);
+
+    // Ollama streaming implementation
+    const response = await fetch(`${this.context.apiClient.baseUrl}/api/generate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: this.context.modelId,
+        prompt: text.content,
+        stream: true,
+        options: {
+          temperature: options.temperature,
+          max_tokens: options.max_tokens
+        }
+      })
+    });
+
+    const reader = response.body?.getReader();
+    if (!reader) throw new Error('No response body');
+
+    let fullResponse = '';
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = new TextDecoder().decode(value);
+        const lines = chunk.split('\n').filter(line => line.trim());
+
+        for (const line of lines) {
+          try {
+            const data = JSON.parse(line);
+            if (data.response) {
+              fullResponse += data.response;
+              yield new Text(data.response, 'en', 1.0, { partial: true });
+            }
+          } catch (e) {
+            // Skip invalid JSON lines
+          }
+        }
+      }
+    } finally {
+      reader.releaseLock();
+    }
+
+    return new Text(fullResponse, 'en', 1.0, {
+      model: this.context.modelId,
+      provider: 'ollama'
+    });
+  }
+
+  private async ensureServiceRunning(): Promise<void> {
+    const status = await this.context.dockerService.getServiceStatus();
+    if (!status.running || status.health !== 'healthy') {
+      throw new Error('Ollama service is not running or healthy');
+    }
+  }
+
+  private formatConversationAsPrompt(messages: ConversationMessage[]): string {
+    return messages
+      .map(msg => `${msg.role}: ${msg.content}`)
+      .join('\n') + '\nassistant:';
+  }
+}
+
+// PRODUCTION IMPLEMENTATION - OpenAITextToTextModel
+export class OpenAITextToTextModel extends TextToTextModel {
+  constructor(private context: {
+    apiClient: OpenAIAPIClient;
+    modelId: string;
+  }) {
+    super({
+      id: `openai-${context.modelId}`,
+      name: `OpenAI ${context.modelId}`,
+      description: `OpenAI model: ${context.modelId}`,
+      version: '1.0.0',
+      provider: 'openai',
+      capabilities: ['text-generation'],
+      inputTypes: ['text'],
+      outputTypes: ['text']
+    });
+  }
+
+  async transform(
+    input: TextInput,
+    options: TextToTextOptions = {}
+  ): Promise<Text> {
+    const text = await castToText(input);
+
+    const messages = options.system_prompt 
+      ? [
+          { role: 'system', content: options.system_prompt },
+          { role: 'user', content: text.content }
+        ]
+      : [{ role: 'user', content: text.content }];
+
+    const response = await this.context.apiClient.generateText({
+      model: this.context.modelId,
+      messages,
+      temperature: options.temperature,
+      max_tokens: options.max_tokens
+    });
+
+    return new Text(
+      response.choices[0].message.content,
+      'en',
+      1.0,
+      {
+        model: this.context.modelId,
+        provider: 'openai',
+        usage: response.usage
+      }
+    );
+  }
+
+  async transformConversation(
+    messages: ConversationMessage[],
+    options: TextToTextOptions = {}
+  ): Promise<Text> {
+    const openaiMessages = messages.map(msg => ({
+      role: msg.role,
+      content: msg.content
+    }));
+
+    if (options.system_prompt) {
+      openaiMessages.unshift({ role: 'system', content: options.system_prompt });
+    }
+
+    const response = await this.context.apiClient.generateText({
+      model: this.context.modelId,
+      messages: openaiMessages,
+      temperature: options.temperature,
+      max_tokens: options.max_tokens
+    });
+
+    return new Text(
+      response.choices[0].message.content,
+      'en',
+      1.0,
+      {
+        model: this.context.modelId,
+        provider: 'openai',
+        usage: response.usage
+      }
+    );
+  }
+
+  async *transformStream(
+    input: TextInput,
+    options: TextToTextOptions = {}
+  ): AsyncGenerator<Text, Text, unknown> {
+    const text = await castToText(input);
+
+    const messages = options.system_prompt 
+      ? [
+          { role: 'system', content: options.system_prompt },
+          { role: 'user', content: text.content }
+        ]
+      : [{ role: 'user', content: text.content }];
+
+    // OpenAI streaming implementation
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${this.context.apiClient.config.apiKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: this.context.modelId,
+        messages,
+        temperature: options.temperature,
+        max_tokens: options.max_tokens,
+        stream: true
+      })
+    });
+
+    const reader = response.body?.getReader();
+    if (!reader) throw new Error('No response body');
+
+    let fullResponse = '';
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = new TextDecoder().decode(value);
+        const lines = chunk.split('\n').filter(line => line.startsWith('data: '));
+
+        for (const line of lines) {
+          const data = line.slice(6); // Remove 'data: ' prefix
+          if (data === '[DONE]') continue;
+
+          try {
+            const parsed = JSON.parse(data);
+            const content = parsed.choices?.[0]?.delta?.content;
+            if (content) {
+              fullResponse += content;
+              yield new Text(content, 'en', 1.0, { partial: true });
+            }
+          } catch (e) {
+            // Skip invalid JSON
+          }
+        }
+      }
+    } finally {
+      reader.releaseLock();
+    }
+
+    return new Text(fullResponse, 'en', 1.0, {
+      model: this.context.modelId,
+      provider: 'openai'
+    });
+  }
+}
+```
+
+### **Layer 5: Usage Patterns**
+
+**Direct Provider Usage with Type Safety**:
+```typescript
+// LOCAL LLM USAGE - Ollama
+async function runOllamaTest(): Promise<void> {
+  const provider: TextToTextProvider = new OllamaProvider();
+
+  // Service lifecycle management (functional for local Ollama)
+  const serviceStarted = await provider.startService();
+  assert(serviceStarted, 'Ollama service started');
+
+  const status = await provider.getServiceStatus();
+  assert(status.running && status.healthy, 'Ollama service is healthy');
+
+  // Model creation
+  const model = await provider.createTextToTextModel('llama3.2');
+  
+  // Single-turn text transformation
+  const input = Text.fromString('Explain quantum computing in simple terms.');
+  const response = await model.transform(input, {
+    temperature: 0.7,
+    max_tokens: 500
+  });
+  
+  console.log('Ollama Response:', response.content);
+
+  // Multi-turn conversation
+  const conversation: ConversationMessage[] = [
+    { role: 'user', content: 'What is machine learning?' },
+    { role: 'assistant', content: 'Machine learning is...' },
+    { role: 'user', content: 'Give me a practical example.' }
+  ];
+  
+  const conversationResponse = await model.transformConversation(conversation);
+  console.log('Conversation Response:', conversationResponse.content);
+
+  // Streaming response
+  console.log('Streaming Response:');
+  for await (const chunk of model.transformStream(input)) {
+    process.stdout.write(chunk.content);
+  }
+
+  await provider.stopService();
+}
+
+// REMOTE LLM USAGE - OpenAI
+async function runOpenAITest(): Promise<void> {
+  const provider: TextToTextProvider = new OpenAIProvider();
+  
+  await provider.configure({ apiKey: process.env.OPENAI_API_KEY! });
+  
+  // Service status (basic health check for remote APIs)
+  const status = await provider.getServiceStatus();
+  assert(status.healthy, 'OpenAI API is available');
+
+  // Model creation
+  const model = await provider.createTextToTextModel('gpt-4o');
+  
+  // Text transformation with system prompt
+  const input = Text.fromString('Write a haiku about programming.');
+  const response = await model.transform(input, {
+    system_prompt: 'You are a creative poet who specializes in technical haikus.',
+    temperature: 0.8,
+    max_tokens: 100
+  });
+  
+  console.log('OpenAI Response:', response.content);
+  console.log('Usage:', response.metadata.usage);
+
+  // Multi-turn conversation (native OpenAI format)
+  const conversation: ConversationMessage[] = [
+    { role: 'user', content: 'I need help with Python.' },
+    { role: 'assistant', content: 'I\'d be happy to help! What specific Python topic?' },
+    { role: 'user', content: 'How do I handle exceptions?' }
+  ];
+  
+  const conversationResponse = await model.transformConversation(conversation, {
+    temperature: 0.3
+  });
+  console.log('Conversation Response:', conversationResponse.content);
+}
+
+// MULTI-PROVIDER USAGE - Provider Factory Pattern
+async function runMultiProviderComparison(): Promise<void> {
+  const providers: TextToTextProvider[] = [
+    new OllamaProvider(),
+    new OpenAIProvider(), 
+    new AnthropicProvider(),
+    new OpenRouterProvider()
+  ];
+
+  const prompt = Text.fromString('Explain the concept of recursion with a simple example.');
+
+  for (const provider of providers) {
+    console.log(`\n=== Testing ${provider.name} ===`);
+    
+    try {
+      // Configure if needed
+      if (provider.id === 'openai') {
+        await provider.configure({ apiKey: process.env.OPENAI_API_KEY! });
+      } else if (provider.id === 'anthropic') {
+        await provider.configure({ apiKey: process.env.ANTHROPIC_API_KEY! });
+      } else if (provider.id === 'openrouter') {
+        await provider.configure({ apiKey: process.env.OPENROUTER_API_KEY! });
+      }
+
+      // Start service if local
+      if (provider.id === 'ollama') {
+        await provider.startService();
+      }
+
+      // Get available models
+      const models = provider.getSupportedTextToTextModels();
+      console.log('Available models:', models);
+
+      // Create model instance
+      const model = await provider.createTextToTextModel(models[0]);
+      
+      // Transform text
+      const result = await model.transform(prompt, { temperature: 0.7 });
+      console.log('Response:', result.content.substring(0, 200) + '...');
+
+    } catch (error) {
+      console.error(`${provider.name} failed:`, error.message);
+    } finally {
+      // Cleanup
+      if (provider.id === 'ollama') {
+        await provider.stopService();
+      }
+    }
+  }
+}
+```
+
+### **Key Architecture Benefits**
+
+1. **✅ Consistent Interface** - Same TextToTextProvider interface for all LLM providers
+2. **✅ Local + Remote Support** - Ollama (Docker) and cloud APIs unified under same interface
+3. **✅ Service Management** - Full lifecycle management for local providers, health checks for remote
+4. **✅ Type Safety** - Full TypeScript support with proper input/output typing
+5. **✅ Smart Asset Integration** - Works with AssetLoader.load() for text files
+6. **✅ Streaming Support** - Native async generator support for real-time responses
+7. **✅ Conversation Support** - Multi-turn conversation handling for all providers
+8. **✅ Provider Discovery** - Factory pattern enables capability-based provider selection
+9. **✅ Extensibility** - Easy to add new LLM providers following the same pattern
+10. **✅ Error Handling** - Consistent error handling and fallback mechanisms

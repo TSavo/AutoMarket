@@ -40,4 +40,8 @@ export class Text implements TextRole {
   canPlayTextRole(): boolean {
     return this.isValid();
   }
+
+  static fromString(content: string, metadata: TextMetadata = {}): Text {
+    return new Text(content, metadata.language, metadata.confidence, metadata);
+  }
 }
