@@ -1,4 +1,4 @@
-import { ReplicateClient } from './src/media/clients/ReplicateClient';
+import { ReplicateClient } from './src/media/providers/replicate/ReplicateClient';
 
 async function checkSpecificModels() {
   const client = new ReplicateClient({

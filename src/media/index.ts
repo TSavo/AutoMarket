@@ -65,6 +65,33 @@ export type {
   MediaInput
 } from './assets/casting';
 
+// Export Provider Capabilities (what providers can do)
+export type {
+  AudioToTextProvider,
+  TextToAudioProvider,
+  TextToImageProvider,
+  TextToVideoProvider,
+  TextToTextProvider,
+  VideoToAudioProvider,
+  VideoToVideoProvider,
+  ServiceManagement
+} from './capabilities';
+
+// Export Provider Capability Guards
+export {
+  hasAudioToTextRole,
+  hasTextToAudioRole,
+  hasTextToImageRole,
+  hasTextToVideoRole,
+  hasTextToTextRole,
+  hasVideoToAudioRole,
+  hasVideoToVideoRole,
+  getProviderRoles
+} from './capabilities';
+
+// Export Provider Packages (provider-centric organization)
+export * from './providers';
+
 
 
 // Ingest types excluded from Vercel deployment

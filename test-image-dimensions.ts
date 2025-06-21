@@ -34,10 +34,9 @@ async function testImageDimensions() {
     console.log(`   getHeight(): ${image.getHeight()}`);
     console.log(`   getSize(): ${image.getSize()}`);
     console.log(`   getFileSize(): ${image.getFileSize()}`);
-    console.log(`   isValid(): ${image.isValid()}`);
-
-    console.log('4️⃣ Testing fromUrl method...');
+    console.log(`   isValid(): ${image.isValid()}`);    console.log('4️⃣ Testing fromUrl method...');
     const urlImage = Image.fromUrl('https://example.com/image.png', 'png', {
+      format: 'png',
       width: 512,
       height: 512
     });

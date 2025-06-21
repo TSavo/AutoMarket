@@ -4,8 +4,8 @@
  * Debug the model discovery and classification issues.
  */
 
-import { TogetherProvider } from './src/media/providers/TogetherProvider';
-import { TogetherAPIClient } from './src/media/clients/TogetherAPIClient';
+import { TogetherProvider } from './src/media/providers/together/TogetherProvider';
+import { TogetherAPIClient } from './src/media/providers/together/TogetherAPIClient';
 
 async function debugTogetherDiscovery() {
   console.log('🔍 Debugging Together AI Model Discovery...\n');

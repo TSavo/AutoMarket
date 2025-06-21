@@ -4,7 +4,7 @@
  * Check what the unclassified models are and if any are video models
  */
 
-import { TogetherAPIClient } from './src/media/clients/TogetherAPIClient';
+import { TogetherAPIClient } from './src/media/providers/together/TogetherAPIClient';
 
 async function debugUnclassifiedModels() {
   console.log('🔍 Debugging Unclassified Models...\n');

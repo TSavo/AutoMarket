@@ -4,7 +4,7 @@
  * Test the new dynamic parameter handling and SmartAsset loading.
  */
 
-import { TogetherProvider } from './src/media/providers/TogetherProvider';
+import { TogetherProvider } from './src/media/providers/together/TogetherProvider';
 import { Text } from './src/media/assets/roles';
 
 async function testTogetherDynamic() {
@@ -54,7 +54,7 @@ async function testTogetherDynamic() {
         console.log(`   Format: ${imageResult.format}`);
         console.log(`   Valid: ${imageResult.isValid()}`);
         console.log(`   Processing time: ${imageResult.metadata?.processingTime}ms`);
-        console.log(`   File size: ${(imageResult.metadata?.fileSize / 1024).toFixed(1)}KB`);
+        console.log(`   File size: ${((imageResult.metadata?.fileSize || 0) / 1024).toFixed(1)}KB`);
         console.log(`   Dimensions: ${JSON.stringify(imageResult.getDimensions())}`);
         
         if (imageResult.metadata?.url) {

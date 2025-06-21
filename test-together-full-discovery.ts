@@ -4,7 +4,7 @@
  * Test the full model discovery with 30,000+ models
  */
 
-import { TogetherProvider } from './src/media/providers/TogetherProvider';
+import { TogetherProvider } from './src/media/providers/together/TogetherProvider';
 
 async function testTogetherFullDiscovery() {
   console.log('🔍 Testing Together AI Full Model Discovery...\n');

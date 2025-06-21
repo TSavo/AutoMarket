@@ -4,7 +4,7 @@
  * Test both TextToTextProvider and TextToImageProvider capabilities.
  */
 
-import { TogetherProvider } from './src/media/providers/TogetherProvider';
+import { TogetherProvider } from './src/media/providers/together/TogetherProvider';
 import { Text } from './src/media/assets/roles';
 import { MediaCapability } from './src/media/types/provider';
 

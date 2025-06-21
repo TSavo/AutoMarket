@@ -4,7 +4,7 @@
  * Test image generation with correct FLUX model parameters.
  */
 
-import { TogetherProvider } from './src/media/providers/TogetherProvider';
+import { TogetherProvider } from './src/media/providers/together/TogetherProvider';
 import { Text } from './src/media/assets/roles';
 
 async function testTogetherImageFixed() {

@@ -63,7 +63,7 @@ async function testVideoMetadataExtraction() {
     console.timeEnd('Metadata extraction');
     
     console.log(`   ⏱️  Duration: ${duration1} seconds`);
-    console.log(`   📐 Dimensions: ${dimensions1.width}x${dimensions1.height}`);
+    console.log(`   📐 Dimensions: ${dimensions1?.width || 'unknown'}x${dimensions1?.height || 'unknown'}`);
     console.log(`   🎞️  Frame rate: ${frameRate} fps`);
     console.log(`   🔊 Has audio: ${hasAudio}`);
 
@@ -76,7 +76,7 @@ async function testVideoMetadataExtraction() {
     console.timeEnd('Cached metadata access');
     
     console.log(`   ⏱️  Duration (cached): ${duration2} seconds`);
-    console.log(`   📐 Dimensions (cached): ${dimensions2.width}x${dimensions2.height}`);
+    console.log(`   📐 Dimensions (cached): ${dimensions2?.width || 'unknown'}x${dimensions2?.height || 'unknown'}`);
 
     console.log('\n4️⃣ Testing Video string representation...');
     console.log(`   📄 toString(): ${video.toString()}`);
@@ -88,7 +88,7 @@ async function testVideoMetadataExtraction() {
     const finalDimensions = video.getDimensions();
     
     console.log(`   ⏱️  Final duration: ${finalDuration} seconds`);
-    console.log(`   📐 Final dimensions: ${finalDimensions.width}x${finalDimensions.height}`);
+    console.log(`   📐 Final dimensions: ${finalDimensions?.width || 'unknown'}x${finalDimensions?.height || 'unknown'}`);
     console.log(`   📄 Final toString(): ${video.toString()}`);
 
     console.log('\n✅ Video metadata extraction test complete!');

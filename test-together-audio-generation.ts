@@ -4,7 +4,7 @@
  * Actually generate and download audio with Cartesia Sonic
  */
 
-import { TogetherProvider } from './src/media/providers/TogetherProvider';
+import { TogetherProvider } from './src/media/providers/together/TogetherProvider';
 
 async function testTogetherAudioGeneration() {
   console.log('🎵 Testing Together AI Audio Generation - Real Test...\n');

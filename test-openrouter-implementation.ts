@@ -4,7 +4,7 @@
  * Simple test to verify the OpenRouter provider and model work correctly.
  */
 
-import { OpenRouterProvider } from './src/media/providers/OpenRouterProvider';
+import { OpenRouterProvider } from './src/media/providers/openrouter/OpenRouterProvider';
 import { Text } from './src/media/assets/roles';
 
 async function testOpenRouterImplementation() {

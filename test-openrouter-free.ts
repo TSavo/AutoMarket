@@ -4,7 +4,7 @@
  * Real test using OpenRouter's free models to verify the implementation works.
  */
 
-import { OpenRouterProvider } from './src/media/providers/OpenRouterProvider';
+import { OpenRouterProvider } from './src/media/providers/openrouter/OpenRouterProvider';
 import { Text } from './src/media/assets/roles';
 
 async function testOpenRouterFree() {

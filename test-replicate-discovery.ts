@@ -4,7 +4,7 @@
  * Test the ReplicateClient's model discovery using the official Replicate API
  */
 
-import { ReplicateClient, ReplicateConfig } from './src/media/clients/ReplicateClient';
+import { ReplicateClient, ReplicateConfig } from './src/media/providers/replicate/ReplicateClient';
 
 async function testReplicateHybridDiscovery() {
   console.log('🔬 Testing Replicate Hybrid Model Discovery System');

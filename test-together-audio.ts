@@ -4,7 +4,7 @@
  * Test the new TextToAudioProvider functionality with Cartesia Sonic models
  */
 
-import { TogetherProvider } from './src/media/providers/TogetherProvider';
+import { TogetherProvider } from './src/media/providers/together/TogetherProvider';
 
 async function testTogetherAudio() {
   console.log('🎵 Testing Together AI Audio Generation...\n');
