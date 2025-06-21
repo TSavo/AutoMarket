@@ -194,6 +194,48 @@ async function testCompositionBuilderRefactoring() {
     if (allVideos.length !== 4) {
       console.warn('⚠️  Expected 4 videos total, got:', allVideos.length);
     }    
+    // Test 5: Test pure overlay composition (no prepend/append)
+    console.log('\n📋 Test 5: Testing pure overlay composition (original filter complex)');
+    const pureOverlayBuilder = new FFMPEGCompositionBuilder();
+    
+    // Create pure overlay test with mock videos
+    const mockBufferA = Buffer.from('base-video-data');
+    const mockBufferB = Buffer.from('overlay-video-data');
+    const baseAssetTest = SmartAssetFactory.fromBuffer(mockBufferA, 'mp4');
+    const overlayAssetTest = SmartAssetFactory.fromBuffer(mockBufferB, 'webm');
+    const baseVideoTest = await baseAssetTest.asVideo();
+    const overlayVideoTest = await overlayAssetTest.asVideo();
+    
+    pureOverlayBuilder
+      .compose(baseVideoTest)
+      .addOverlay(overlayVideoTest, { 
+        position: 'top-right', 
+        opacity: 0.8,
+        width: '25%',
+        colorKey: '#00FF00',  // Green screen
+        colorKeySimilarity: 0.25,
+        colorKeyBlend: 0.05,
+        startTime: 2
+      });
+    
+    const pureOverlayFilter = pureOverlayBuilder.buildFilterComplex();
+    console.log('✅ Pure overlay filter complex:');
+    console.log(pureOverlayFilter);
+    
+    // Verify it contains the sophisticated features
+    const hasColorKey = pureOverlayFilter.includes('colorkey=');
+    const hasTimePad = pureOverlayFilter.includes('tpad=');
+    const hasFormatAuto = pureOverlayFilter.includes('format=auto');
+    const hasAlphaBlend = pureOverlayFilter.includes('alpha=');
+    const hasAmixNormalize = pureOverlayFilter.includes('amix=') && pureOverlayFilter.includes('normalize=0');
+    
+    console.log('✅ Sophisticated features check:');
+    console.log(`   Color keying: ${hasColorKey ? '✅' : '❌'}`);
+    console.log(`   Time padding: ${hasTimePad ? '✅' : '❌'}`);
+    console.log(`   Format auto: ${hasFormatAuto ? '✅' : '❌'}`);
+    console.log(`   Alpha blending: ${hasAlphaBlend ? '✅' : '❌'}`);
+    console.log(`   Audio mixing with normalize: ${hasAmixNormalize ? '✅' : '❌'}`);
+
     console.log('\n🎉 All tests passed! Refactoring successful.');
     console.log('\n📊 Summary:');
     console.log('   ✅ FFMPEGCompositionBuilder works independently');

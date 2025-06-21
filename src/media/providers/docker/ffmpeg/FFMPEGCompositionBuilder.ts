@@ -157,7 +157,6 @@ export class FFMPEGCompositionBuilder {
   // ===============================
   // COMPOSITION BUILDING METHODS
   // ===============================
-
   /**
    * Build the filter complex string from the current composition state
    */
@@ -184,7 +183,7 @@ export class FFMPEGCompositionBuilder {
       filterParts.push(`[${mainIndices[i]}:v]format=yuv420p[base${i}]`);
     }
 
-    // Process overlays
+    // Process overlays - EXACT COPY FROM ORIGINAL
     let currentBase = 'base0';
     for (let i = 0; i < this.state.overlays.length; i++) {
       const overlayIndex = overlayIndices[i];
@@ -192,7 +191,7 @@ export class FFMPEGCompositionBuilder {
       const overlayLabel = `ov${i}`;
       const nextBase = i === this.state.overlays.length - 1 ? this.state.filterOptions.videoOutputLabel! : `tmp${i}`;
 
-      // Build overlay processing
+      // Build overlay processing - EXACT COPY FROM ORIGINAL
       let overlayFilter = `[${overlayIndex}:v]`;
       
       if (overlay.options.startTime !== undefined) {
@@ -227,7 +226,7 @@ export class FFMPEGCompositionBuilder {
       currentBase = nextBase;
     }
 
-    // Add audio mixing if multiple videos
+    // Add audio mixing if multiple videos - EXACT COPY FROM ORIGINAL
     const allVideosCount = this.state.videos.length + this.state.overlays.length;
     if (allVideosCount > 1 && this.state.filterOptions.customAudioMapping) {
       const audioInputs = Array.from({ length: allVideosCount }, (_, i) => `[${mainIndices[0] + i}:a]`).join('');
