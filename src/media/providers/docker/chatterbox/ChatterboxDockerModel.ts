@@ -8,7 +8,7 @@
  */
 
 import { TextToAudioModel, TextToAudioOptions } from '../../../models/abstracts/TextToAudioModel';
-import { ChatterboxAPIClient } from '../../../clients/ChatterboxAPIClient';
+import { ChatterboxAPIClient } from './ChatterboxAPIClient';
 import { ChatterboxDockerService } from '../../../services/ChatterboxDockerService';
 import { Text, Audio, hasAudioRole } from '../../../assets/roles';
 import { castToText } from '../../../assets/casting';

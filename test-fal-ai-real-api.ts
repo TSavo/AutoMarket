@@ -2,7 +2,7 @@
  * Real API Test - FalAiClient with actual fal.ai calls
  */
 
-import { FalAiClient, FalAiConfig } from './src/media/clients/FalAiClient';
+import { FalAiClient, FalAiConfig } from './src/media/providers/falai/FalAiClient';
 
 async function testRealApiCall() {
   console.log('🚀 Testing FalAiClient with Real API Calls');

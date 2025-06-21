@@ -2,7 +2,7 @@
  * Test for FalAiClient - Basic functionality verification
  */
 
-import { FalAiClient, FalAiConfig } from './src/media/clients/FalAiClient';
+import { FalAiClient, FalAiConfig } from './src/media/providers/falai/FalAiClient';
 
 async function testFalAiClient() {
   console.log('🧪 Testing FalAiClient Basic Functionality');

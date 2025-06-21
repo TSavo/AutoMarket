@@ -5,7 +5,7 @@
  * Provides both the abstract interface and a fluent API for complex compositions.
  */
 
-import { FFMPEGAPIClient } from '../../../clients/FFMPEGAPIClient';
+import { FFMPEGAPIClient } from './FFMPEGAPIClient';
 import { FFMPEGDockerService } from '../../../services/FFMPEGDockerService';
 import { Video } from '../../../assets/roles';
 import { VideoToVideoModel, VideoCompositionOptions, VideoCompositionResult } from '../../../models/abstracts/VideoToVideoModel';

@@ -4,7 +4,7 @@
  * Test the FalAiClient's new model discovery and caching functionality
  */
 
-import { FalAiClient, FalAiConfig } from './src/media/clients/FalAiClient';
+import { FalAiClient, FalAiConfig } from './src/media/providers/falai/FalAiClient';
 
 async function testHybridModelDiscovery() {
   console.log('🧪 Testing Hybrid Model Discovery System');

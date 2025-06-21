@@ -7,7 +7,7 @@
  * Coordinates WhisperAPIClient and WhisperDockerService for Docker-based Whisper STT.
  */
 
-import { WhisperAPIClient } from '../../../clients/WhisperAPIClient';
+import { WhisperAPIClient } from './WhisperAPIClient';
 import { WhisperDockerService } from '../../../services/WhisperDockerService';
 import { Audio, Text } from '../../../assets/roles';
 import { AudioInput, castToAudio } from '../../../assets/casting';

@@ -4,7 +4,7 @@
  * Shows how the clean FalAiClient will be used by different model implementations
  */
 
-import { FalAiClient, FalAiConfig } from './src/media/clients/FalAiClient';
+import { FalAiClient, FalAiConfig } from './src/media/providers/falai/FalAiClient';
 
 async function demonstrateClientUsage() {
   console.log('🎬 FalAiClient Usage Examples');

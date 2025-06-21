@@ -9,7 +9,7 @@ import { VideoToAudioModel, VideoToAudioOptions } from '../../../models/abstract
 import { ModelMetadata } from '../../../models/abstracts/Model';
 import { Video, Audio } from '../../../assets/roles';
 import { VideoInput, castToVideo } from '../../../assets/casting';
-import { FFMPEGAPIClient } from '../../../clients/FFMPEGAPIClient';
+import { FFMPEGAPIClient } from './FFMPEGAPIClient';
 import { FFMPEGDockerService } from '../../../services/FFMPEGDockerService';
 import fs from 'fs';
 import path from 'path';

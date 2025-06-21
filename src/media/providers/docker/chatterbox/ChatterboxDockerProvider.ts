@@ -6,7 +6,7 @@
  */
 
 import { ChatterboxDockerService } from '../../../services/ChatterboxDockerService';
-import { ChatterboxAPIClient } from '../../../clients/ChatterboxAPIClient';
+import { ChatterboxAPIClient } from './ChatterboxAPIClient';
 import { ChatterboxDockerModel } from './ChatterboxDockerModel';
 import { TextToAudioModel } from '../../../models/abstracts/TextToAudioModel';
 import { TextToAudioProvider } from '../../../capabilities';

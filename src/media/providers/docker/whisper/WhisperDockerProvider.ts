@@ -6,7 +6,7 @@
  */
 
 import { WhisperDockerService } from '../../../services/WhisperDockerService';
-import { WhisperAPIClient } from '../../../clients/WhisperAPIClient';
+import { WhisperAPIClient } from './WhisperAPIClient';
 import { WhisperDockerModel } from './WhisperDockerModel';
 import { AudioToTextProvider } from '../../../capabilities';
 import { AudioToTextModel } from '../../../models/abstracts/AudioToTextModel';

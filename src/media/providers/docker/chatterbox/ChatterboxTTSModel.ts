@@ -9,7 +9,7 @@ import { TextToAudioModel, TextToAudioOptions } from '../../../models/abstracts/
 import { ModelMetadata } from '../../../models/abstracts/Model';
 import { Text, Audio } from '../../../assets/roles';
 import { TextInput, castToText } from '../../../assets/casting';
-import { ChatterboxAPIClient } from '../../../clients/ChatterboxAPIClient';
+import { ChatterboxAPIClient } from './ChatterboxAPIClient';
 import { ChatterboxDockerService } from '../../../services/ChatterboxDockerService';
 import * as fs from 'fs';
 import * as path from 'path';

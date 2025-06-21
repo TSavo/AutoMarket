@@ -8,7 +8,7 @@
 import { ModelMetadata } from '../../../models/abstracts/Model';
 import { Audio, Text } from '../../../assets/roles';
 import { AudioInput, castToAudio } from '../../../assets/casting';
-import { WhisperAPIClient } from '../../../clients/WhisperAPIClient';
+import { WhisperAPIClient } from './WhisperAPIClient';
 import { WhisperDockerService } from '../../../services/WhisperDockerService';
 import fs from 'fs';
 import path from 'path';

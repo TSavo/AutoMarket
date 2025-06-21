@@ -2,7 +2,7 @@
  * Simple Video Composition API Test
  */
 
-import { FFMPEGAPIClient } from './src/media/clients/FFMPEGAPIClient';
+import { FFMPEGAPIClient } from './src/media/providers/docker/ffmpeg/FFMPEGAPIClient';
 
 async function testVideoCompositionAPI() {
   console.log('🎬 Starting Video Composition API Test...\n');
