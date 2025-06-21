@@ -70,31 +70,10 @@ export interface VideoCompositionOptions {
   fallbackPosition?: 'top-left' | 'top-center' | 'top-right' | 
                     'center-left' | 'center' | 'center-right' |
                     'bottom-left' | 'bottom-center' | 'bottom-right';
+  videoOutputLabel?: string; // Custom label for video output stream
+  audioOutputLabel?: string; // Custom label for audio output stream
 }
 
-export interface VideoCompositionResult {
-  composedVideo: Video;
-  metadata: {
-    duration: number;
-    resolution: string;
-    aspectRatio: string;
-    framerate: number;
-    baseVideoInfo: {
-      duration: number;
-      resolution: string;
-    };
-    overlayInfo: {
-      count: number; // Number of overlays processed
-      overlays: Array<{
-        index: number;
-        startTime: number;
-        duration: number;
-        position: string;
-        finalSize: { width: number; height: number };
-      }>;
-    };
-  };
-}
 
 /**
  * Abstract base class for video-to-video models (composition, overlay, etc.)
@@ -108,57 +87,17 @@ export abstract class VideoToVideoModel {
   constructor(metadata: ModelMetadata) {
     this.metadata = metadata;
   }
-
   /**
-   * Transform and compose videos - supports single overlay (legacy) or multiple overlays (new)
-   * @param baseVideo The main/background video
-   * @param overlayVideos Single overlay video (legacy) or array of overlay videos (new)
-   * @param options Composition options for positioning, timing, etc.
+   * Transform and compose videos - takes array of all input videos
+   * @param videos Array of all input videos (order matters for filter complex)
+   * @param options Composition options including customFilterComplex
    */
   abstract transform(
-    baseVideo: VideoRole, 
-    overlayVideos: VideoRole | VideoRole[], 
+    videos: VideoRole | VideoRole[], 
     options?: VideoCompositionOptions
-  ): Promise<VideoCompositionResult>;
+  ): Promise<Video>;
 
-  /**
-   * Convenience method for simple overlay composition (legacy - single overlay)
-   * @param baseVideo The main/background video
-   * @param overlayVideo The video to overlay on top
-   * @param position Where to place the overlay
-   * @param startTime When to start the overlay (seconds)
-   */
-  async overlay(
-    baseVideo: VideoRole,
-    overlayVideo: VideoRole,
-    position: VideoCompositionOptions['position'] = 'bottom-right',
-    startTime: number = 0
-  ): Promise<Video> {
-    const result = await this.transform(baseVideo, overlayVideo, {
-      position,
-      overlayStartTime: startTime,
-      smartPositioning: true
-    });
-    return result.composedVideo;
-  }
 
-  /**
-   * Convenience method for multiple overlay composition (new)
-   * @param baseVideo The main/background video
-   * @param overlayVideos Array of videos to overlay
-   * @param overlayConfigs Array of configuration for each overlay
-   */
-  async multiOverlay(
-    baseVideo: VideoRole,
-    overlayVideos: VideoRole[],
-    overlayConfigs: VideoOverlayConfig[]
-  ): Promise<Video> {
-    const result = await this.transform(baseVideo, overlayVideos, {
-      overlayConfigs,
-      smartPositioning: true
-    });
-    return result.composedVideo;
-  }
 
   /**
    * Check if the model is available

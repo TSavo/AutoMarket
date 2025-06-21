@@ -23,3 +23,16 @@ node_modules/
 
 # OS specific
 .DS_Store
+
+# Video output files from tests
+*.mp4
+*.avi
+*.mov
+*.webm
+*.mkv
+
+# Audio output files from tests
+*.wav
+*.mp3
+*.flac
+*.aac
