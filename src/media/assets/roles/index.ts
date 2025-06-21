@@ -5,12 +5,16 @@
  * that represent the actual data when an Asset plays a specific role.
  */
 
+import * as fs from 'fs';
+import * as path from 'path';
+
 // ============================================================================
 // CORE MEDIA TYPES
 // ============================================================================
 
 export type AudioFormat = 'mp3' | 'wav' | 'flac' | 'm4a' | 'ogg' | 'webm' | 'aac' | 'opus' | 'wma';
 export type VideoFormat = 'mp4' | 'avi' | 'mov' | 'wmv' | 'flv' | 'webm' | 'mkv';
+export type ImageFormat = 'png' | 'jpg' | 'jpeg' | 'gif' | 'webp' | 'svg' | 'bmp' | 'tiff';
 
 export interface AudioMetadata {
   format: AudioFormat;
@@ -38,6 +42,17 @@ export interface TextMetadata {
   confidence?: number;
   encoding?: string;
   wordCount?: number;
+  [key: string]: any;
+}
+
+export interface ImageMetadata {
+  format?: ImageFormat;
+  width?: number;
+  height?: number;
+  channels?: number;
+  colorSpace?: string;
+  compression?: string;
+  dpi?: number;
   [key: string]: any;
 }
 
@@ -475,6 +490,133 @@ export class Text {
   }
 }
 
+/**
+ * Image - Represents image data extracted from an Asset
+ */
+export class Image {
+  constructor(
+    public readonly data: Buffer,
+    public readonly format: ImageFormat,
+    public readonly metadata: ImageMetadata = {},
+    public readonly sourceAsset?: any // Reference to original Asset
+  ) {}
+
+  /**
+   * Create Image from file path
+   */
+  static fromFile(filePath: string): Image {
+    const fs = require('fs');
+    const path = require('path');
+
+    if (!fs.existsSync(filePath)) {
+      throw new Error(`Image file not found: ${filePath}`);
+    }
+
+    const data = fs.readFileSync(filePath);
+    const ext = path.extname(filePath).toLowerCase().slice(1) as ImageFormat;
+    
+    return new Image(data, ext, {
+      format: ext,
+      fileSize: data.length,
+      sourceFile: filePath
+    });
+  }
+
+  /**
+   * Create Image from Buffer
+   */
+  static fromBuffer(buffer: Buffer, format: ImageFormat): Image {
+    return new Image(buffer, format, {
+      format,
+      fileSize: buffer.length
+    });
+  }
+
+  /**
+   * Get image width (if available in metadata)
+   */
+  getWidth(): number | undefined {
+    return this.metadata.width;
+  }
+
+  /**
+   * Get image height (if available in metadata)
+   */
+  getHeight(): number | undefined {
+    return this.metadata.height;
+  }
+
+  /**
+   * Get file size in bytes
+   */
+  getSize(): number {
+    return this.data.length;
+  }
+
+  /**
+   * Check if image has valid data
+   */
+  isValid(): boolean {
+    return this.data && this.data.length > 0;
+  }
+
+  /**
+   * Get aspect ratio (if dimensions are available)
+   */
+  getAspectRatio(): number | undefined {
+    const width = this.getWidth();
+    const height = this.getHeight();
+    return width && height ? width / height : undefined;
+  }
+
+  /**
+   * Get image dimensions (compatible with TextToImageModel)
+   */
+  getDimensions(): { width?: number; height?: number } {
+    return {
+      width: this.getWidth(),
+      height: this.getHeight()
+    };
+  }
+
+  /**
+   * Get file size in bytes (alias for getSize for compatibility)
+   */
+  getFileSize(): number {
+    return this.getSize();
+  }
+
+  /**
+   * Create Image from URL (for API results)
+   */
+  static fromUrl(url: string, format: ImageFormat = 'png', metadata: ImageMetadata = {}): Image {
+    return new Image(Buffer.alloc(0), format, { ...metadata, url });
+  }
+
+  /**
+   * Save image to file
+   */
+  saveToFile(filePath: string): void {
+    if (this.data.length === 0) {
+      throw new Error('No image data to save');
+    }
+    
+    const dir = path.dirname(filePath);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+    
+    fs.writeFileSync(filePath, this.data);
+  }
+
+  toString(): string {
+    const { width, height } = this.getDimensions();
+    const size = width && height ? `${width}x${height}` : '';
+    const fileSize = this.getSize();
+    return `Image(${this.format.toUpperCase()}${size ? `, ${size}` : ''}${fileSize ? `, ${(fileSize / 1024).toFixed(1)}KB` : ''})`;
+  }
+}
+
 // ============================================================================
 // ROLE INTERFACES
 // ============================================================================
@@ -507,6 +649,15 @@ export interface TextRole {
   canPlayTextRole(): boolean;
 }
 
+/**
+ * ImageRole - Assets that can provide image data
+ */
+export interface ImageRole {
+  asImage(): Promise<Image>;
+  getImageMetadata(): ImageMetadata;
+  canPlayImageRole(): boolean;
+}
+
 // ============================================================================
 // TYPE HELPERS
 // ============================================================================
@@ -535,11 +686,18 @@ export function hasTextRole(obj: any): obj is TextRole {
 }
 
 /**
+ * Type guard to check if an object implements ImageRole
+ */
+export function hasImageRole(obj: any): obj is ImageRole {
+  return obj && typeof obj.asImage === 'function' && typeof obj.canPlayImageRole === 'function';
+}
+
+/**
  * Union type for all role interfaces
  */
-export type AnyRole = AudioRole | VideoRole | TextRole;
+export type AnyRole = AudioRole | VideoRole | TextRole | ImageRole;
 
 /**
  * Union type for all core media types
  */
-export type AnyMedia = Audio | Video | Text;
+export type AnyMedia = Audio | Video | Text | Image;

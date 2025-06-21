@@ -9,7 +9,7 @@ import fs from 'fs';
 import path from 'path';
 import { AssetMetadata, BaseAsset } from './Asset';
 import { 
-  withAudioRole, withVideoRole, withTextRole
+  withAudioRole, withVideoRole, withTextRole, withImageRole
 } from './mixins';
 
 /**
@@ -19,7 +19,7 @@ export interface FormatInfo {
   extension: string;
   mimeType: string;
   category: 'audio' | 'video' | 'image' | 'text' | 'document' | 'unknown';
-  roles: ('speech' | 'audio' | 'video' | 'text')[];
+  roles: ('speech' | 'audio' | 'video' | 'text' | 'image')[];
 }
 
 /**
@@ -32,8 +32,7 @@ const FORMAT_REGISTRY: Record<string, FormatInfo> = {
   wave: { extension: 'wave', mimeType: 'audio/wav', category: 'audio', roles: ['speech', 'audio'] },
   flac: { extension: 'flac', mimeType: 'audio/flac', category: 'audio', roles: ['speech', 'audio'] },
   ogg: { extension: 'ogg', mimeType: 'audio/ogg', category: 'audio', roles: ['speech', 'audio'] },
-  
-  // Video formats - can play video, audio, and speech roles
+    // Video formats - can play video, audio, and speech roles
   mp4: { extension: 'mp4', mimeType: 'video/mp4', category: 'video', roles: ['video', 'speech', 'audio'] },
   avi: { extension: 'avi', mimeType: 'video/x-msvideo', category: 'video', roles: ['video', 'speech', 'audio'] },
   mov: { extension: 'mov', mimeType: 'video/quicktime', category: 'video', roles: ['video', 'speech', 'audio'] },
@@ -41,6 +40,16 @@ const FORMAT_REGISTRY: Record<string, FormatInfo> = {
   flv: { extension: 'flv', mimeType: 'video/x-flv', category: 'video', roles: ['video', 'speech', 'audio'] },
   webm: { extension: 'webm', mimeType: 'video/webm', category: 'video', roles: ['video', 'speech', 'audio'] },
   mkv: { extension: 'mkv', mimeType: 'video/x-matroska', category: 'video', roles: ['video', 'speech', 'audio'] },
+  
+  // Image formats
+  png: { extension: 'png', mimeType: 'image/png', category: 'image', roles: ['image'] },
+  jpg: { extension: 'jpg', mimeType: 'image/jpeg', category: 'image', roles: ['image'] },
+  jpeg: { extension: 'jpeg', mimeType: 'image/jpeg', category: 'image', roles: ['image'] },
+  gif: { extension: 'gif', mimeType: 'image/gif', category: 'image', roles: ['image'] },
+  webp: { extension: 'webp', mimeType: 'image/webp', category: 'image', roles: ['image'] },
+  svg: { extension: 'svg', mimeType: 'image/svg+xml', category: 'image', roles: ['image'] },
+  bmp: { extension: 'bmp', mimeType: 'image/bmp', category: 'image', roles: ['image'] },
+  tiff: { extension: 'tiff', mimeType: 'image/tiff', category: 'image', roles: ['image'] },
   
   // Text formats
   txt: { extension: 'txt', mimeType: 'text/plain', category: 'text', roles: ['text'] },
@@ -76,6 +85,9 @@ function createDynamicAssetClass(formatInfo: FormatInfo) {
   }
   if (formatInfo.roles.includes('text')) {
     AssetClass = withTextRole(AssetClass);
+  }
+  if (formatInfo.roles.includes('image')) {
+    AssetClass = withImageRole(AssetClass);
   }
   
   return AssetClass;

@@ -7,7 +7,7 @@
 
 import { Model, ModelMetadata } from './Model';
 import { Video } from '../assets/roles';
-import { Image } from './TextToImageModel';
+import { Image, ImageFormat } from '../assets/roles';
 
 export type ImageInput = Image | Buffer | string; // Image object, buffer, or file path
 
@@ -33,7 +33,7 @@ export async function castToImage(input: ImageInput): Promise<Image> {
   if (input instanceof Image) {
     return input;
   } else if (Buffer.isBuffer(input)) {
-    return new Image(input, 'unknown', { format: 'unknown' });
+    return new Image(input, 'png', { format: 'png' });
   } else if (typeof input === 'string') {
     // Assume it's a file path or URL
     if (input.startsWith('http')) {

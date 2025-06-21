@@ -5,7 +5,8 @@
  * Supports FLUX and other image generation models.
  */
 
-import { TextToImageModel, TextToImageOptions, Image } from './TextToImageModel';
+import { TextToImageModel, TextToImageOptions } from './TextToImageModel';
+import { Image } from '../assets/roles';
 import { ModelMetadata } from './Model';
 import { TextInput, castToText } from '../assets/casting';
 import { TogetherAPIClient, TogetherModel } from '../clients/TogetherAPIClient';

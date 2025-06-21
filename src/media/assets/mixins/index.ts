@@ -7,10 +7,10 @@
 
 import { Asset, BaseAsset, Constructor } from '../Asset';
 import {
-  Audio, Video, Text,
-  AudioRole, VideoRole, TextRole,
-  AudioMetadata, VideoMetadata, TextMetadata,
-  AudioFormat, VideoFormat
+  Audio, Video, Text, Image,
+  AudioRole, VideoRole, TextRole, ImageRole,
+  AudioMetadata, VideoMetadata, TextMetadata, ImageMetadata,
+  AudioFormat, VideoFormat, ImageFormat
 } from '../roles';
 
 // ============================================================================
@@ -281,8 +281,69 @@ export function withTextRole<T extends Constructor<BaseAsset>>(Base: T) {
 }
 
 // ============================================================================
-// UTILITY TYPES
+// IMAGE ROLE MIXIN
 // ============================================================================
+
+/**
+ * Mixin that adds ImageRole capabilities to an Asset
+ */
+export function withImageRole<T extends Constructor<BaseAsset>>(Base: T) {
+  return class extends Base implements ImageRole {
+    /**
+     * Convert this Asset to Image data
+     * For already image assets, returns the data as-is
+     */
+    async asImage(): Promise<Image> {
+      // For image assets, return the data directly
+      const format = this.getImageFormat();
+      
+      return new Image(
+        this.data,
+        format,
+        {
+          format,
+          fileSize: this.data.length,
+          sourceFile: this.metadata.sourceFile
+        },
+        this
+      );
+    }    /**
+     * Get image metadata
+     */
+    getImageMetadata(): ImageMetadata {
+      return {
+        format: this.getImageFormat(),
+        fileSize: this.data.length,
+        sourceFile: this.metadata.sourceFile,
+        ...this.metadata
+      } as ImageMetadata;
+    }
+
+    /**
+     * Check if this Asset can play the Image role
+     */
+    canPlayImageRole(): boolean {
+      const format = this.metadata.format?.toLowerCase();
+      const imageFormats = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'bmp', 'tiff'];
+      return imageFormats.includes(format || '');
+    }
+
+    /**
+     * Get the image format from metadata or file extension
+     */
+    private getImageFormat(): ImageFormat {
+      const format = this.metadata.format?.toLowerCase();
+      const validFormats: ImageFormat[] = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'bmp', 'tiff'];
+      
+      if (format && validFormats.includes(format as ImageFormat)) {
+        return format as ImageFormat;
+      }
+      
+      // Default to png if unknown
+      return 'png';
+    }
+  };
+}
 
 /**
  * Type helper for Assets with AudioRole
@@ -298,3 +359,8 @@ export type VideoCapableAsset = Asset & VideoRole;
  * Type helper for Assets with TextRole
  */
 export type TextCapableAsset = Asset & TextRole;
+
+/**
+ * Type helper for Assets with ImageRole
+ */
+export type ImageCapableAsset = Asset & ImageRole;

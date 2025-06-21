@@ -5,7 +5,8 @@
  */
 
 import { ModelMetadata } from './Model';
-import { TextToImageModel, TextToImageOptions, Image } from './TextToImageModel';
+import { TextToImageModel, TextToImageOptions } from './TextToImageModel';
+import { Image, ImageFormat } from '../assets/roles';
 import { ReplicateClient, ReplicateModelMetadata } from '../clients/ReplicateClient';
 import { TextInput, castToText } from '../assets/casting';
 import Replicate from 'replicate';
@@ -127,16 +128,15 @@ export class ReplicateTextToImageModel extends TextToImageModel {
       fs.writeFileSync(localPath, imageBuffer);
       
       console.log(`[ReplicateTextToImage] Image saved to: ${localPath} (${(imageBuffer.length / 1024).toFixed(2)} KB)`);
-      
-      // Create Image object with REAL image data
+        // Create Image object with REAL image data
       return new Image(
         imageBuffer, // ACTUAL image data, not empty buffer!
-        format,
+        format as ImageFormat,
         {
           url: url,
           localPath: localPath,
           fileSize: imageBuffer.length,
-          format: format,
+          format: format as ImageFormat,
           ...metadata
         },
         { 
