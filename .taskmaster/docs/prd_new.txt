@@ -44,7 +44,6 @@ const asset = AssetLoader.load('video.mp4');  // Auto-detects VideoRole + AudioR
 const video = await asset.asVideo();           // Type-safe video access
 const audio = await asset.extractAudio();     // FFMPEG integration
 ```
-```
 
 ### **Key Architectural Principles Achieved**
 

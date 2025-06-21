@@ -49,18 +49,23 @@ npm run dev
 src/
 ├── media/                     # Main media processing system
 │   ├── assets/               # Smart asset loading and roles
+│   │   ├── roles/           # Role-based asset classes
+│   │   ├── mixins/          # Role mixin implementations
+│   │   └── SmartAssetFactory.ts
 │   ├── providers/            # Provider implementations
-│   │   ├── falai/           # FAL.ai provider
-│   │   ├── replicate/       # Replicate provider
-│   │   ├── together/        # Together.ai provider
-│   │   ├── openrouter/      # OpenRouter provider
+│   │   ├── falai/           # FAL.ai provider package
+│   │   ├── replicate/       # Replicate provider package
+│   │   ├── together/        # Together.ai provider package
+│   │   ├── openrouter/      # OpenRouter provider package
 │   │   └── docker/          # Docker-based providers
 │   │       ├── ffmpeg/      # FFMPEG video processing
 │   │       ├── chatterbox/  # TTS services
 │   │       └── whisper/     # STT services
-│   ├── models/              # Model implementations
+│   ├── capabilities/        # Provider capability system
+│   ├── models/              # Model implementations (backward compatibility)
 │   └── types/               # TypeScript type definitions
-└── services/                # Base Docker service management
+├── services/                # Base Docker service management
+└── components/              # React components (frontend)
 
 services/                    # Docker service configurations
 ├── ffmpeg/                 # FFMPEG Docker setup
@@ -98,6 +103,23 @@ const image = await textToImageModel.transform(textInput);
 
 ### Smart Asset Loading
 ```typescript
+import { AssetLoader } from './src/media/assets';
+
+const videoAsset = AssetLoader.load('input.mp4');
+const audio = await videoAsset.asAudio();        // Extract audio via FFMPEG
+const video = await videoAsset.asVideo();        // Access video directly
+```
+
+### Video Composition Pipeline
+```typescript
+import { FFMPEGCompositionBuilder } from './src/media/providers/docker/ffmpeg';
+
+const composer = new FFMPEGCompositionBuilder()
+  .compose(mainVideo)
+  .addOverlay(overlayVideo, { position: 'top-right', opacity: 0.8 });
+
+const result = await composer.transform(ffmpegModel);
+```
 import { AssetLoader } from './src/media/assets/SmartAssetFactory';
 
 const videoAsset = AssetLoader.load('video.mp4');  // Auto-detects format and roles

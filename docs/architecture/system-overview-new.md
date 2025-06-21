@@ -99,164 +99,141 @@ interface VideoRole {
   extractAudio(): Promise<Audio>;  // Video → Audio via FFmpeg
 }
 ```
-  }
-  
-  // Health-based readiness
-  private async waitForHealthy(): Promise<boolean> {
-    // Polls until Docker health check reports "healthy"
-  }
+
+### 4. Capability System
+
+**Purpose**: Define what providers can do and automatically match capabilities to models
+
+**Key Features**:
+- **MediaCapability Enum**: Extensive capability definitions (IMAGE_GENERATION, VIDEO_ANIMATION, etc.)
+- **Dynamic Model Discovery**: Models automatically categorized by capabilities
+- **Provider Mixins**: Add capability interfaces to providers dynamically
+- **Type-Safe Capability Checking**: Guards and validation for capability support
+
+**Capability Categories**:
+```typescript
+enum MediaCapability {
+  // Text capabilities
+  TEXT_GENERATION = 'text-generation',
+  TEXT_TO_TEXT = 'text-to-text',
+
+  // Image capabilities  
+  IMAGE_GENERATION = 'image-generation',
+  IMAGE_UPSCALING = 'image-upscaling',
+  IMAGE_ENHANCEMENT = 'image-enhancement',
+
+  // Video capabilities
+  VIDEO_GENERATION = 'video-generation', 
+  VIDEO_ANIMATION = 'video-animation',
+  VIDEO_UPSCALING = 'video-upscaling',
+
+  // Audio capabilities
+  AUDIO_GENERATION = 'audio-generation',
+  TEXT_TO_SPEECH = 'text-to-speech',
+  VOICE_CLONING = 'voice-cloning',
+  // ... many more
 }
 ```
 
-## 🎯 Design Principles
+### 5. Video Composition System
 
-### 1. Don't Repeat Yourself (DRY)
+**Purpose**: Advanced video composition with FFMPEG integration
 
-**Implementation**:
-- `DockerComposeService` is reused by all Docker-based services
-- Common patterns extracted into base classes
-- Shared utilities for error handling and logging
+**Key Features**:
+- **N-Video Composition**: Support for any number of input videos
+- **Complex Overlays**: Multi-layer overlays with positioning, timing, and opacity
+- **Green Screen Support**: Color key removal for professional compositing
+- **Filter Complex Generation**: Dynamic FFMPEG filter generation
+- **Docker + Local Support**: Both Docker API and local FFMPEG fallback
 
-**Benefits**:
-- Consistent behavior across all services
-- Easier maintenance and updates
-- Reduced code duplication
+**Composition Builder**:
+```typescript
+const composer = new FFMPEGCompositionBuilder()
+  .prepend(introVideo)                    // Add intro sequence
+  .compose(mainVideo)                     // Main content video
+  .append(outroVideo)                     // Add outro sequence
+  .addOverlay(logoVideo, {               // Logo overlay
+    position: 'top-right',
+    opacity: 0.8,
+    width: '20%',
+    colorKey: '#000000',                  // Remove black background
+    startTime: 2.0                        // Appears after 2 seconds
+  });
 
-### 2. Separation of Concerns
+const result = await composer.transform(ffmpegModel);
+```
 
-**MediaTransformer Layer**:
-- Handles input/output validation
-- Manages transformation logic
-- Provides progress callbacks
+## 🗂️ Directory Structure
 
-**LocalServiceManager Layer**:
-- Manages service lifecycle
-- Handles Docker operations
-- Monitors service health
-
-**DockerComposeService Layer**:
-- Executes Docker commands
-- Parses Docker output
-- Manages container state
-
-### 3. Testability
-
-**Unit Tests**:
-- Mock external dependencies
-- Test business logic in isolation
-- Fast execution for development feedback
-
-**Integration Tests**:
-- Test with real Docker services
-- Validate actual transformations
-- Ensure end-to-end functionality
+```
+src/media/
+├── providers/                 # Provider-centric organization
+│   ├── falai/                # FAL.ai provider package
+│   │   ├── FalAiProvider.ts  # Provider implementation
+│   │   ├── FalAiClient.ts    # API client
+│   │   ├── models/           # Model implementations
+│   │   └── index.ts          # Package exports
+│   ├── together/             # Together.ai provider package
+│   ├── openrouter/           # OpenRouter provider package
+│   ├── replicate/            # Replicate provider package
+│   └── docker/               # Docker provider packages
+│       ├── ffmpeg/           # FFMPEG Docker provider
+│       ├── chatterbox/       # TTS Docker provider
+│       └── whisper/          # STT Docker provider
+├── assets/                   # Smart asset system
+│   ├── roles/                # Role-based asset classes
+│   ├── mixins/               # Role mixin implementations
+│   └── SmartAssetFactory.ts  # Asset loading logic
+├── capabilities/             # Provider capability system
+│   ├── interfaces/           # Capability interfaces
+│   ├── mixins/               # Capability mixins
+│   └── guards/               # Type guards
+├── models/                   # Backward compatibility exports
+├── types/                    # TypeScript type definitions
+└── index.ts                  # Main media module export
+```
 
 ## 🔄 Data Flow
 
-### Typical Transformation Flow
+### Provider Usage Flow
+1. **Configuration**: Provider configured with API keys/settings
+2. **Discovery**: Models discovered dynamically from provider APIs
+3. **Capability Matching**: Models categorized by capabilities
+4. **Model Creation**: Specific model instances created for transformations
+5. **Execution**: Models handle actual media transformations
 
-1. **Input Validation**
-   ```typescript
-   // MediaTransformer validates input type
-   if (input.type !== 'audio') {
-     throw new Error('Invalid input type');
-   }
-   ```
+### Asset Processing Flow
+1. **Loading**: AssetLoader detects format and assigns roles
+2. **Role Assignment**: Automatic mixin application based on format
+3. **Transformation**: Role methods provide access to transformation capabilities
+4. **Output**: Results returned as typed media objects
 
-2. **Service Readiness Check**
-   ```typescript
-   // Ensure Docker service is running and healthy
-   const status = await this.getServiceStatus();
-   if (status !== 'running') {
-     await this.startService();
-   }
-   ```
+## 🏆 Architectural Principles
 
-3. **Transformation Execution**
-   ```typescript
-   // Execute the actual transformation
-   const result = await this.performTransformation(input, options);
-   ```
+1. **Provider Agnostic**: Switch between providers seamlessly
+2. **Capability Driven**: Focus on what providers can do, not how they do it
+3. **Type Safety**: Full TypeScript support with runtime validation
+4. **Smart Defaults**: Intelligent fallbacks and automatic configuration
+5. **Extensible**: Easy to add new providers, capabilities, and models
+6. **Docker Integration**: Seamless local service management
+7. **Testing First**: Comprehensive test coverage for all components
 
-4. **Output Generation**
-   ```typescript
-   // Return standardized output
-   return {
-     type: 'text',
-     data: transcription,
-     metadata: { confidence, processingTime }
-   };
-   ```
+## 🚀 Key Benefits
 
-## 🐳 Docker Integration
+### Developer Experience
+- **Single Import**: `import { FalAiProvider } from './providers/falai'`
+- **Type Safety**: Full TypeScript support with IntelliSense
+- **Consistent APIs**: Same interface across all providers
+- **Auto-Discovery**: Models discovered and categorized automatically
 
-### Service Self-Management
+### Production Ready
+- **Error Handling**: Comprehensive error handling and recovery
+- **Health Monitoring**: Provider health checks and status reporting
+- **Docker Management**: Automatic container lifecycle management
+- **Scaling Support**: Horizontal and vertical scaling capabilities
 
-Each service manages its own Docker dependencies:
-
-```typescript
-class WhisperSTTService implements MediaTransformer, LocalServiceManager {
-  private dockerService: DockerComposeService;
-  
-  constructor() {
-    this.dockerService = new DockerComposeService(
-      'whisper-asr-webservice',
-      path.join(__dirname, '../../../services/whisper/docker-compose.yml')
-    );
-  }
-}
-```
-
-### Health Monitoring
-
-Services wait for actual Docker health checks:
-
-```yaml
-# docker-compose.yml
-services:
-  whisper-asr-webservice:
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9000/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 3
-      start_period: 30s
-```
-
-## 🚀 Scalability Considerations
-
-### Horizontal Scaling
-- Each service can run multiple instances
-- Load balancing can be added at the Docker level
-- Services are stateless for easy scaling
-
-### Vertical Scaling
-- GPU acceleration support (CUDA for Chatterbox TTS)
-- Memory and CPU limits configurable per service
-- Resource monitoring and optimization
-
-### Future Extensibility
-- New services can be added by implementing MediaTransformer
-- Existing DockerComposeService can be reused
-- Plugin architecture for custom transformations
-
-## 📊 Performance Characteristics
-
-### WhisperSTTService
-- **Startup Time**: ~30-60 seconds (model loading)
-- **Processing**: ~1-2x real-time for audio transcription
-- **Memory**: ~2-4GB depending on model size
-
-### ChatterboxTTSDockerService
-- **Startup Time**: ~60-90 seconds (CUDA model loading)
-- **Processing**: ~2-5 seconds for short text
-- **Memory**: ~4-8GB with CUDA acceleration
-
-### DockerComposeService
-- **Command Execution**: ~100-500ms per Docker command
-- **Health Checks**: ~2-5 seconds for service readiness
-- **Container Management**: Minimal overhead
-
----
-
-**Next**: [MediaTransformer Interface](./media-transformer.md)
+### Extensibility
+- **Plugin Architecture**: Easy to add new providers and capabilities
+- **Mixin System**: Dynamic capability addition to providers and assets
+- **Configuration Driven**: Environment-based provider configuration
+- **Testing Infrastructure**: Comprehensive testing tools and patterns

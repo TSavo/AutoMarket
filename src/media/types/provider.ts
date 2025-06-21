@@ -56,17 +56,6 @@ export enum ProviderType {
 }
 
 /**
- * Job status for async operations
- */
-export enum JobStatus {
-  PENDING = 'pending',
-  RUNNING = 'running',
-  COMPLETED = 'completed',
-  FAILED = 'failed',
-  CANCELLED = 'cancelled'
-}
-
-/**
  * Model configuration for a specific capability
  */
 export interface ProviderModel {
@@ -84,37 +73,6 @@ export interface ProviderModel {
     maxInputSize?: number;
     maxOutputSize?: number;
     rateLimit?: number;
-  };
-}
-
-/**
- * Generation request for any capability
- */
-export interface GenerationRequest {
-  capability: MediaCapability;
-  modelId: string;
-  parameters: Record<string, any>;
-  metadata?: Record<string, any>;
-}
-
-/**
- * Generation result from any provider
- */
-export interface GenerationResult {
-  jobId: string;
-  status: JobStatus;
-  outputs?: Array<{
-    type: 'image' | 'video' | 'audio' | 'text' | 'file';
-    url?: string;
-    data?: Buffer;
-    metadata?: Record<string, any>;
-  }>;
-  error?: string;
-  progress?: number;
-  estimatedTimeRemaining?: number;
-  cost?: {
-    amount: number;
-    currency: string;
   };
 }
 

@@ -1,103 +1,144 @@
-# AutoMarket Media Transformation System Documentation
+# AutoMarket Media Processing Platform Documentation
 
 ## 🎯 Overview
 
-The AutoMarket Media Transformation System is a production-ready, Docker-based architecture for transforming media content between different formats. The system provides a unified interface for various AI-powered media transformations including Speech-to-Text (STT), Text-to-Speech (TTS), and future expansions for image and video processing.
+AutoMarket is a comprehensive media processing platform featuring a unified multi-provider architecture, smart asset management, and advanced video composition capabilities. The system integrates multiple AI providers (FAL.ai, Together.ai, OpenRouter, Replicate) with local Docker services to provide a complete media transformation ecosystem.
 
 ## 🏗️ Architecture Highlights
 
-- **🐳 Docker Self-Management**: Services automatically manage their own Docker containers
-- **🔄 MediaTransformer Interface**: Unified API for all media transformations
-- **🧪 Comprehensive Testing**: Both unit and integration tests with real service validation
-- **📊 Progress Monitoring**: Real-time progress tracking for long-running operations
-- **🛡️ Error Handling**: Robust error handling with graceful degradation
-- **🎯 DRY Principles**: Reusable components following Don't Repeat Yourself principles
+- **� Multi-Provider Architecture**: Unified MediaProvider interface for remote APIs and local Docker services
+- **🎨 Smart Asset System**: Format-agnostic loading with automatic role detection and transformations
+- **🎬 Advanced Video Composition**: N-video composition with overlays, concatenation, and FFMPEG integration
+- **� Docker Service Integration**: Local FFMPEG, Chatterbox TTS, and Whisper STT containerized services
+- **� Dynamic Model Discovery**: Automatic discovery and categorization of available models from providers
+- **🛡️ Type-Safe Development**: Full TypeScript support with comprehensive validation and interfaces
 
 ## 📚 Documentation Structure
 
 ### 🚀 Getting Started
-- [Quick Start Guide](./getting-started/quick-start.md)
-- [Installation Guide](./getting-started/installation.md)
-- [Configuration](./getting-started/configuration.md)
+- [Quick Start Guide](./getting-started/quick-start.md) - Get up and running with AutoMarket
+- [Installation Guide](./getting-started/installation.md) - Complete installation instructions
+- [Configuration](./getting-started/configuration.md) - Environment and provider configuration
 
 ### 🏛️ Architecture
-- [System Architecture](./architecture/system-overview.md)
-- [MediaTransformer Interface](./architecture/media-transformer.md)
-- [Docker Self-Management](./architecture/docker-management.md)
-- [Service Discovery](./architecture/service-discovery.md)
+- [System Architecture](./architecture/system-overview.md) - Complete system overview
+- [Provider System](./architecture/provider-system.md) - Multi-provider architecture details
+- [Asset & Role System](./architecture/asset-system.md) - Smart asset loading and role-based transformations
+- [Capability System](./architecture/capability-system.md) - Provider capabilities and model management
 
-### 🔧 Services
-- [WhisperSTTService](./services/whisper-stt.md) - Speech-to-Text
-- [ChatterboxTTSDockerService](./services/chatterbox-tts.md) - Text-to-Speech
-- [Service Development Guide](./services/development-guide.md)
+### 🔧 Providers
+- [FAL.ai Provider](./providers/falai.md) - Image, video, and audio generation
+- [Together.ai Provider](./providers/together.md) - Text, image, and audio models  
+- [OpenRouter Provider](./providers/openrouter.md) - LLM access and text generation
+- [Replicate Provider](./providers/replicate.md) - Image and video processing
+- [Docker Providers](./providers/docker.md) - Local FFMPEG, TTS, and STT services
+
+### 🎬 Video Composition
+- [Video Composition System](./video/composition-system.md) - N-video composition architecture
+- [FFMPEG Integration](./video/ffmpeg-integration.md) - Docker-based video processing
+- [Advanced Overlays](./video/overlay-system.md) - Complex overlay and compositing
 
 ### 🧪 Testing
-- [Testing Strategy](./testing/strategy.md)
-- [Unit Tests](./testing/unit-tests.md)
-- [Integration Tests](./testing/integration-tests.md)
-- [Test Configuration](./testing/configuration.md)
+- [Testing Strategy](./testing/strategy.md) - Complete testing approach
+- [Provider Tests](./testing/provider-tests.md) - Testing provider implementations
+- [Integration Tests](./testing/integration-tests.md) - End-to-end testing
 
 ### 📖 API Reference
-- [MediaTransformer API](./api/media-transformer.md)
-- [LocalServiceManager API](./api/local-service-manager.md)
-- [DockerComposeService API](./api/docker-compose-service.md)
+- [MediaProvider API](./api/media-provider.md) - Core provider interface
+- [Asset & Role APIs](./api/asset-apis.md) - Asset loading and transformation APIs
+- [Model APIs](./api/model-apis.md) - Model creation and usage APIs
 
-### 🛠️ Development
-- [Contributing Guide](./development/contributing.md)
-- [Adding New Services](./development/new-services.md)
-- [Debugging Guide](./development/debugging.md)
-- [Performance Optimization](./development/performance.md)
+## 🎉 Key Features & Achievements
 
-### 🚀 Deployment
-- [Production Deployment](./deployment/production.md)
-- [Docker Configuration](./deployment/docker.md)
-- [Monitoring & Logging](./deployment/monitoring.md)
+### ✅ Multi-Provider Architecture
+- **Unified MediaProvider Interface**: Consistent API across all providers (local + remote)
+- **FAL.ai Integration**: 100+ models for image, video, and audio generation
+- **Together.ai Integration**: 150+ models with free tier support
+- **OpenRouter Integration**: LLM access with free model detection
+- **Docker Services**: Local FFMPEG, Chatterbox TTS, Whisper STT
 
-### 🔍 Troubleshooting
-- [Common Issues](./troubleshooting/common-issues.md)
-- [Service-Specific Issues](./troubleshooting/service-issues.md)
-- [Performance Issues](./troubleshooting/performance.md)
+### ✅ Smart Asset System
+- **Format-Agnostic Loading**: Automatic format detection and role assignment
+- **Role-Based Transformations**: Audio, Video, Text, Image roles with mixins
+- **AssetLoader**: Single entry point for loading any media type
+- **Type-Safe Operations**: Full TypeScript support with validation
 
-## 🎉 Key Achievements
+### ✅ Advanced Video Composition
+- **N-Video Composition**: Support for any number of input videos
+- **Complex Overlays**: Multi-layer overlays with positioning and timing
+- **Green Screen Support**: Color key removal for professional compositing  
+- **FFMPEG Integration**: Both Docker API and local fallback support
+
+### ✅ Dynamic Model Discovery
+- **Runtime Model Discovery**: Automatic model detection from provider APIs
+- **Capability Mapping**: Models automatically categorized by capabilities
+- **Cost Optimization**: Free model detection and preference
+- **Model Validation**: Type-safe model parameter validation
 
 ### ✅ Production-Ready Services
-- **WhisperSTTService**: Audio → Text transformation with Docker self-management
-- **ChatterboxTTSDockerService**: Text → Audio transformation with CUDA acceleration
-
-### ✅ Robust Architecture
-- **DRY DockerComposeService**: Reusable Docker management for any service
-- **Health-based readiness**: Services wait for actual Docker health checks
-- **Blanket compose commands**: Works with multi-service Docker Compose files
-
-### ✅ Comprehensive Testing
-- **10/10 Unit Tests**: Complete test coverage for all service management
-- **10/10 Integration Tests**: Real service testing with actual audio generation
-- **Fetch polyfills**: Solved Node.js/Vitest compatibility issues
-
-### ✅ Real Functionality Proven
-- **Audio Generation**: MP3 and WAV format support with quality validation
-- **Speed Control**: Variable playback speed for TTS output
-- **Progress Monitoring**: Real-time progress updates during processing
-- **File Management**: Automatic file creation, validation, and cleanup
+- **Docker Self-Management**: Services manage their own container lifecycle
+- **Health Monitoring**: Comprehensive health checks and status reporting
+- **Error Recovery**: Robust error handling with graceful degradation
+- **Comprehensive Testing**: Unit and integration tests for all components
 
 ## 🚀 Quick Start
 
 ```bash
-# Clone the repository
+# Clone and install
 git clone <repository-url>
 cd AutoMarket
-
-# Install dependencies
 npm install
 
-# Run unit tests
-npm run test
+# Configure environment
+cp .env.example .env.local
+# Add your API keys
 
-# Run integration tests (requires Docker)
+# Run tests
+npm run test
 npm run test:integration
 
-# Start a service (example: Chatterbox TTS)
-docker-compose -f services/chatterbox/docker-compose.yml up -d
+# Start development server
+npm run dev
+```
+
+## 💻 Basic Usage Examples
+
+### Provider Configuration
+```typescript
+import { FalAiProvider, TogetherProvider } from './src/media/providers';
+
+// Configure FAL.ai provider
+const falProvider = new FalAiProvider();
+await falProvider.configure({ apiKey: process.env.FALAI_API_KEY });
+
+// Get models for specific capability
+const imageModels = falProvider.getModelsForCapability(MediaCapability.IMAGE_GENERATION);
+```
+
+### Smart Asset Loading
+```typescript
+import { AssetLoader } from './src/media/assets';
+
+// Auto-detect format and assign roles
+const asset = AssetLoader.load('video.mp4');  // Gets Video + Audio roles
+const video = await asset.asVideo();           // Access video functionality
+const audio = await asset.extractAudio();     // Extract audio via FFMPEG
+```
+
+### Video Composition
+```typescript
+import { FFMPEGCompositionBuilder } from './src/media/providers/docker/ffmpeg';
+
+const composer = new FFMPEGCompositionBuilder()
+  .compose(mainVideo)
+  .addOverlay(logoVideo, { 
+    position: 'top-right', 
+    opacity: 0.8,
+    colorKey: '#000000' 
+  });
+
+const result = await composer.transform(ffmpegModel);
+```
 ```
 
 ## 📞 Support
