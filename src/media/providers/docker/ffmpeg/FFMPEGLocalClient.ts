@@ -18,7 +18,8 @@ import {
   AudioExtractionResult,
   ServiceHealth,
   VideoCompositionOptions,
-  VideoCompositionResult
+  VideoCompositionResult,
+  IFFMPEGClient
 } from './FFMPEGAPIClient';
 
 export interface FFMPEGLocalConfig {
@@ -33,7 +34,7 @@ export interface FFMPEGLocalConfig {
 /**
  * FFMPEG Local Client for running ffmpeg locally
  */
-export class FFMPEGLocalClient {
+export class FFMPEGLocalClient implements IFFMPEGClient {
   private readonly config: Required<FFMPEGLocalConfig>;
   private readonly tempDir: string;
 
@@ -530,22 +531,33 @@ export class FFMPEGLocalClient {
 
       // Apply filter complex
       if (options.filterComplex) {
+        // Add filter complex
         args.push('-filter_complex', options.filterComplex);
+        
+        // Video output mapping
         if (options.videoOutputLabel) {
           args.push('-map', `[${options.videoOutputLabel}]`);
+        }
+        
+        // Audio output mapping  
+        if (options.customAudioMapping && options.audioOutputLabel) {
+          args.push('-map', `[${options.audioOutputLabel}]`);
+        } else {
+          // Use first audio stream as fallback
+          args.push('-map', '0:a?');
         }
       } else {
         // Default multi-video filter
         const filterComplex = this.buildNVideoFilterComplex(videoBuffers.length, options);
         args.push('-filter_complex', filterComplex);
         args.push('-map', '[v]');
-      }
-
-      // Audio mapping
-      if (options.customAudioMapping && options.audioOutputLabel) {
-        args.push('-map', `[${options.audioOutputLabel}]`);
-      } else {
-        args.push('-map', '0:a?');
+        
+        // Audio mapping for default filter
+        if (options.customAudioMapping && options.audioOutputLabel) {
+          args.push('-map', `[${options.audioOutputLabel}]`);
+        } else {
+          args.push('-map', '0:a?');
+        }
       }
 
       // Output options
@@ -657,6 +669,57 @@ export class FFMPEGLocalClient {
       if (tempInputFile && fs.existsSync(tempInputFile)) {
         fs.unlinkSync(tempInputFile);
       }
+    }
+  }
+
+  /**
+   * Concatenate videos using concat demuxer (file-based approach)
+   */
+  async concatWithDemuxer(videoBuffers: Buffer[]): Promise<Buffer> {
+    const tempInputFiles: string[] = [];
+    const concatListFile = path.join(this.tempDir, `concat_list_${Date.now()}.txt`);
+    const outputFile = path.join(this.tempDir, `concat_output_${Date.now()}.mp4`);
+
+    try {
+      // Write video buffers to temp files
+      for (let i = 0; i < videoBuffers.length; i++) {
+        const tempFile = path.join(this.tempDir, `concat_input_${i}_${Date.now()}.mp4`);
+        fs.writeFileSync(tempFile, videoBuffers[i]);
+        tempInputFiles.push(tempFile);
+      }
+
+      // Create concat list file
+      const concatList = tempInputFiles.map(file => `file '${file}'`).join('\n');
+      fs.writeFileSync(concatListFile, concatList);
+
+      // Run FFmpeg with concat demuxer
+      const args = [
+        '-f', 'concat',
+        '-safe', '0',
+        '-i', concatListFile,
+        '-c', 'copy',
+        '-y', outputFile
+      ];
+
+      await this.executeFFmpeg(args);
+      
+      const result = fs.readFileSync(outputFile);
+      
+      // Cleanup
+      tempInputFiles.forEach(file => fs.unlinkSync(file));
+      fs.unlinkSync(concatListFile);
+      fs.unlinkSync(outputFile);
+      
+      return result;
+      
+    } catch (error) {
+      // Cleanup on error
+      tempInputFiles.forEach(file => {
+        try { fs.unlinkSync(file); } catch {}
+      });
+      try { fs.unlinkSync(concatListFile); } catch {}
+      try { fs.unlinkSync(outputFile); } catch {}
+      throw error;
     }
   }
 

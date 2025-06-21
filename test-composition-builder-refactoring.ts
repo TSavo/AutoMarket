@@ -56,18 +56,31 @@ async function testCompositionBuilderRefactoring() {
       // Test composition with prepend and append
       builder
         .prepend(introVideoObj)           // Test prepend functionality
-        .compose(baseVideoObj)
+        .compose(baseVideoObj)       
         .addOverlay(overlayVideoObj, { 
           position: 'top-right', 
           opacity: 0.8,
           width: '25%' ,
           height: '25%',
           startTime: 5,
-          duration: 10
+          duration: 10,
+          colorKey: '#00FF00',  // Green screen
+          colorKeySimilarity: 0.25,
+          colorKeyBlend: 0.05
+        })
+        .addOverlay(overlayVideoObj, { 
+          position: 'bottom-left', 
+          opacity: 0.6,
+          width: '30%' ,
+          height: '30%',
+          startTime: 15,
+          duration: 10,
+          colorKey: '#0000FF',  // Blue screen
+          colorKeySimilarity: 0.20,
+          colorKeyBlend: 0.08
         })
         .append(outroVideoObj);          // Test append functionality
-        
-    } else {
+          } else {
       console.log('✅ Using existing test videos');
       
       // Load real test videos using SmartAssetFactory
@@ -83,13 +96,12 @@ async function testCompositionBuilderRefactoring() {
       const baseVideo = await baseAsset.asVideo();
       const overlayVideo = await overlayAsset.asVideo();
       
-      // Test with intro/outro if they exist
+      // Test with intro/outro if they exist (but don't add them twice!)
       let introVideo, outroVideo;
       if (fs.existsSync(introVideoPath)) {
         const introAsset = SmartAssetFactory.load(introVideoPath);
         if (hasVideoRole(introAsset)) {
           introVideo = await introAsset.asVideo();
-          builder.prepend(introVideo);
         }
       }
       
@@ -97,19 +109,39 @@ async function testCompositionBuilderRefactoring() {
         const outroAsset = SmartAssetFactory.load(outroVideoPath);
         if (hasVideoRole(outroAsset)) {
           outroVideo = await outroAsset.asVideo();
-          builder.append(outroVideo);
         }
       }
       
-      builder
-        .compose(baseVideo)
-        .prepend(introVideo)
-        .addOverlay(overlayVideo, { 
-          position: 'top-right', 
-          opacity: 0.8,
-          width: '25%' 
-        })
-        .append(outroVideo);
+      // Build composition - only add intro/outro once
+      builder.compose(baseVideo);
+      
+      if (introVideo) {
+        builder.prepend(introVideo);
+      }
+        builder.addOverlay(overlayVideo, { 
+        position: 'top-right', 
+        opacity: 0.8,
+        width: '25%',
+        colorKey: '#00FF00',  // Green screen - should appear in filter!
+        colorKeySimilarity: 0.25,
+        colorKeyBlend: 0.05,
+        startTime: 5
+      });
+      
+      // Add a second overlay to test multiple overlays with concatenation
+      builder.addOverlay(overlayVideo, { 
+        position: 'bottom-left', 
+        opacity: 0.6,
+        width: '30%',
+        colorKey: '#0000FF',  // Blue screen
+        colorKeySimilarity: 0.20,
+        colorKeyBlend: 0.08,
+        startTime: 15
+      });
+      
+      if (outroVideo) {
+        builder.append(outroVideo);
+      }
     }
     
     const filterComplex = builder.preview();

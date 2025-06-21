@@ -110,9 +110,25 @@ export interface VideoCompositionResult {
 }
 
 /**
+ * Common interface for FFMPEG clients (API and Local)
+ */
+export interface IFFMPEGClient {
+  checkHealth(): Promise<ServiceHealth>;
+  extractAudio(videoData: Buffer | Readable | string, options?: AudioExtractionOptions): Promise<AudioExtractionResult>;
+  convertAudio(audioData: Buffer | Readable | string, options?: AudioConversionOptions): Promise<AudioExtractionResult>;
+  downloadFile(outputPath: string): Promise<Buffer>;
+  getServiceInfo(): Promise<any>;
+  testConnection(): Promise<boolean>;
+  composeVideo(videoBuffers: Buffer[], options?: VideoCompositionOptions): Promise<VideoCompositionResult>;
+  filterVideo(videoData: Buffer | Readable | string, options?: VideoCompositionOptions): Promise<VideoCompositionResult>;
+  filterMultipleVideos(videoBuffers: Buffer[], options?: VideoCompositionOptions): Promise<VideoCompositionResult>;
+  getVideoMetadata(videoData: Buffer | Readable | string): Promise<{ width: number; height: number; duration: number; framerate: number }>;
+}
+
+/**
  * FFMPEG API Client for Docker service communication
  */
-export class FFMPEGAPIClient {
+export class FFMPEGAPIClient implements IFFMPEGClient {
   private readonly client: AxiosInstance;
   private readonly config: FFMPEGClientConfig;
 

@@ -5,7 +5,7 @@
  * Provides both the abstract interface and a fluent API for complex compositions.
  */
 
-import { FFMPEGAPIClient } from './FFMPEGAPIClient';
+import { FFMPEGAPIClient, IFFMPEGClient } from './FFMPEGAPIClient';
 import { FFMPEGDockerService } from '../../../services/FFMPEGDockerService';
 import { Video, VideoRole } from '../../../assets/roles';
 import { VideoToVideoModel, VideoCompositionOptions, VideoCompositionResult } from '../../../models/abstracts/VideoToVideoModel';
@@ -17,10 +17,9 @@ export type { OverlayOptions, FilterOptions };
 
 export class FFMPEGVideoFilterModel extends VideoToVideoModel {
   private compositionBuilder: FFMPEGCompositionBuilder;
-
   constructor(
     private dockerService?: FFMPEGDockerService,
-    private apiClient?: FFMPEGAPIClient
+    private apiClient?: IFFMPEGClient
   ) {
     const metadata: ModelMetadata = {
       id: 'ffmpeg-video-filter',
@@ -252,8 +251,7 @@ export class FFMPEGVideoFilterModel extends VideoToVideoModel {
   options(options: FilterOptions): FFMPEGVideoFilterModel {
     this.compositionBuilder.options(options);
     return this;
-  }
-  /**
+  }  /**
    * Execute the fluent composition and return buffer
    */
   async execute(): Promise<Buffer> {
@@ -262,13 +260,64 @@ export class FFMPEGVideoFilterModel extends VideoToVideoModel {
       throw new Error(validation.errors.join('; '));
     }
 
-    const filterComplex = this.compositionBuilder.buildFilterComplex();
-    const videoBuffers = this.compositionBuilder.getVideoBuffers();
-    const state = this.compositionBuilder.getState();
-
     if (!this.apiClient) {
       throw new Error('FFMPEGAPIClient is required for execute operation');
     }
+
+    // Check if we need concatenation preprocessing
+    if (this.compositionBuilder.requiresConcatenationPreprocessing()) {
+      return this.executeWithConcatenationPreprocessing();
+    } else {
+      return this.executeDirectly();
+    }
+  }
+
+  /**
+   * Execute with hybrid approach: concat demuxer + overlay filters
+   */
+  private async executeWithConcatenationPreprocessing(): Promise<Buffer> {
+    const state = this.compositionBuilder.getState();
+    
+    // Step 1: Concatenate videos using concat demuxer
+    const videosToConcat = this.compositionBuilder.getVideosForConcatenationPreprocessing();
+    const concatenatedBuffer = await this.concatenateVideosWithDemuxer(videosToConcat);
+    
+    // Step 2: Apply overlays to concatenated video (if any)
+    if (state.overlays.length > 0) {
+      const filterComplex = this.compositionBuilder.buildFilterComplex();
+      const overlayVideoBuffers = state.overlays.map(o => o.video.data);
+      const allBuffers = [concatenatedBuffer, ...overlayVideoBuffers];
+      
+      const result = await this.apiClient.filterMultipleVideos(allBuffers, {
+        filterComplex,
+        videoOutputLabel: state.filterOptions.videoOutputLabel,
+        audioOutputLabel: state.filterOptions.audioOutputLabel,
+        customAudioMapping: state.filterOptions.customAudioMapping,
+        outputFormat: state.filterOptions.outputFormat,
+        codec: state.filterOptions.codec as any,
+        bitrate: state.filterOptions.bitrate,
+        fps: state.filterOptions.fps,
+        resolution: state.filterOptions.resolution
+      });
+
+      if (!result.videoBuffer) {
+        throw new Error('No video buffer returned from overlay operation');
+      }
+
+      return result.videoBuffer;
+    } else {
+      // No overlays, just return concatenated video
+      return concatenatedBuffer;
+    }
+  }
+
+  /**
+   * Execute directly without concatenation preprocessing
+   */
+  private async executeDirectly(): Promise<Buffer> {
+    const filterComplex = this.compositionBuilder.buildFilterComplex();
+    const videoBuffers = this.compositionBuilder.getVideoBuffers();
+    const state = this.compositionBuilder.getState();
 
     const result = await this.apiClient.filterMultipleVideos(videoBuffers, {
       filterComplex,
@@ -287,6 +336,20 @@ export class FFMPEGVideoFilterModel extends VideoToVideoModel {
     }
 
     return result.videoBuffer;
+  }
+
+  /**
+   * Concatenate videos using FFmpeg's concat demuxer (reliable method)
+   */
+  private async concatenateVideosWithDemuxer(videos: any[]): Promise<Buffer> {
+    // TODO: Implement concat demuxer in FFMPEGLocalClient
+    // For now, use a placeholder that calls the local client's method
+    if ('concatWithDemuxer' in this.apiClient) {
+      const videoBuffers = videos.map(v => v.data);
+      return (this.apiClient as any).concatWithDemuxer(videoBuffers);
+    } else {
+      throw new Error('Concat demuxer not supported by current API client');
+    }
   }
   /**
    * Build the filter complex string from the fluent operations
