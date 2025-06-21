@@ -150,10 +150,10 @@ export class FFMPEGCompositionBuilder {
   // ===============================
   // FILTER COMPLEX GENERATION
   // ===============================
-
   /**
-   * Build the complete filter complex
-   */  buildFilterComplex(): string {
+   * Build the complete filter complex - RESTORED WORKING VERSION
+   */
+  buildFilterComplex(): string {
     if (this.state.customFilters.length > 0) {
       return this.state.customFilters.join(';\n');
     }
@@ -162,19 +162,10 @@ export class FFMPEGCompositionBuilder {
     const hasConcatenation = indexMapping.totalConcatInputs > 1;
     
     if (hasConcatenation) {
-      // For concatenation scenarios, we'll use a hybrid approach:
-      // 1. FFmpeg concat demuxer for basic concatenation (handled by FFMPEGVideoFilterModel)
-      // 2. Filter complex for overlays only (if any)
-      console.log('ℹ️  Concatenation detected - will use concat demuxer + overlay filter approach');
-      
-      if (this.state.overlays.length > 0) {
-        // Build filter for overlays on the already-concatenated video (input 0)
-        return this.buildOverlayOnlyFilter();
-      } else {
-        // No overlays, just concatenation (handled externally)
-        return this.buildSimplePassthroughFilter();
-      }
+      // Use the working concatenation approach from yesterday
+      return this.buildConcatenationFilter(indexMapping);
     } else {
+      // Pure overlay processing for single video + overlays
       return this.buildPureOverlayFilter(indexMapping);
     }
   }
@@ -281,7 +272,7 @@ export class FFMPEGCompositionBuilder {
       totalConcatInputs: prependIndices.length + mainIndices.length + appendIndices.length
     };
   }  /**
-   * Build concatenation filter complex using proper FFmpeg concat filter syntax
+   * Build concatenation filter complex using working filter syntax from yesterday
    */
   private buildConcatenationFilter(indexMapping: InputIndexMapping): string {
     const filterParts: string[] = [];
@@ -290,47 +281,58 @@ export class FFMPEGCompositionBuilder {
       ...indexMapping.prependIndices,
       ...indexMapping.mainIndices,
       ...indexMapping.appendIndices
-    ];
-
-    // Step 1: Normalize all input streams to consistent format
-    // This ensures all videos have the same resolution, frame rate, and audio format
-    allConcatIndices.forEach(index => {
-      filterParts.push(`[${index}:v]scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2,setsar=1,fps=30[v${index}]`);
-      filterParts.push(`[${index}:a]aresample=44100,aformat=sample_fmts=fltp:channel_layouts=stereo[a${index}]`);
-    });
-
-    // Step 2: Build concat filter with proper syntax
-    // Format: [v0][v1][v2][a0][a1][a2]concat=n=3:v=1:a=1[concatenated_video][concatenated_audio]
-    const videoInputs = allConcatIndices.map(i => `[v${i}]`).join('');
-    const audioInputs = allConcatIndices.map(i => `[a${i}]`).join('');
-    
-    filterParts.push(`${videoInputs}${audioInputs}concat=n=${allConcatIndices.length}:v=1:a=1[concatenated_video][concatenated_audio]`);
-
-    // Step 3: Handle overlays if present
-    if (this.state.overlays.length > 0) {
-      // Format overlay streams
-      indexMapping.overlayIndices.forEach(index => {
-        filterParts.push(`[${index}:v]scale=1920:1080:force_original_aspect_ratio=decrease[ov${index}]`);
-        filterParts.push(`[${index}:a]aresample=44100,aformat=sample_fmts=fltp:channel_layouts=stereo[oa${index}]`);
+    ];    if (allConcatIndices.length > 1) {
+      // Format all videos for concatenation - WORKING VERSION FROM YESTERDAY
+      // Process video streams first
+      allConcatIndices.forEach(index => {
+        filterParts.push(`[${index}:v]format=yuv420p,scale=1920:1080[v${index}]`);
+      });
+      
+      // Process audio streams second
+      allConcatIndices.forEach(index => {
+        filterParts.push(`[${index}:a]aformat=sample_fmts=fltp:sample_rates=44100:channel_layouts=stereo[a${index}]`);
       });
 
-      // Apply overlay chain
-      const finalVideo = this.buildOverlayChain('concatenated_video', indexMapping.overlayIndices);
-      filterParts.push(...finalVideo.filters);
-      
-      // Mix concatenated audio with overlay audio
-      const overlayAudioInputs = indexMapping.overlayIndices.map(i => `[oa${i}]`);
-      if (overlayAudioInputs.length > 0) {
-        const allAudioInputs = [`[concatenated_audio]`, ...overlayAudioInputs].join('');
-        const totalAudioInputs = 1 + overlayAudioInputs.length;
-        filterParts.push(`${allAudioInputs}amix=inputs=${totalAudioInputs}:duration=longest:normalize=0[${this.state.filterOptions.audioOutputLabel}]`);
+      // Build concatenation filter - EXACT WORKING SYNTAX FROM YESTERDAY
+      const videoInputs = allConcatIndices.map(index => `[v${index}]`).join('');
+      const audioInputs = allConcatIndices.map(index => `[a${index}]`).join('');
+
+      filterParts.push(`${videoInputs}${audioInputs}concat=n=${allConcatIndices.length}:v=1:a=1[concatenated_video][concatenated_audio]`);
+
+      // Apply overlays to the concatenated video if any
+      if (this.state.overlays.length > 0) {
+        let currentBase = 'concatenated_video';
+
+        this.state.overlays.forEach((overlay, i) => {
+          const overlayIndex = indexMapping.overlayIndices[i];
+          const overlayLabel = `ov${i}`;
+          const nextBase = i === this.state.overlays.length - 1 
+            ? this.state.filterOptions.videoOutputLabel! 
+            : `concat_tmp${i}`;
+
+          // Process overlay
+          filterParts.push(`[${overlayIndex}:v]format=yuv420p,scale=320:240[${overlayLabel}]`);
+
+          // Apply overlay
+          const position = this.buildOverlayPosition(overlay.options);
+          filterParts.push(`[${currentBase}][${overlayLabel}]overlay=${position}[${nextBase}]`);
+
+          currentBase = nextBase;
+        });
+
+        // Output final audio
+        filterParts.push(`[concatenated_audio]copy[${this.state.filterOptions.audioOutputLabel}]`);
       } else {
+        // No overlays, just copy the concatenated result
+        filterParts.push(`[concatenated_video]copy[${this.state.filterOptions.videoOutputLabel}]`);
         filterParts.push(`[concatenated_audio]copy[${this.state.filterOptions.audioOutputLabel}]`);
       }
     } else {
-      // No overlays - just copy concatenated streams
-      filterParts.push(`[concatenated_video]copy[${this.state.filterOptions.videoOutputLabel}]`);
-      filterParts.push(`[concatenated_audio]copy[${this.state.filterOptions.audioOutputLabel}]`);
+      // Only one video, simpler processing
+      filterParts.push(`[0:v]format=yuv420p[${this.state.filterOptions.videoOutputLabel}]`);
+      if (this.state.filterOptions.customAudioMapping) {
+        filterParts.push(`[0:a]aformat=sample_fmts=fltp:sample_rates=44100[${this.state.filterOptions.audioOutputLabel}]`);
+      }
     }
 
     return filterParts.join(';\n');
