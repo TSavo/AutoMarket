@@ -1,0 +1,312 @@
+{
+  "black-forest-labs/flux-schnell": {
+    "id": "black-forest-labs/flux-schnell",
+    "owner": "black-forest-labs",
+    "name": "flux-schnell",
+    "description": "The fastest image generation model tailored for local development and personal use",
+    "category": "text-to-image",
+    "tags": [
+      "image generation"
+    ],
+    "visibility": "public",
+    "run_count": 375876272,
+    "github_url": "https://github.com/replicate/cog-flux",
+    "paper_url": null,
+    "license_url": "https://github.com/black-forest-labs/flux/blob/main/model_licenses/LICENSE-FLUX1-schnell",
+    "cover_image_url": "https://tjzk.replicate.delivery/models_models_featured_image/67c990ba-bb67-4355-822f-2bd8c42b2f0d/flux-schnell.webp",
+    "parameters": {
+      "seed": {
+        "type": "integer",
+        "description": "Random seed. Set for reproducible generation",
+        "required": false,
+        "x_order": 4
+      },
+      "prompt": {
+        "type": "string",
+        "description": "Prompt for generated image",
+        "required": true,
+        "x_order": 0
+      },
+      "go_fast": {
+        "type": "boolean",
+        "description": "Run faster predictions with model optimized for speed (currently fp8 quantized); disable to run in original bf16",
+        "required": false,
+        "default": true,
+        "x_order": 8
+      },
+      "megapixels": {
+        "type": "string",
+        "description": "Approximate number of megapixels for generated image",
+        "required": false,
+        "default": "1",
+        "x_order": 9
+      },
+      "num_outputs": {
+        "type": "integer",
+        "description": "Number of outputs to generate",
+        "required": false,
+        "default": 1,
+        "minimum": 1,
+        "maximum": 4,
+        "x_order": 2
+      },
+      "aspect_ratio": {
+        "type": "string",
+        "description": "Aspect ratio for the generated image",
+        "required": false,
+        "default": "1:1",
+        "x_order": 1
+      },
+      "output_format": {
+        "type": "string",
+        "description": "Format of the output images",
+        "required": false,
+        "default": "webp",
+        "x_order": 5
+      },
+      "output_quality": {
+        "type": "integer",
+        "description": "Quality when saving the output images, from 0 to 100. 100 is best quality, 0 is lowest quality. Not relevant for .png outputs",
+        "required": false,
+        "default": 80,
+        "minimum": 0,
+        "maximum": 100,
+        "x_order": 6
+      },
+      "num_inference_steps": {
+        "type": "integer",
+        "description": "Number of denoising steps. 4 is recommended, and lower number of steps produce lower quality outputs, faster.",
+        "required": false,
+        "default": 4,
+        "minimum": 1,
+        "maximum": 4,
+        "x_order": 3
+      },
+      "disable_safety_checker": {
+        "type": "boolean",
+        "description": "Disable safety checker for generated images.",
+        "required": false,
+        "default": false,
+        "x_order": 7
+      }
+    },
+    "output_schema": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "format": "uri"
+      },
+      "title": "Output"
+    },
+    "capabilities": [
+      "fast image generation",
+      "local development",
+      "personal use"
+    ],
+    "pricing": "usage-based",
+    "lastUpdated": 1750368685312
+  },
+  "minimax/video-01": {
+    "id": "minimax/video-01",
+    "owner": "minimax",
+    "name": "video-01",
+    "description": "Generate 6s videos with prompts or images. (Also known as Hailuo). Use a subject reference to make a video with a character and the S2V-01 model.",
+    "category": "text-to-video|image-to-video",
+    "tags": [],
+    "visibility": "public",
+    "run_count": 511800,
+    "github_url": null,
+    "paper_url": null,
+    "license_url": "https://intl.minimaxi.com/protocol/terms-of-service",
+    "cover_image_url": "https://tjzk.replicate.delivery/models_models_featured_image/b56c831c-4c68-4443-b69e-b71b105afe7f/minimax.webp",
+    "parameters": {
+      "prompt": {
+        "type": "string",
+        "description": "Text prompt for generation",
+        "required": true,
+        "x_order": 0
+      },
+      "prompt_optimizer": {
+        "type": "boolean",
+        "description": "Use prompt optimizer",
+        "required": false,
+        "default": true,
+        "x_order": 3
+      },
+      "first_frame_image": {
+        "type": "string",
+        "description": "First frame image for video generation. The output video will have the same aspect ratio as this image.",
+        "required": false,
+        "x_order": 1
+      },
+      "subject_reference": {
+        "type": "string",
+        "description": "An optional character reference image to use as the subject in the generated video (this will use the S2V-01 model)",
+        "required": false,
+        "x_order": 2
+      }
+    },
+    "output_schema": {
+      "type": "string",
+      "title": "Output",
+      "format": "uri"
+    },
+    "capabilities": [
+      "generate videos from text prompts",
+      "generate videos from images",
+      "create character-based videos",
+      "produce 6-second video clips"
+    ],
+    "pricing": "usage-based",
+    "lastUpdated": 1750368687332
+  },
+  "minimax/video-01-live": {
+    "id": "minimax/video-01-live",
+    "owner": "minimax",
+    "name": "video-01-live",
+    "description": "An image-to-video (I2V) model specifically trained for Live2D and general animation use cases",
+    "category": "image-to-video",
+    "tags": [],
+    "visibility": "public",
+    "run_count": 121473,
+    "github_url": null,
+    "paper_url": null,
+    "license_url": "https://intl.minimaxi.com/protocol/terms-of-service",
+    "cover_image_url": "https://tjzk.replicate.delivery/models_models_featured_image/c202ad97-edd0-40b6-afaf-c99d71398d44/video-01-live-cover.webp",
+    "parameters": {
+      "prompt": {
+        "type": "string",
+        "description": "Text prompt for generation",
+        "required": true,
+        "x_order": 0
+      },
+      "prompt_optimizer": {
+        "type": "boolean",
+        "description": "Use prompt optimizer",
+        "required": false,
+        "default": true,
+        "x_order": 2
+      },
+      "first_frame_image": {
+        "type": "string",
+        "description": "First frame image for video generation. The output video will have the same aspect ratio as this image.",
+        "required": true,
+        "x_order": 1
+      }
+    },
+    "output_schema": {
+      "type": "string",
+      "title": "Output",
+      "format": "uri"
+    },
+    "capabilities": [],
+    "pricing": "usage-based",
+    "lastUpdated": 1750369031277
+  },
+  "kwaivgi/kling-v2.1": {
+    "id": "kwaivgi/kling-v2.1",
+    "owner": "kwaivgi",
+    "name": "kling-v2.1",
+    "description": "Use Kling v2.1 to generate 5s and 10s videos in 720p and 1080p resolution from a starting image (image-to-video)",
+    "category": "image-to-video",
+    "tags": [],
+    "visibility": "public",
+    "run_count": 63,
+    "github_url": null,
+    "paper_url": null,
+    "license_url": null,
+    "cover_image_url": "https://tjzk.replicate.delivery/models_models_featured_image/a7690882-d1d2-44fb-b487-f41bd367adcf/replicate-prediction-2epyczsz.webp",
+    "parameters": {
+      "mode": {
+        "type": "string",
+        "description": "Standard has a resolution of 720p, pro is 1080p. Both are 24fps.",
+        "required": false,
+        "default": "standard",
+        "x_order": 3
+      },
+      "prompt": {
+        "type": "string",
+        "description": "Text prompt for video generation",
+        "required": true,
+        "x_order": 0
+      },
+      "duration": {
+        "type": "string",
+        "description": "Duration of the video in seconds",
+        "required": false,
+        "default": 5,
+        "x_order": 4
+      },
+      "start_image": {
+        "type": "string",
+        "description": "First frame of the video. You must use a start image with kling-v2.1.",
+        "required": true,
+        "x_order": 2
+      },
+      "negative_prompt": {
+        "type": "string",
+        "description": "Things you do not want to see in the video",
+        "required": false,
+        "default": "",
+        "x_order": 1
+      }
+    },
+    "output_schema": {
+      "type": "string",
+      "title": "Output",
+      "format": "uri"
+    },
+    "capabilities": [],
+    "pricing": "usage-based",
+    "lastUpdated": 1750369031641
+  },
+  "google/veo-3": {
+    "id": "google/veo-3",
+    "owner": "google",
+    "name": "veo-3",
+    "description": "Sound on: Google’s flagship Veo 3 text to video model, with audio",
+    "category": "text-to-video",
+    "tags": [],
+    "visibility": "public",
+    "run_count": 69760,
+    "github_url": null,
+    "paper_url": null,
+    "license_url": null,
+    "cover_image_url": "https://tjzk.replicate.delivery/models_models_featured_image/0ca4ee69-0f6e-4dc8-9dc6-3063b97b0a50/replicate-prediction-whcj9787.webp",
+    "parameters": {
+      "seed": {
+        "type": "integer",
+        "description": "Random seed. Omit for random generations",
+        "required": false,
+        "x_order": 3
+      },
+      "prompt": {
+        "type": "string",
+        "description": "Text prompt for video generation",
+        "required": true,
+        "x_order": 0
+      },
+      "enhance_prompt": {
+        "type": "boolean",
+        "description": "Use Gemini to enhance your prompts",
+        "required": false,
+        "default": true,
+        "x_order": 1
+      },
+      "negative_prompt": {
+        "type": "string",
+        "description": "Description of what to discourage in the generated video",
+        "required": false,
+        "x_order": 2
+      }
+    },
+    "output_schema": {
+      "type": "string",
+      "title": "Output",
+      "format": "uri"
+    },
+    "capabilities": [],
+    "pricing": "usage-based",
+    "lastUpdated": 1750369031858
+  }
+}

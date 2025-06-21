@@ -862,7 +862,7 @@ export class FFMPEGLocalClient {
       for (let row = 0; row < rows; row++) {
         const startIdx = row * cols;
         const endIdx = Math.min(startIdx + cols, videoCount);
-        const inputs = [];
+        const inputs: string[] = [];
         for (let i = startIdx; i < endIdx; i++) {
           inputs.push(`[v${i}]`);
         }
@@ -875,7 +875,7 @@ export class FFMPEGLocalClient {
 
       // Stack rows vertically
       if (rows > 1) {
-        const rowInputs = [];
+        const rowInputs: string[] = [];
         for (let i = 0; i < rows; i++) {
           rowInputs.push(`[row${i}]`);
         }

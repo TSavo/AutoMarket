@@ -5,8 +5,17 @@
  * Defines the contract for converting audio input to text output.
  */
 
-import { Model, ModelMetadata, TransformationResult } from './Model';
-import { Audio } from './Audio';
+import { Model, ModelMetadata } from './Model';
+import { Audio, Text } from '../assets/roles';
+
+// Legacy interface for backward compatibility
+export interface AudioToTextOptions {
+  language?: string;
+  task?: 'transcribe' | 'translate';
+  wordTimestamps?: boolean;
+  temperature?: number;
+  model?: string;
+}
 
 export interface AudioToTextInput {
   audio: Audio;
@@ -88,14 +97,14 @@ export interface AudioToTextSchema {
 /**
  * Abstract base class for audio-to-text models
  */
-export abstract class AudioToTextModel extends Model<AudioToTextInput, AudioToTextOutput> {
+export abstract class AudioToTextModel extends Model<Audio, AudioToTextOptions, Text> {
   constructor(metadata: ModelMetadata) {
     // Ensure the model supports audio-to-text transformation
     const enhancedMetadata: ModelMetadata = {
       ...metadata,
-      inputTypes: [...new Set([...metadata.inputTypes, 'audio'])],
-      outputTypes: [...new Set([...metadata.outputTypes, 'text'])],
-      capabilities: [...new Set([...metadata.capabilities, 'audio-to-text'])]
+      inputTypes: Array.from(new Set([...metadata.inputTypes, 'audio'])),
+      outputTypes: Array.from(new Set([...metadata.outputTypes, 'text'])),
+      capabilities: Array.from(new Set([...metadata.capabilities, 'audio-to-text']))
     };
 
     super(enhancedMetadata);
@@ -104,137 +113,8 @@ export abstract class AudioToTextModel extends Model<AudioToTextInput, AudioToTe
   /**
    * Transform audio to text - must be implemented by concrete classes
    */
-  abstract transform(input: AudioToTextInput): Promise<TransformationResult<AudioToTextOutput>>;
+  abstract transform(input: Audio, options?: AudioToTextOptions): Promise<Text>;
 
-  /**
-   * Get input schema for audio-to-text transformation
-   */
-  getInputSchema(): AudioToTextSchema['input'] {
-    return {
-      type: 'object',
-      properties: {
-        audio: { type: 'object' },
-        options: {
-          type: 'object',
-          properties: {
-            language: { type: 'string' },
-            task: { type: 'string', enum: ['transcribe', 'translate'] },
-            model: { type: 'string' },
-            wordTimestamps: { type: 'boolean' },
-            temperature: { type: 'number', minimum: 0, maximum: 1 }
-          }
-        }
-      },
-      required: ['audio']
-    };
-  }
-
-  /**
-   * Get output schema for audio-to-text transformation
-   */
-  getOutputSchema(): AudioToTextSchema['output'] {
-    return {
-      type: 'object',
-      properties: {
-        text: { type: 'string' },
-        metadata: {
-          type: 'object',
-          properties: {
-            confidence: { type: 'number', minimum: 0, maximum: 1 },
-            language: { type: 'string' },
-            processingTime: { type: 'number' },
-            segments: {
-              type: 'array',
-              items: {
-                type: 'object',
-                properties: {
-                  start: { type: 'number' },
-                  end: { type: 'number' },
-                  text: { type: 'string' },
-                  confidence: { type: 'number' }
-                }
-              }
-            },
-            model: { type: 'string' }
-          }
-        }
-      },
-      required: ['text']
-    };
-  }
-
-  /**
-   * Validate audio-to-text input
-   */
-  protected validateInput(input: AudioToTextInput): boolean {
-    if (!input || typeof input !== 'object') {
-      return false;
-    }
-
-    if (!input.audio || !(input.audio instanceof Audio)) {
-      return false;
-    }
-
-    if (!input.audio.isValid()) {
-      return false;
-    }
-
-    // Validate options if provided
-    if (input.options) {
-      const { task, temperature } = input.options;
-      
-      if (task !== undefined && !['transcribe', 'translate'].includes(task)) {
-        return false;
-      }
-      
-      if (temperature !== undefined && (typeof temperature !== 'number' || temperature < 0 || temperature > 1)) {
-        return false;
-      }
-    }
-
-    return true;
-  }
-
-  /**
-   * Validate audio-to-text output
-   */
-  protected validateOutput(output: AudioToTextOutput): boolean {
-    if (!output || typeof output !== 'object') {
-      return false;
-    }
-
-    if (!output.text || typeof output.text !== 'string') {
-      return false;
-    }
-
-    // Validate segments if provided
-    if (output.metadata?.segments) {
-      const segments = output.metadata.segments;
-      if (!Array.isArray(segments)) {
-        return false;
-      }
-
-      for (const segment of segments) {
-        if (!segment || typeof segment !== 'object') {
-          return false;
-        }
-        
-        if (typeof segment.start !== 'number' || typeof segment.end !== 'number') {
-          return false;
-        }
-        
-        if (segment.start < 0 || segment.end < segment.start) {
-          return false;
-        }
-        
-        if (!segment.text || typeof segment.text !== 'string') {
-          return false;
-        }
-      }
-    }
-
-    return true;
-  }
 
   /**
    * Get supported audio formats (to be implemented by concrete classes)
@@ -328,11 +208,8 @@ export abstract class AudioToTextModel extends Model<AudioToTextInput, AudioToTe
   protected createAudioToTextResult(
     text: string,
     metadata?: Record<string, any>
-  ): TransformationResult<AudioToTextOutput> {
-    return this.createSuccessResult(
-      { text, metadata },
-      metadata
-    );
+  ): AudioToTextOutput {
+    return { text, metadata };
   }
 
   /**

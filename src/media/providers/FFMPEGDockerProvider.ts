@@ -1,277 +1,240 @@
 /**
  * FFMPEGDockerProvider
  * 
- * Provider implementation for FFMPEG models running in Docker containers.
- * Manages the Docker service lifecycle and provides model implementations.
- * Implements VideoToAudioProvider role.
+ * Local Docker-based provider for FFMPEG video/audio processing.
+ * Uses Docker containers to provide video transformation capabilities.
  */
 
-import { LocalProvider } from '../registry/BaseProvider';
+import { 
+  MediaProvider,
+  MediaCapability, 
+  ProviderType, 
+  ProviderModel, 
+  ProviderConfig 
+} from '../types/provider';
 import { FFMPEGDockerService } from '../services/FFMPEGDockerService';
-import { FFMPEGAPIClient } from '../clients/FFMPEGAPIClient';
-import { FFMPEGDockerModel } from '../models/FFMPEGDockerModel';
-import { VideoToAudioModel } from '../models/VideoToAudioModel';
-import { VideoToAudioProvider } from '../registry/ProviderRoles';
 
-export interface FFMPEGDockerProviderConfig {
-  baseUrl?: string;
-  serviceName?: string;
-  composeFile?: string;
+export interface FFMPEGDockerConfig extends ProviderConfig {
+  dockerImage?: string;
   containerName?: string;
-  healthCheckUrl?: string;
-  workingDirectory?: string;
-  maxRetries?: number;
-  retryDelay?: number;
-  timeout?: number;
+  enableGPU?: boolean;
+  maxConcurrent?: number;
 }
 
 /**
- * FFMPEG Docker Provider - implements VideoToAudioProvider role
+ * Provider for FFMPEG Docker-based media processing
  */
-export class FFMPEGDockerProvider extends LocalProvider implements VideoToAudioProvider {
+export class FFMPEGDockerProvider implements MediaProvider {
   readonly id = 'ffmpeg-docker';
   readonly name = 'FFMPEG Docker Provider';
-  readonly type = 'local' as const;
+  readonly type = ProviderType.LOCAL;
+  readonly capabilities = [
+    MediaCapability.VIDEO_GENERATION,
+    MediaCapability.VIDEO_ANIMATION,
+    MediaCapability.VIDEO_UPSCALING,
+    MediaCapability.VIDEO_STYLE_TRANSFER,
+    MediaCapability.AUDIO_ENHANCEMENT,
+    MediaCapability.MUSIC_GENERATION
+  ];
 
-  private dockerService: FFMPEGDockerService | null = null;
-  private apiClient: FFMPEGAPIClient | null = null;
-  private config: FFMPEGDockerProviderConfig;
+  private config: FFMPEGDockerConfig = {};
+  private dockerService: FFMPEGDockerService;
 
-  constructor(config: FFMPEGDockerProviderConfig = {}) {
-    super();
-    
-    this.config = {
-      baseUrl: 'http://localhost:8006',
-      serviceName: 'ffmpeg-service',
-      composeFile: 'services/ffmpeg/docker-compose.yml',
-      containerName: 'ffmpeg-service',
-      maxRetries: 3,
-      retryDelay: 1000,
-      timeout: 300000, // 5 minutes
-      ...config
-    };
+  constructor() {
+    this.dockerService = new FFMPEGDockerService();
   }
 
-  /**
-   * Get supported models
-   */
-  getSupportedModels(): string[] {
-    return ['ffmpeg-extract-audio', 'ffmpeg-video-to-audio'];
+  getType(): ProviderType {
+    return ProviderType.LOCAL;
   }
 
-  /**
-   * Check if provider supports a specific model
-   */
-  supportsModel(modelId: string): boolean {
-    return this.getSupportedModels().includes(modelId);
+  getName(): string {
+    return this.name;
   }
 
-  /**
-   * Get Docker service instance (lazy initialization)
-   */
-  protected async getDockerService(): Promise<FFMPEGDockerService> {
-    if (!this.dockerService) {
-      this.dockerService = new FFMPEGDockerService({
-        baseUrl: this.config.baseUrl,
-        serviceName: this.config.serviceName,
-        composeFile: this.config.composeFile,
-        containerName: this.config.containerName,
-        healthCheckUrl: this.config.healthCheckUrl,
-        workingDirectory: this.config.workingDirectory
-      });
-    }
-    return this.dockerService;
+  getDescription(): string {
+    return 'Local Docker-based FFMPEG provider for video/audio processing';
+  }  getSupportedCapabilities(): MediaCapability[] {
+    return this.capabilities;
   }
 
-  /**
-   * Get API client instance (lazy initialization)
-   */
-  protected async getAPIClient(): Promise<FFMPEGAPIClient> {
-    if (!this.apiClient) {
-      this.apiClient = new FFMPEGAPIClient({
-        baseUrl: this.config.baseUrl!,
-        timeout: this.config.timeout,
-        maxRetries: this.config.maxRetries,
-        retryDelay: this.config.retryDelay
-      });
-    }
-    return this.apiClient;
+  getModelsForCapability(capability: MediaCapability): ProviderModel[] {
+    return this.models.filter(model => model.capabilities.includes(capability));
   }
 
-  /**
-   * Get provider context for model implementations
-   */
-  protected async getProviderContext(): Promise<{
-    dockerService: FFMPEGDockerService;
-    apiClient: FFMPEGAPIClient;
+  async getHealth(): Promise<{ 
+    status: 'healthy' | 'unhealthy' | 'degraded'; 
+    uptime: number; 
+    activeJobs: number; 
+    queuedJobs: number; 
+    lastError?: string 
   }> {
-    const dockerService = await this.getDockerService();
-    const apiClient = await this.getAPIClient();
+    try {
+      const isAvailable = await this.isAvailable();
+      return {
+        status: isAvailable ? 'healthy' : 'unhealthy',
+        uptime: Date.now(), // Mock uptime
+        activeJobs: 0,
+        queuedJobs: 0,
+        lastError: isAvailable ? undefined : 'Docker service not available'
+      };
+    } catch (error) {
+      return {
+        status: 'unhealthy',
+        uptime: 0,
+        activeJobs: 0,
+        queuedJobs: 0,
+        lastError: error.message
+      };
+    }
+  }  get models(): ProviderModel[] {
+    return [
+      {
+        id: 'ffmpeg-video-composer',
+        name: 'FFMPEG Video Composer',
+        description: 'Video composition and editing using FFMPEG',
+        capabilities: [MediaCapability.VIDEO_GENERATION, MediaCapability.VIDEO_ANIMATION],
+        pricing: { inputCost: 0, outputCost: 0, currency: 'USD' },
+        limits: { maxInputSize: 1000000000, maxOutputSize: 1000000000, rateLimit: 10 },
+        parameters: {}
+      },
+      {
+        id: 'ffmpeg-video-filter',
+        name: 'FFMPEG Video Filter',
+        description: 'Video filtering and effects using FFMPEG',
+        capabilities: [MediaCapability.VIDEO_STYLE_TRANSFER, MediaCapability.VIDEO_UPSCALING],
+        pricing: { inputCost: 0, outputCost: 0, currency: 'USD' },
+        limits: { maxInputSize: 1000000000, maxOutputSize: 1000000000, rateLimit: 10 },
+        parameters: {}
+      },
+      {
+        id: 'ffmpeg-video-to-audio',
+        name: 'FFMPEG Video to Audio',
+        description: 'Extract audio from video using FFMPEG',
+        capabilities: [MediaCapability.AUDIO_ENHANCEMENT],
+        pricing: { inputCost: 0, outputCost: 0, currency: 'USD' },
+        limits: { maxInputSize: 1000000000, maxOutputSize: 1000000000, rateLimit: 10 },
+        parameters: {}
+      }
+    ];
+  }
+  async configure(config: FFMPEGDockerConfig): Promise<void> {
+    this.config = { ...this.config, ...config };
     
-    return {
-      dockerService,
-      apiClient
-    };
+    // TODO: Configure the Docker service when methods are available
+    // await this.dockerService.configure({
+    //   dockerImage: config.dockerImage || 'jrottenberg/ffmpeg:latest',
+    //   containerName: config.containerName || 'ffmpeg-processor',
+    //   enableGPU: config.enableGPU || false,
+    //   maxConcurrent: config.maxConcurrent || 2
+    // });
   }
 
-  /**
-   * Check if provider is available
-   */
   async isAvailable(): Promise<boolean> {
     try {
-      const dockerService = await this.getDockerService();
-      const apiClient = await this.getAPIClient();
-      
-      // Check if Docker service is healthy
-      const isHealthy = await dockerService.isHealthy();
-      if (isHealthy) {
-        return true;
-      }
-
-      // Try to test API connection directly
-      return await apiClient.testConnection();
-    } catch (error) {
-      console.warn('⚠️ FFMPEG Docker provider availability check failed:', error.message);
+      // TODO: Use actual service method when available
+      // return await this.dockerService.isAvailable();
+      return false; // Temporarily return false until service methods are implemented
+    } catch {
       return false;
     }
   }
 
-  /**
-   * Create a model instance
-   */
-  async createModel(modelId: string): Promise<VideoToAudioModel> {
-    if (!this.supportsModel(modelId)) {
-      throw new Error(`Model '${modelId}' not supported by FFMPEGDockerProvider`);
+  async getStatus(): Promise<'online' | 'offline' | 'error'> {
+    const available = await this.isAvailable();
+    return available ? 'online' : 'offline';
+  }
+  // Video Model Creation Methods - TODO: Implement when model classes are available
+  /*
+  async createVideoComposerModel(modelId: string): Promise<FFMPEGVideoComposerModel> {
+    if (!await this.isAvailable()) {
+      throw new Error('FFMPEG Docker service is not available');
     }
 
-    const dockerService: FFMPEGDockerService = await this.getDockerService();
-    const apiClient: FFMPEGAPIClient = await this.getAPIClient();
-
-    // Create Docker-specific model with injected dependencies
-    const model: FFMPEGDockerModel = new FFMPEGDockerModel({
-      dockerService,
-      apiClient
+    return new FFMPEGVideoComposerModel({
+      id: modelId,
+      name: 'FFMPEG Video Composer',
+      description: 'Docker-based FFMPEG video composition',
+      dockerService: this.dockerService,
+      config: this.config
     });
-
-    return model;
   }
 
-  /**
-   * Create a video-to-audio model instance (VideoToAudioProvider interface)
-   */
-  async createVideoToAudioModel(modelId: string): Promise<VideoToAudioModel> {
-    return this.createModel(modelId);
-  }
-
-  /**
-   * Get supported video-to-audio models
-   */
-  getSupportedVideoToAudioModels(): string[] {
-    return this.getSupportedModels();
-  }
-
-  /**
-   * Check if provider supports a specific video-to-audio model
-   */
-  supportsVideoToAudioModel(modelId: string): boolean {
-    return this.supportsModel(modelId);
-  }
-
-  /**
-   * Start the underlying Docker service
-   */
-  async startService(): Promise<boolean> {
-    try {
-      const dockerService = await this.getDockerService();
-      return await dockerService.startService();
-    } catch (error) {
-      console.error('❌ Failed to start FFMPEG Docker service:', error);
-      return false;
+  async createVideoFilterModel(modelId: string): Promise<FFMPEGVideoFilterModel> {
+    if (!await this.isAvailable()) {
+      throw new Error('FFMPEG Docker service is not available');
     }
+
+    return new FFMPEGVideoFilterModel({
+      id: modelId,
+      name: 'FFMPEG Video Filter',
+      description: 'Docker-based FFMPEG video filtering',
+      dockerService: this.dockerService,
+      config: this.config
+    });
   }
 
-  /**
-   * Stop the underlying Docker service
-   */
-  async stopService(): Promise<boolean> {
-    try {
-      const dockerService = await this.getDockerService();
-      return await dockerService.stopService();
-    } catch (error) {
-      console.error('❌ Failed to stop FFMPEG Docker service:', error);
-      return false;
+  async createVideoToAudioModel(modelId: string): Promise<FFMPEGVideoToAudioModel> {
+    if (!await this.isAvailable()) {
+      throw new Error('FFMPEG Docker service is not available');
     }
+
+    return new FFMPEGVideoToAudioModel({
+      id: modelId,
+      name: 'FFMPEG Video to Audio',
+      description: 'Docker-based FFMPEG audio extraction',
+      dockerService: this.dockerService,
+      config: this.config
+    });
+  }
+  */
+
+  // Service Management - TODO: Implement when service methods are available
+  async start(): Promise<void> {
+    // TODO: await this.dockerService.start();
+    console.log('FFMPEG Docker service start - not implemented yet');
   }
 
-  /**
-   * Get service status
-   */
-  async getServiceStatus(): Promise<{ running: boolean; healthy: boolean; error?: string }> {
+  async stop(): Promise<void> {
+    // TODO: await this.dockerService.stop();
+    console.log('FFMPEG Docker service stop - not implemented yet');
+  }
+
+  async restart(): Promise<void> {
+    // TODO: await this.dockerService.restart();
+    console.log('FFMPEG Docker service restart - not implemented yet');
+  }
+
+  async cleanup(): Promise<void> {
+    // TODO: await this.dockerService.cleanup();
+    console.log('FFMPEG Docker service cleanup - not implemented yet');
+  }
+
+  // Health Check
+  async healthCheck(): Promise<{
+    status: 'healthy' | 'unhealthy';
+    details: Record<string, any>;
+  }> {
     try {
-      const dockerService = await this.getDockerService();
-      const status = await dockerService.getServiceStatus();
+      const isAvailable = await this.isAvailable();
+      // TODO: const containerStatus = await this.dockerService.getContainerStatus();
       
       return {
-        running: status.running,
-        healthy: status.health === 'healthy',
-        error: status.health === 'unhealthy' ? 'Service is unhealthy' : undefined
+        status: isAvailable ? 'healthy' : 'unhealthy',
+        details: {
+          dockerAvailable: isAvailable,
+          // containerStatus,
+          config: this.config
+        }
       };
     } catch (error) {
       return {
-        running: false,
-        healthy: false,
-        error: error.message
+        status: 'unhealthy',
+        details: {
+          error: error.message,
+          config: this.config
+        }
       };
-    }
-  }
-
-  /**
-   * Get provider information
-   */
-  getInfo(): {
-    id: string;
-    name: string;
-    type: 'local' | 'remote';
-    status: 'available' | 'unavailable' | 'error';
-    supportedModels: string[];
-    roles: string[];
-    dockerInfo?: any;
-  } {
-    const dockerInfo = this.dockerService?.getDockerServiceInfo();
-    
-    return {
-      id: this.id,
-      name: this.name,
-      type: this.type,
-      status: 'available', // TODO: Make this dynamic based on actual status
-      supportedModels: this.getSupportedModels(),
-      roles: ['video-to-audio'],
-      dockerInfo
-    };
-  }
-
-  /**
-   * Clean up resources
-   */
-  async cleanup(): Promise<void> {
-    try {
-      if (this.dockerService) {
-        await this.dockerService.cleanup();
-      }
-    } catch (error) {
-      console.warn('⚠️ Warning: Could not clean up FFMPEG provider resources:', error.message);
-    }
-  }
-
-  /**
-   * Get service logs for debugging
-   */
-  async getLogs(lines: number = 100): Promise<string> {
-    try {
-      const dockerService = await this.getDockerService();
-      return await dockerService.getLogs(lines);
-    } catch (error) {
-      return `Error getting logs: ${error.message}`;
     }
   }
 }

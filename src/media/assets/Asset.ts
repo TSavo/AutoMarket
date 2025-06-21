@@ -5,8 +5,8 @@
  * Replaces the previous Audio class with a more flexible, role-based system.
  */
 
-import fs from 'fs';
-import path from 'path';
+import * as fs from 'fs';
+import * as path from 'path';
 
 export interface AssetMetadata {
   // File metadata

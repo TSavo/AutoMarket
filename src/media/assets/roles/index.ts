@@ -45,7 +45,7 @@ export interface TextMetadata {
  * Audio - Represents audio data
  * Simple container for audio stream data
  */
-export class Audio implements SpeechRole {
+export class Audio {
   constructor(
     public readonly data: Buffer,
     public readonly sourceAsset?: any // Reference to original Asset
@@ -111,53 +111,152 @@ export class Audio implements SpeechRole {
   }
 
   /**
-   * Convert to Speech role - simple naming extension
+   * Get audio file size in bytes
    */
-  async asSpeech(): Promise<Speech> {
-    return new Speech(this.data, this.sourceAsset);
+  getSize(): number {
+    return this.data.length;
   }
 
   /**
-   * Check if this Audio can play the Speech role
+   * Get human-readable file size
    */
-  canPlaySpeechRole(): boolean {
-    return this.isValid(); // Any valid audio can be treated as speech
+  getHumanSize(): string {
+    const size = this.getSize();
+    if (size < 1024) return `${size} B`;
+    if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`;
+    if (size < 1024 * 1024 * 1024) return `${(size / (1024 * 1024)).toFixed(1)} MB`;
+    return `${(size / (1024 * 1024 * 1024)).toFixed(1)} GB`;
+  }
+
+  /**
+   * Get audio duration (with lazy metadata extraction)
+   */
+  getDuration(): number | undefined {
+    // Try to get from source asset metadata first
+    if (this.sourceAsset?.metadata?.duration !== undefined) {
+      return this.sourceAsset.metadata.duration;
+    }
+
+    // If not available, trigger extraction and return undefined for now
+    this.extractMetadataIfNeeded().catch(err =>
+      console.warn('[Audio] Metadata extraction failed:', err)
+    );
+
+    return this.sourceAsset?.metadata?.duration;
+  }
+
+  /**
+   * Get human-readable duration
+   */
+  getHumanDuration(): string {
+    const duration = this.getDuration();
+    if (!duration) return 'unknown';
+
+    const minutes = Math.floor(duration / 60);
+    const seconds = Math.floor(duration % 60);
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+  }
+
+  /**
+   * Get audio format
+   */
+  get format(): AudioFormat {
+    return this.getFormat();
+  }
+
+  /**
+   * Get audio metadata
+   */
+  get metadata(): AudioMetadata | undefined {
+    return this.sourceAsset?.metadata;
+  }
+
+  /**
+   * Lazy metadata extraction using ffprobe
+   */
+  private async extractMetadataIfNeeded(): Promise<void> {
+    if (this.sourceAsset?.metadata?._metadataExtracted) {
+      return; // Already extracted
+    }
+
+    const sourceFile = this.sourceAsset?.metadata?.sourceFile;
+    if (!sourceFile) {
+      if (this.sourceAsset?.metadata) {
+        this.sourceAsset.metadata._metadataExtracted = true;
+      }
+      return;
+    }
+
+    try {
+      const { FFmpegService } = await import('../../services/FFmpegService');
+      const ffmpegService = new FFmpegService();
+      const extractedMetadata = await ffmpegService.getAudioMetadata(sourceFile);
+
+      // Merge extracted metadata
+      if (this.sourceAsset?.metadata) {
+        Object.assign(this.sourceAsset.metadata, extractedMetadata);
+        this.sourceAsset.metadata._metadataExtracted = true;
+      }
+      console.log(`[Audio] Extracted metadata for ${sourceFile}:`, extractedMetadata);
+    } catch (error) {
+      console.warn(`[Audio] Failed to extract metadata for ${sourceFile}:`, error.message);
+      if (this.sourceAsset?.metadata) {
+        this.sourceAsset.metadata._metadataExtracted = true;
+      }
+    }
   }
 
   toString(): string {
     const format = this.getFormat();
-    return `Audio(${format.toUpperCase()})`;
+    const duration = this.getDuration();
+    const size = this.getHumanSize();
+    return `Audio(${format.toUpperCase()}${duration ? `, ${this.getHumanDuration()}` : ''}${size ? `, ${size}` : ''})`;
   }
 }
 
-/**
- * Speech - Represents speech data
- * Simple naming extension of Audio that indicates the audio contains speech
- */
-export class Speech extends Audio {
-  constructor(
-    data: Buffer,
-    sourceAsset?: any // Reference to original Asset
-  ) {
-    super(data, sourceAsset);
-  }
 
-  toString(): string {
-    const format = this.getFormat();
-    return `Speech(${format.toUpperCase()})`;
-  }
-}
 
 /**
  * Video - Represents video data extracted from an Asset
  */
-export class Video implements SpeechRole {
+export class Video implements VideoRole, AudioRole {
   constructor(
     public readonly data: Buffer,
     public readonly format: VideoFormat,
     public readonly metadata: VideoMetadata = { format },
     public readonly sourceAsset?: any // Reference to original Asset
   ) {}
+
+  private _metadataExtracted = false; // Track if we've extracted metadata
+
+  /**
+   * Lazy metadata extraction using ffprobe
+   */
+  private async extractMetadataIfNeeded(): Promise<void> {
+    if (this._metadataExtracted) {
+      return; // Already extracted
+    }
+
+    const sourceFile = this.sourceAsset?.metadata?.sourceFile;
+    if (!sourceFile) {
+      this._metadataExtracted = true; // Mark as tried even if no source file
+      return;
+    }
+
+    try {
+      const { FFmpegService } = await import('../../services/FFmpegService');
+      const ffmpegService = new FFmpegService();
+      const extractedMetadata = await ffmpegService.getVideoMetadata(sourceFile);
+      
+      // Merge extracted metadata
+      Object.assign(this.metadata, extractedMetadata);
+      console.log(`[Video] Extracted metadata for ${sourceFile}:`, extractedMetadata);
+    } catch (error) {
+      console.warn(`[Video] Failed to extract metadata for ${sourceFile}:`, error.message);
+    }
+
+    this._metadataExtracted = true;
+  }
 
   /**
    * Create Video from file path
@@ -173,7 +272,7 @@ export class Video implements SpeechRole {
     const data = fs.readFileSync(filePath);
     const ext = path.extname(filePath).toLowerCase().slice(1);
 
-    // Create a simple source asset with basic metadata
+    // Create a source asset with basic metadata (ffprobe extraction is lazy)
     const sourceAsset = {
       metadata: {
         sourceFile: filePath,
@@ -186,16 +285,40 @@ export class Video implements SpeechRole {
   }
 
   /**
-   * Get video duration
+   * Get video duration (with lazy metadata extraction)
    */
   getDuration(): number | undefined {
+    // Try to get from existing metadata first
+    if (this.metadata.duration !== undefined) {
+      return this.metadata.duration;
+    }
+
+    // If not available, trigger extraction and return undefined for now
+    // The next call will have the extracted data
+    this.extractMetadataIfNeeded().catch(err => 
+      console.warn('[Video] Metadata extraction failed:', err)
+    );
+    
     return this.metadata.duration;
   }
 
   /**
-   * Get video dimensions
+   * Get video dimensions (with lazy metadata extraction)
    */
   getDimensions(): { width?: number; height?: number } {
+    // Try to get from existing metadata first
+    if (this.metadata.width !== undefined && this.metadata.height !== undefined) {
+      return {
+        width: this.metadata.width,
+        height: this.metadata.height
+      };
+    }
+
+    // If not available, trigger extraction and return current values
+    this.extractMetadataIfNeeded().catch(err => 
+      console.warn('[Video] Metadata extraction failed:', err)
+    );
+
     return {
       width: this.metadata.width,
       height: this.metadata.height
@@ -224,19 +347,40 @@ export class Video implements SpeechRole {
   }
 
   /**
-   * Convert to Speech role - extract audio from video
+   * Convert to Audio role - extract audio from video
    */
-  async asSpeech(): Promise<Speech> {
-    // For now, create Speech from the video data
+  async asAudio(): Promise<Audio> {
+    // For now, create Audio from the video data
     // TODO: In the future, this could extract audio track from video
-    return new Speech(this.data, this.sourceAsset);
+    return new Audio(this.data, this.sourceAsset);
   }
 
   /**
-   * Check if this Video can play the Speech role
+   * Check if this Video can play the Audio role
    */
-  canPlaySpeechRole(): boolean {
-    return this.isValid(); // Any valid video can potentially have speech
+  canPlayAudioRole(): boolean {
+    return this.isValid() && this.hasAudio(); // Video can provide audio if it has an audio track
+  }
+
+  /**
+   * Convert to Video role (self)
+   */
+  async asVideo(): Promise<Video> {
+    return this;
+  }
+
+  /**
+   * Get video metadata
+   */
+  getVideoMetadata(): VideoMetadata {
+    return this.metadata;
+  }
+
+  /**
+   * Check if this Video can play the Video role
+   */
+  canPlayVideoRole(): boolean {
+    return this.isValid();
   }
 
   toString(): string {
@@ -335,13 +479,7 @@ export class Text {
 // ROLE INTERFACES
 // ============================================================================
 
-/**
- * SpeechRole - Assets that can provide speech data
- */
-export interface SpeechRole {
-  asSpeech(): Promise<Speech>;
-  canPlaySpeechRole(): boolean;
-}
+
 
 /**
  * AudioRole - Assets that can provide audio data
@@ -373,12 +511,7 @@ export interface TextRole {
 // TYPE HELPERS
 // ============================================================================
 
-/**
- * Type guard to check if an object implements SpeechRole
- */
-export function hasSpeechRole(obj: any): obj is SpeechRole {
-  return obj && typeof obj.asSpeech === 'function' && typeof obj.canPlaySpeechRole === 'function';
-}
+
 
 /**
  * Type guard to check if an object implements AudioRole
@@ -404,9 +537,9 @@ export function hasTextRole(obj: any): obj is TextRole {
 /**
  * Union type for all role interfaces
  */
-export type AnyRole = SpeechRole | AudioRole | VideoRole | TextRole;
+export type AnyRole = AudioRole | VideoRole | TextRole;
 
 /**
  * Union type for all core media types
  */
-export type AnyMedia = Speech | Audio | Video | Text;
+export type AnyMedia = Audio | Video | Text;

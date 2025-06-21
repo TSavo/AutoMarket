@@ -6,8 +6,8 @@
  * Extracted from ChatterboxTTSDockerService for separation of concerns.
  */
 
-import fs from 'fs';
-import path from 'path';
+import * as fs from 'fs';
+import * as path from 'path';
 import { execAsync } from '../utils/execAsync';
 
 export interface ChatterboxTTSRequest {

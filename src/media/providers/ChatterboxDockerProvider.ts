@@ -5,17 +5,16 @@
  * Manages the Docker service lifecycle and provides model implementations.
  */
 
-import { LocalProvider } from '../registry/BaseProvider';
 import { ChatterboxDockerService } from '../services/ChatterboxDockerService';
 import { ChatterboxAPIClient } from '../clients/ChatterboxAPIClient';
 import { ChatterboxDockerModel } from '../models/ChatterboxDockerModel';
-import { TextToSpeechModel } from '../models/TextToSpeechModel';
-import { TextToSpeechProvider } from '../registry/ProviderRoles';
+import { TextToAudioModel } from '../models/TextToAudioModel';
+import { TextToAudioProvider } from './roles';
 
 /**
  * Provider for Chatterbox TTS models via Docker
  */
-export class ChatterboxDockerProvider extends LocalProvider implements TextToSpeechProvider {
+export class ChatterboxDockerProvider implements TextToAudioProvider {
   readonly id = 'chatterbox-docker';
   readonly name = 'Chatterbox Docker Provider';
 
@@ -115,7 +114,7 @@ export class ChatterboxDockerProvider extends LocalProvider implements TextToSpe
   /**
    * Create a model instance
    */
-  async createModel(modelId: string): Promise<TextToSpeechModel> {
+  async createModel(modelId: string): Promise<TextToAudioModel> {
     if (!this.supportsModel(modelId)) {
       throw new Error(`Model '${modelId}' not supported by ChatterboxDockerProvider`);
     }
@@ -135,21 +134,21 @@ export class ChatterboxDockerProvider extends LocalProvider implements TextToSpe
   /**
    * Create a text-to-speech model instance (TextToSpeechProvider interface)
    */
-  async createTextToSpeechModel(modelId: string): Promise<TextToSpeechModel> {
+  async createTextToAudioModel(modelId: string): Promise<TextToAudioModel> {
     return this.createModel(modelId);
   }
 
   /**
-   * Get supported text-to-speech models (TextToSpeechProvider interface)
+   * Get supported text-to-audio models (TextToAudioProvider interface)
    */
-  getSupportedTextToSpeechModels(): string[] {
+  getSupportedTextToAudioModels(): string[] {
     return this.getAvailableModels();
   }
 
   /**
-   * Check if provider supports a specific TTS model (TextToSpeechProvider interface)
+   * Check if provider supports a specific TTS model (TextToAudioProvider interface)
    */
-  supportsTextToSpeechModel(modelId: string): boolean {
+  supportsTextToAudioModel(modelId: string): boolean {
     return this.supportsModel(modelId);
   }
 
@@ -165,7 +164,6 @@ export class ChatterboxDockerProvider extends LocalProvider implements TextToSpe
    */
   getInfo() {
     return {
-      ...super.getInfo(),
       description: 'Provides Chatterbox TTS models via Docker containers',
       dockerImage: 'chatterbox-tts:latest',
       defaultPort: 8000,

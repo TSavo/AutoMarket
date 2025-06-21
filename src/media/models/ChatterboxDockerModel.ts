@@ -7,14 +7,19 @@
  * Coordinates ChatterboxAPIClient and ChatterboxDockerService for Docker-based TTS.
  */
 
-import { TextToSpeechModel, TextToSpeechOptions } from './TextToSpeechModel';
+import { TextToAudioModel, TextToAudioOptions } from './TextToAudioModel';
 import { ChatterboxAPIClient } from '../clients/ChatterboxAPIClient';
 import { ChatterboxDockerService } from '../services/ChatterboxDockerService';
-import { Text, Speech, Audio, hasSpeechRole } from '../assets/roles';
+import { Text, Audio, hasAudioRole } from '../assets/roles';
 import { castToText } from '../assets/casting';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
+
+// Extended options for Chatterbox Docker TTS
+export interface ChatterboxDockerTTSOptions extends TextToAudioOptions {
+  forceUpload?: boolean;
+}
 
 /**
  * Configuration for ChatterboxDockerModel
@@ -28,7 +33,7 @@ export interface ChatterboxDockerModelConfig {
 /**
  * Docker-specific Chatterbox TTS Model implementation
  */
-export class ChatterboxDockerModel extends TextToSpeechModel {
+export class ChatterboxDockerModel extends TextToAudioModel {
   private readonly apiClient: ChatterboxAPIClient;
   private readonly dockerService: ChatterboxDockerService;
   private readonly tempDir: string;
@@ -57,23 +62,23 @@ export class ChatterboxDockerModel extends TextToSpeechModel {
   }
 
   /**
-   * Transform text to speech using Docker-based Chatterbox - basic TTS
+   * Transform text to audio using Docker-based Chatterbox - basic TTS
    */
-  async transform(input: Text, options?: TextToSpeechOptions): Promise<Speech>;
-  
+  async transform(input: Text, options?: ChatterboxDockerTTSOptions): Promise<Audio>;
+
   /**
-   * Transform text to speech with voice cloning - dual-signature pattern
+   * Transform text to audio with voice cloning - dual-signature pattern
    */
-  async transform(text: Text, voiceAudio: Speech, options?: TextToSpeechOptions): Promise<Speech>;
-  
+  async transform(text: Text, voiceAudio: Audio, options?: ChatterboxDockerTTSOptions): Promise<Audio>;
+
   /**
    * Implementation for both transform signatures
    */
   async transform(
-    input: Text, 
-    voiceAudioOrOptions?: Speech | TextToSpeechOptions, 
-    options?: TextToSpeechOptions
-  ): Promise<Speech> {
+    input: Text,
+    voiceAudioOrOptions?: Audio | ChatterboxDockerTTSOptions,
+    options?: ChatterboxDockerTTSOptions
+  ): Promise<Audio> {
     const startTime = Date.now();
 
     // Cast input to Text
@@ -85,17 +90,17 @@ export class ChatterboxDockerModel extends TextToSpeechModel {
     }
 
     // Parse arguments to determine which signature was used
-    let voiceAudio: Speech | undefined;
-    let actualOptions: TextToSpeechOptions | undefined;
-    
-    if (voiceAudioOrOptions && hasSpeechRole(voiceAudioOrOptions)) {
-      // Second signature: transform(text, voiceSpeech, options)
-      voiceAudio = await voiceAudioOrOptions.asSpeech();
+    let voiceAudio: Audio | undefined;
+    let actualOptions: ChatterboxDockerTTSOptions | undefined;
+
+    if (voiceAudioOrOptions && hasAudioRole(voiceAudioOrOptions)) {
+      // Second signature: transform(text, voiceAudio, options)
+      voiceAudio = await voiceAudioOrOptions.asAudio();
       actualOptions = options;
     } else {
       // First signature: transform(text, options)
       voiceAudio = undefined;
-      actualOptions = voiceAudioOrOptions as TextToSpeechOptions;
+      actualOptions = voiceAudioOrOptions as ChatterboxDockerTTSOptions;
     }
 
     try {
@@ -212,13 +217,13 @@ export class ChatterboxDockerModel extends TextToSpeechModel {
         // Process response
         const processingTime = Date.now() - startTime;
 
-        // Create Speech result with clean interface
-        const speech = new Speech(
+        // Create Audio result with clean interface
+        const audio = new Audio(
           audioData,
           text.sourceAsset // Preserve source Asset reference
         );
 
-        return speech;
+        return audio;
 
       } finally {
         // Clean up temporary file
@@ -374,5 +379,44 @@ export class ChatterboxDockerModel extends TextToSpeechModel {
         error: error instanceof Error ? error.message : 'Unknown error'
       };
     }
+  }
+
+  /**
+   * Get the input schema for this model
+   */
+  getInputSchema(): any {
+    return {
+      type: 'object',
+      properties: {
+        content: {
+          type: 'string',
+          maxLength: this.getMaxTextLength(),
+          description: 'Text content to convert to speech'
+        }
+      },
+      required: ['content']
+    };
+  }
+
+  /**
+   * Get the output schema for this model
+   */
+  getOutputSchema(): any {
+    return {
+      type: 'object',
+      properties: {
+        data: {
+          type: 'string',
+          format: 'binary',
+          description: 'Generated audio data'
+        },
+        format: {
+          type: 'string',
+          enum: this.getSupportedFormats(),
+          description: 'Audio format'
+        }
+      },
+      required: ['data', 'format']
+    };
   }
 }

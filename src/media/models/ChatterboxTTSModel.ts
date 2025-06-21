@@ -1,18 +1,24 @@
 /**
  * ChatterboxTTSModel - Concrete Implementation
- * 
- * Concrete implementation of TextToSpeechModel using Chatterbox TTS.
+ *
+ * Concrete implementation of TextToAudioModel using Chatterbox TTS.
  * Coordinates ChatterboxAPIClient and ChatterboxDockerService for speech synthesis.
  */
 
-import { TextToSpeechModel, TextToSpeechOptions } from './TextToSpeechModel';
-import { ModelMetadata, TransformationResult } from './Model';
-import { Text, Speech } from '../assets/roles';
+import { TextToAudioModel, TextToAudioOptions } from './TextToAudioModel';
+import { ModelMetadata } from './Model';
+import { Text, Audio } from '../assets/roles';
 import { TextInput, castToText } from '../assets/casting';
 import { ChatterboxAPIClient } from '../clients/ChatterboxAPIClient';
 import { ChatterboxDockerService } from '../services/ChatterboxDockerService';
-import fs from 'fs';
-import path from 'path';
+import * as fs from 'fs';
+import * as path from 'path';
+
+// Extended options for Chatterbox TTS
+export interface ChatterboxTTSOptions extends TextToAudioOptions {
+  voice?: string;
+  voiceFile?: string;
+}
 
 // Voice information interface
 export interface VoiceInfo {
@@ -36,7 +42,7 @@ export interface ChatterboxTTSModelConfig {
 /**
  * Concrete Chatterbox TTS model implementation
  */
-export class ChatterboxTTSModel extends TextToSpeechModel {
+export class ChatterboxTTSModel extends TextToAudioModel {
   private apiClient: ChatterboxAPIClient;
   private dockerService: ChatterboxDockerService;
   private tempDir: string;
@@ -67,9 +73,31 @@ export class ChatterboxTTSModel extends TextToSpeechModel {
   }
 
   /**
-   * Transform text to speech using Chatterbox
+   * Transform text to audio using Chatterbox - basic TTS
    */
-  async transform(input: TextInput, options?: TextToSpeechOptions): Promise<Speech> {
+  async transform(input: TextInput, options?: ChatterboxTTSOptions): Promise<Audio>;
+
+  /**
+   * Transform text to audio with voice cloning - dual-signature pattern
+   */
+  async transform(text: TextInput, voiceAudio: Audio, options?: ChatterboxTTSOptions): Promise<Audio>;
+
+  /**
+   * Implementation of transform method
+   */
+  async transform(input: TextInput, optionsOrVoiceAudio?: ChatterboxTTSOptions | Audio, options?: ChatterboxTTSOptions): Promise<Audio> {
+    // Handle dual signature pattern
+    let actualOptions: ChatterboxTTSOptions | undefined;
+    let voiceAudio: Audio | undefined;
+
+    if (optionsOrVoiceAudio && typeof optionsOrVoiceAudio === 'object' && 'data' in optionsOrVoiceAudio) {
+      // Second parameter is Audio (voice cloning mode)
+      voiceAudio = optionsOrVoiceAudio as Audio;
+      actualOptions = options;
+    } else {
+      // Second parameter is options (basic TTS mode)
+      actualOptions = optionsOrVoiceAudio as ChatterboxTTSOptions;
+    }
     const startTime = Date.now();
 
     // Cast input to Text
@@ -95,16 +123,16 @@ export class ChatterboxTTSModel extends TextToSpeechModel {
 
       // Handle voice cloning if voice file is provided
       let referenceAudioFilename: string | undefined;
-      if (options?.voiceFile) {
-        console.log(`[ChatterboxTTS] Voice cloning requested with file: ${options.voiceFile}`);
-        console.log(`[ChatterboxTTS] Force upload option: ${options.forceUpload}`);
+      if (actualOptions?.voiceFile) {
+        console.log(`[ChatterboxTTS] Voice cloning requested with file: ${actualOptions.voiceFile}`);
+        console.log(`[ChatterboxTTS] Force upload option: ${actualOptions.forceUpload}`);
         
         try {
-          const localFilename = path.basename(options.voiceFile);
+          const localFilename = path.basename(actualOptions.voiceFile);
           console.log(`[ChatterboxTTS] Local filename: ${localFilename}`);
-          
+
           // Check if file already exists on server (unless force upload is requested)
-          if (!options.forceUpload) {
+          if (!actualOptions.forceUpload) {
             console.log(`[ChatterboxTTS] Checking if file already exists on server...`);
             try {
               const existingFiles = await this.apiClient.getReferenceFiles();
@@ -123,9 +151,9 @@ export class ChatterboxTTSModel extends TextToSpeechModel {
           }
 
           // Upload if file doesn't exist or force upload is requested
-          if (!referenceAudioFilename || options.forceUpload) {
-            console.log(`[ChatterboxTTS] ${options.forceUpload ? 'Force uploading' : 'Uploading'} reference file: ${options.voiceFile}`);
-            const uploadResult = await this.apiClient.uploadReferenceAudio(options.voiceFile);
+          if (!referenceAudioFilename || actualOptions.forceUpload) {
+            console.log(`[ChatterboxTTS] ${actualOptions.forceUpload ? 'Force uploading' : 'Uploading'} reference file: ${actualOptions.voiceFile}`);
+            const uploadResult = await this.apiClient.uploadReferenceAudio(actualOptions.voiceFile);
             console.log(`[ChatterboxTTS] Upload successful, filename: ${uploadResult.filename}`);
             referenceAudioFilename = uploadResult.filename;
           } else {
@@ -141,17 +169,17 @@ export class ChatterboxTTSModel extends TextToSpeechModel {
 
       // Create TTS request
       console.log(`[ChatterboxTTS] Creating TTS request with options:`, {
-        voice: options?.voice,
-        speed: options?.speed,
-        voiceFile: options?.voiceFile,
-        outputFormat: options?.format as 'mp3' | 'wav' || 'mp3'
+        voice: actualOptions?.voice,
+        speed: actualOptions?.speed,
+        voiceFile: actualOptions?.voiceFile,
+        outputFormat: actualOptions?.format as 'mp3' | 'wav' || 'mp3'
       });
-      
+
       const request = this.apiClient.createTTSRequest(text.content, {
-        voice: options?.voice,
-        speed: options?.speed,
-        voiceFile: options?.voiceFile, // Pass voiceFile to set correct voice_mode
-        outputFormat: options?.format as 'mp3' | 'wav' || 'mp3'
+        voice: actualOptions?.voice,
+        speed: actualOptions?.speed,
+        voiceFile: actualOptions?.voiceFile, // Pass voiceFile to set correct voice_mode
+        outputFormat: actualOptions?.format as 'mp3' | 'wav' || 'mp3'
       });
 
       // Set reference audio filename if uploaded
@@ -177,13 +205,13 @@ export class ChatterboxTTSModel extends TextToSpeechModel {
         // Process response
         const processingTime = Date.now() - startTime;
 
-        // Create Speech result with clean interface
-        const speech = new Speech(
+        // Create Audio result with clean interface
+        const audio = new Audio(
           audioData,
           text.sourceAsset // Preserve source Asset reference
         );
 
-        return speech;
+        return audio;
 
       } finally {
         // Clean up temporary file
@@ -215,7 +243,7 @@ export class ChatterboxTTSModel extends TextToSpeechModel {
   /**
    * Get provider name
    */
-  private getProvider(): string {
+  getProvider(): string {
     return 'chatterbox-docker';
   }
 
@@ -426,5 +454,44 @@ export class ChatterboxTTSModel extends TextToSpeechModel {
     error?: string;
   }> {
     return await this.dockerService.getContainerStats();
+  }
+
+  /**
+   * Get the input schema for this model
+   */
+  getInputSchema(): any {
+    return {
+      type: 'object',
+      properties: {
+        content: {
+          type: 'string',
+          maxLength: this.getMaxTextLength(),
+          description: 'Text content to convert to speech'
+        }
+      },
+      required: ['content']
+    };
+  }
+
+  /**
+   * Get the output schema for this model
+   */
+  getOutputSchema(): any {
+    return {
+      type: 'object',
+      properties: {
+        data: {
+          type: 'string',
+          format: 'binary',
+          description: 'Generated audio data'
+        },
+        format: {
+          type: 'string',
+          enum: this.getSupportedFormats(),
+          description: 'Audio format'
+        }
+      },
+      required: ['data', 'format']
+    };
   }
 }

@@ -6,7 +6,7 @@
  */
 
 import { Asset } from '../Asset';
-import { Speech, Audio, hasAudioRole, hasSpeechRole, hasVideoRole } from '../roles';
+import { Audio, hasAudioRole, hasVideoRole } from '../roles';
 import { FFmpegService, FFmpegOptions } from '../../services/FFmpegService';
 
 /**
@@ -54,47 +54,6 @@ export class EnhancedAssetCasting {
 
     throw new Error(`Asset cannot be cast to Audio. Format: ${asset.metadata.format}`);
   }
-
-  /**
-   * Intelligently cast an asset to Speech, with FFmpeg extraction for video files
-   */
-  static async castToSpeechSmart(
-    asset: Asset,
-    options: FFmpegOptions = {}
-  ): Promise<Speech> {
-    // If it's already has SpeechRole and it's not a video, use normal casting
-    if (hasSpeechRole(asset) && !this.isVideoFormat(asset)) {
-      return asset.asSpeech();
-    }
-
-    // If it's a video file, extract audio using FFmpeg and create Speech
-    if (this.isVideoFormat(asset)) {
-      try {
-        const result = await this.ffmpegService.extractAudioFromVideo(
-          asset.data,
-          {
-            outputFormat: 'wav', // Default to WAV for speech processing
-            ...options
-          }
-        );
-
-        // Create new Speech object with extracted audio data
-        return new Speech(result.audioBuffer, asset);
-      } catch (error) {
-        console.error('Failed to extract speech from video, falling back to original data:', error);
-        // Fallback to creating Speech from original data
-        return new Speech(asset.data, asset);
-      }
-    }
-
-    // For other formats, try normal speech role casting
-    if (hasSpeechRole(asset)) {
-      return asset.asSpeech();
-    }
-
-    throw new Error(`Asset cannot be cast to Speech. Format: ${asset.metadata.format}`);
-  }
-
   /**
    * Extract audio from video file path
    */
@@ -125,18 +84,6 @@ export class EnhancedAssetCasting {
       throw new Error(`Failed to extract audio from video file: ${error.message}`);
     }
   }
-
-  /**
-   * Extract speech from video file path
-   */
-  static async extractSpeechFromVideoFile(
-    videoFilePath: string,
-    options: FFmpegOptions = {}
-  ): Promise<Speech> {
-    const audio = await this.extractAudioFromVideoFile(videoFilePath, options);
-    return new Speech(audio.data, audio.sourceAsset);
-  }
-
   /**
    * Check if FFmpeg is available for video processing
    */
@@ -168,16 +115,6 @@ export async function castToAudioSmart(
 }
 
 /**
- * Smart async version of castToSpeech that uses FFmpeg for video files  
- */
-export async function castToSpeechSmart(
-  asset: Asset,
-  options: FFmpegOptions = {}
-): Promise<Speech> {
-  return EnhancedAssetCasting.castToSpeechSmart(asset, options);
-}
-
-/**
  * Extract audio from video file
  */
 export async function extractAudioFromVideoFile(
@@ -185,14 +122,4 @@ export async function extractAudioFromVideoFile(
   options: FFmpegOptions = {}
 ): Promise<Audio> {
   return EnhancedAssetCasting.extractAudioFromVideoFile(videoFilePath, options);
-}
-
-/**
- * Extract speech from video file
- */
-export async function extractSpeechFromVideoFile(
-  videoFilePath: string,
-  options: FFmpegOptions = {}
-): Promise<Speech> {
-  return EnhancedAssetCasting.extractSpeechFromVideoFile(videoFilePath, options);
 }

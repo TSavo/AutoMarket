@@ -6,30 +6,17 @@
  */
 
 import { Asset } from '../Asset';
-import { 
-  Speech, Audio, Video, Text,
-  SpeechRole, AudioRole, VideoRole, TextRole,
-  hasSpeechRole, hasAudioRole, hasVideoRole, hasTextRole
+import {
+  Audio, Video, Text,
+  AudioRole, VideoRole, TextRole,
+  hasAudioRole, hasVideoRole, hasTextRole
 } from '../roles';
 
 // ============================================================================
 // CASTING FUNCTIONS
 // ============================================================================
 
-/**
- * Cast an input to Speech, supporting Speech objects and anything with SpeechRole
- */
-export async function castToSpeech(input: Speech | Audio | Video | (Asset & SpeechRole)): Promise<Speech> {
-  if (input instanceof Speech) {
-    return input;
-  }
 
-  if (hasSpeechRole(input)) {
-    return await input.asSpeech();
-  }
-
-  throw new Error('Input cannot be cast to Speech: missing SpeechRole capability');
-}
 
 /**
  * Cast an input to Audio, supporting both direct Audio objects and Assets with AudioRole
@@ -80,12 +67,7 @@ export async function castToText(input: Text | (Asset & TextRole)): Promise<Text
 // TYPE VALIDATION FUNCTIONS
 // ============================================================================
 
-/**
- * Check if input can be cast to Speech
- */
-export function canCastToSpeech(input: any): input is Speech | Audio | Video | (Asset & SpeechRole) {
-  return input instanceof Speech || hasSpeechRole(input);
-}
+
 
 /**
  * Check if input can be cast to Audio
@@ -112,19 +94,7 @@ export function canCastToText(input: any): input is Text | (Asset & TextRole) {
 // SAFE CASTING FUNCTIONS (RETURN UNDEFINED ON FAILURE)
 // ============================================================================
 
-/**
- * Safely cast to Speech, returning undefined if not possible
- */
-export async function safeCastToSpeech(input: any): Promise<Speech | undefined> {
-  try {
-    if (canCastToSpeech(input)) {
-      return await castToSpeech(input);
-    }
-  } catch {
-    // Ignore casting errors
-  }
-  return undefined;
-}
+
 
 /**
  * Safely cast to Audio, returning undefined if not possible
@@ -176,21 +146,15 @@ export async function safeCastToText(input: any): Promise<Text | undefined> {
  * Cast Asset to multiple roles it supports
  */
 export async function castAssetToAllRoles(asset: Asset): Promise<{
-  speech?: Speech;
   audio?: Audio;
   video?: Video;
   text?: Text;
 }> {
   const result: {
-    speech?: Speech;
     audio?: Audio;
     video?: Video;
     text?: Text;
   } = {};
-
-  if (hasSpeechRole(asset)) {
-    result.speech = await asset.asSpeech();
-  }
 
   if (hasAudioRole(asset)) {
     result.audio = await asset.asAudio();
@@ -212,10 +176,6 @@ export async function castAssetToAllRoles(asset: Asset): Promise<{
  */
 export function getAvailableRoles(asset: Asset): string[] {
   const roles: string[] = [];
-
-  if (hasSpeechRole(asset)) {
-    roles.push('speech');
-  }
 
   if (hasAudioRole(asset)) {
     roles.push('audio');
@@ -253,14 +213,7 @@ export class RoleCastingError extends Error {
 /**
  * Enhanced casting functions that provide better error messages
  */
-export async function castToSpeechWithError(input: any): Promise<Speech> {
-  if (canCastToSpeech(input)) {
-    return await castToSpeech(input);
-  }
 
-  const availableRoles = input instanceof Asset ? getAvailableRoles(input) : [];
-  throw new RoleCastingError(input, 'speech', availableRoles);
-}
 
 export async function castToAudioWithError(input: any): Promise<Audio> {
   if (canCastToAudio(input)) {
@@ -293,10 +246,7 @@ export async function castToTextWithError(input: any): Promise<Text> {
 // UTILITY TYPES FOR MODEL INPUTS
 // ============================================================================
 
-/**
- * Type for inputs that can be cast to Speech
- */
-export type SpeechInput = Speech | Audio | Video | (Asset & SpeechRole);
+
 
 /**
  * Type for inputs that can be cast to Audio
@@ -316,5 +266,5 @@ export type TextInput = Text | (Asset & TextRole);
 /**
  * Union type for any media input
  */
-export type MediaInput = SpeechInput | AudioInput | VideoInput | TextInput;
+export type MediaInput = AudioInput | VideoInput | TextInput;
 

@@ -5,14 +5,14 @@
  * Coordinates WhisperAPIClient and WhisperDockerService for speech recognition.
  */
 
-import { SpeechToTextModel, SpeechToTextOptions } from './SpeechToTextModel';
-import { ModelMetadata, TransformationResult } from './Model';
-import { Speech, Text } from '../assets/roles';
-import { SpeechInput, castToSpeech } from '../assets/casting';
+import { ModelMetadata } from './Model';
+import { Audio, Text } from '../assets/roles';
+import { AudioInput, castToAudio } from '../assets/casting';
 import { WhisperAPIClient } from '../clients/WhisperAPIClient';
 import { WhisperDockerService } from '../services/WhisperDockerService';
 import fs from 'fs';
 import path from 'path';
+import { AudioToTextModel, AudioToTextOptions } from './AudioToTextModel';
 
 export interface WhisperSTTModelConfig {
   apiClient?: WhisperAPIClient;
@@ -25,7 +25,7 @@ export interface WhisperSTTModelConfig {
 /**
  * Concrete Whisper STT model implementation
  */
-export class WhisperSTTModel extends SpeechToTextModel {
+export class WhisperSTTModel extends AudioToTextModel {
   private apiClient: WhisperAPIClient;
   private dockerService: WhisperDockerService;
   private tempDir: string;
@@ -56,17 +56,17 @@ export class WhisperSTTModel extends SpeechToTextModel {
   }
 
   /**
-   * Transform speech to text using Whisper
+   * Transform audio to text using Whisper
    */
-  async transform(input: SpeechInput, options?: SpeechToTextOptions): Promise<Text> {
+  async transform(input: AudioInput, options?: AudioToTextOptions): Promise<Text> {
     const startTime = Date.now();
 
-    // Cast input to Speech
-    const speech = await castToSpeech(input);
+    // Cast input to Audio
+    const audio = await castToAudio(input);
 
-    // Validate speech data
-    if (!speech.isValid()) {
-      throw new Error('Invalid speech data provided');
+    // Validate audio data
+    if (!audio.isValid()) {
+      throw new Error('Invalid audio data provided');
     }
 
     try {
@@ -82,14 +82,14 @@ export class WhisperSTTModel extends SpeechToTextModel {
         throw new Error('Whisper service is not healthy');
       }
 
-      // Save speech data to temporary file
-      const tempFilePath = await this.saveSpeechToTempFile(speech);
+      // Save audio data to temporary file
+      const tempFilePath = await this.saveAudioToTempFile(audio);
 
       try {
         // Create transcription request
         const request = this.apiClient.createTranscriptionRequest(tempFilePath, {
           task: options?.task || 'transcribe',
-          language: options?.language || speech.sourceAsset?.metadata?.language,
+          language: options?.language || audio.sourceAsset?.metadata?.language,
           word_timestamps: options?.wordTimestamps
         });
 
@@ -102,7 +102,7 @@ export class WhisperSTTModel extends SpeechToTextModel {
         // Create Text result
         const text = new Text(
           response.text,
-          response.language || options?.language || speech.sourceAsset?.metadata?.language || 'auto',
+          response.language || options?.language || audio.sourceAsset?.metadata?.language || 'auto',
           response.confidence || 0.9,
           {
             segments: this.convertToSpeechSegments(response.segments),
@@ -111,7 +111,7 @@ export class WhisperSTTModel extends SpeechToTextModel {
             provider: 'whisper-docker',
             duration: response.duration
           },
-          speech.sourceAsset // Preserve source Asset reference
+          audio.sourceAsset // Preserve source Asset reference
         );
 
         return text;
@@ -146,7 +146,7 @@ export class WhisperSTTModel extends SpeechToTextModel {
   /**
    * Get provider name
    */
-  private getProvider(): string {
+   getProvider(): string {
     return 'whisper-docker';
   }
 
@@ -180,6 +180,20 @@ export class WhisperSTTModel extends SpeechToTextModel {
   }
 
   /**
+   * Get maximum audio duration supported (in seconds)
+   */
+  getMaxAudioDuration(): number {
+    return 600; // 10 minutes max for Whisper
+  }
+
+  /**
+   * Get maximum audio file size supported (in bytes)
+   */
+  getMaxAudioSize(): number {
+    return 25 * 1024 * 1024; // 25MB max for Whisper
+  }
+
+  /**
    * Check if speaker diarization is supported
    */
   supportsSpeakerDiarization(): boolean {
@@ -208,15 +222,15 @@ export class WhisperSTTModel extends SpeechToTextModel {
   }
 
   /**
-   * Save speech to temporary file for API processing
+   * Save audio to temporary file for API processing
    */
-  private async saveSpeechToTempFile(speech: Speech): Promise<string> {
+  private async saveAudioToTempFile(audio: Audio): Promise<string> {
     const timestamp = Date.now();
-    const filename = `whisper_${timestamp}.wav`; // Default to WAV for speech
+    const filename = `whisper_${timestamp}.wav`; // Default to WAV for audio
     const filePath = path.join(this.tempDir, filename);
 
-    // Write speech data to file
-    fs.writeFileSync(filePath, speech.data);
+    // Write audio data to file
+    fs.writeFileSync(filePath, audio.data);
     return filePath;
   }
 

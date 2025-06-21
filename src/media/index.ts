@@ -1,75 +1,71 @@
 /**
- * Media Module for Horizon City Stories
- * Manages all media assets including images, videos, audio, and fonts
+ * Media Module - New Asset-Role System
+ * Manages all media assets using the new provider architecture with role-based mixins
  */
 
-// Export main AssetManager class
-export { AssetManager } from './AssetManager';
+// Export Smart Asset Loading System
+export { SmartAssetFactory, AssetLoader } from './assets/SmartAssetFactory';
 
-// Export MediaAssetStore
-export { MediaAssetStore } from './MediaAssetStore';
+// Export Asset system
+export { BaseAsset } from './assets/Asset';
 
-// Export types
+// Export Role-based media types
 export {
-  MediaType,
-  AspectRatio,
-  ContentPurpose
-} from './types';
+  Audio,
+  Video,
+  Text
+} from './assets/roles';
 
-// Export type interfaces
+// Export Role-based media type formats
 export type {
-  BaseAsset,
-  MediaDatabase,
-  BaseFilterOptions
-} from './types';
-
-// Export image types
-export {
-  ImageFormat,
-  isImageAsset
-} from './image';
-
-// Export image type interfaces
-export type {
-  ImageAsset,
-  ImageFilterOptions
-} from './image';
-
-// Export video types
-export {
-  VideoFormat,
-  isVideoAsset
-} from './video';
-
-// Export video type interfaces
-export type {
-  VideoAsset,
-  VideoFilterOptions
-} from './video';
-
-// Export audio types
-export {
   AudioFormat,
-  isAudioAsset
-} from './audio';
+  VideoFormat,
+  AudioMetadata,
+  VideoMetadata,
+  TextMetadata
+} from './assets/roles';
 
-// Export audio type interfaces
+// Export Role interfaces
 export type {
-  AudioAsset,
-  AudioFilterOptions
-} from './audio';
+  AudioRole,
+  VideoRole,
+  TextRole,
+  AnyRole,
+  AnyMedia
+} from './assets/roles';
 
-// Export font types
+// Export Role type guards
 export {
-  FontFormat,
-  isFontAsset
-} from './font';
+  hasAudioRole,
+  hasVideoRole,
+  hasTextRole
+} from './assets/roles';
 
-// Export font type interfaces
+// Export Asset casting utilities
+export {
+  castToAudio,
+  castToVideo,
+  castToText,
+  castAssetToAllRoles as castToRoles,
+  canCastToAudio,
+  canCastToVideo,
+  canCastToText,
+  safeCastToAudio,
+  safeCastToVideo,
+  safeCastToText,
+  getAvailableRoles,
+  RoleCastingError
+} from './assets/casting';
+
+// Export casting input types
 export type {
-  FontAsset,
-  FontFilterOptions
-} from './font';
+  AudioInput,
+  VideoInput,
+  TextInput,
+  MediaInput
+} from './assets/casting';
+
+
 
 // Ingest types excluded from Vercel deployment
 // Available in development only

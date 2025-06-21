@@ -1,0 +1,186 @@
+{
+  "fal-ai/framepack": {
+    "id": "fal-ai/framepack",
+    "name": "Framepack",
+    "category": "image-to-video",
+    "description": "Framepack is an efficient Image-to-video model that autoregressively generates videos.",
+    "parameters": {
+      "prompt": {
+        "type": "string",
+        "description": "Text prompt for video generation (max 500 characters).",
+        "required": true
+      },
+      "negative_prompt": {
+        "type": "string",
+        "description": "Negative prompt for video generation.",
+        "required": false,
+        "default": ""
+      },
+      "image_url": {
+        "type": "string",
+        "description": "URL of the image input.",
+        "required": true
+      },
+      "seed": {
+        "type": "integer",
+        "description": "The seed to use for generating the video.",
+        "required": false
+      },
+      "aspect_ratio": {
+        "type": "string",
+        "description": "The aspect ratio of the video to generate.",
+        "required": false,
+        "default": "16:9",
+        "enum": [
+          "16:9",
+          "9:16"
+        ]
+      },
+      "resolution": {
+        "type": "string",
+        "description": "The resolution of the video to generate. 720p generations cost 1.5x more than 480p generations.",
+        "required": false,
+        "default": "480p",
+        "enum": [
+          "720p",
+          "480p"
+        ]
+      },
+      "cfg_scale": {
+        "type": "float",
+        "description": "Classifier-Free Guidance scale for the generation.",
+        "required": false,
+        "default": 1,
+        "min": 0,
+        "max": 7
+      },
+      "guidance_scale": {
+        "type": "float",
+        "description": "Guidance scale for the generation.",
+        "required": false,
+        "default": 10,
+        "min": 0,
+        "max": 32
+      },
+      "num_frames": {
+        "type": "integer",
+        "description": "The number of frames to generate.",
+        "required": false,
+        "default": 180,
+        "min": 30,
+        "max": 900
+      },
+      "enable_safety_checker": {
+        "type": "boolean",
+        "description": "If set to true, the safety checker will be enabled.",
+        "required": false,
+        "default": false
+      }
+    },
+    "capabilities": [
+      "inference",
+      "commercial use"
+    ],
+    "tags": [
+      "image to video",
+      "motion"
+    ],
+    "lastUpdated": 1750368238658
+  },
+  "fal-ai/flux-pro": {
+    "id": "fal-ai/flux-pro",
+    "name": "FLUX.1 [pro]",
+    "category": "text-to-image",
+    "description": "FLUX.1 [pro] is a professional-grade model that generates premium quality images from text, optimized for commercial applications and professional creative workflows.",
+    "parameters": {
+      "prompt": {
+        "type": "string",
+        "description": "The prompt to generate an image from.",
+        "required": true
+      },
+      "image_size": {
+        "type": "string",
+        "description": "The size of the generated image.",
+        "required": false,
+        "default": "landscape_4_3",
+        "enum": [
+          "square_hd",
+          "square",
+          "portrait_4_3",
+          "portrait_16_9",
+          "landscape_4_3",
+          "landscape_16_9"
+        ]
+      },
+      "num_inference_steps": {
+        "type": "integer",
+        "description": "The number of inference steps to perform.",
+        "required": false,
+        "default": 28,
+        "min": 1,
+        "max": 50
+      },
+      "seed": {
+        "type": "integer",
+        "description": "The same seed and the same prompt given to the same version of the model will output the same image every time.",
+        "required": false
+      },
+      "guidance_scale": {
+        "type": "number",
+        "description": "The CFG (Classifier Free Guidance) scale is a measure of how close you want the model to stick to your prompt when looking for a related image to show you.",
+        "required": false,
+        "default": 3.5,
+        "min": 1,
+        "max": 20
+      },
+      "sync_mode": {
+        "type": "boolean",
+        "description": "If set to true, the function will wait for the image to be generated and uploaded before returning the response.",
+        "required": false,
+        "default": false
+      },
+      "num_images": {
+        "type": "integer",
+        "description": "The number of images to generate.",
+        "required": false,
+        "default": 1,
+        "min": 1,
+        "max": 4
+      },
+      "safety_tolerance": {
+        "type": "string",
+        "description": "The safety tolerance level for the generated image. 1 being the most strict and 5 being the most permissive.",
+        "required": false,
+        "default": "2",
+        "enum": [
+          "1",
+          "2",
+          "3",
+          "4",
+          "5",
+          "6"
+        ]
+      },
+      "output_format": {
+        "type": "string",
+        "description": "The format of the generated image.",
+        "required": false,
+        "default": "jpeg",
+        "enum": [
+          "jpeg",
+          "png"
+        ]
+      }
+    },
+    "capabilities": [
+      "Inference",
+      "Commercial use"
+    ],
+    "tags": [
+      "professional-grade",
+      "text-to-image",
+      "commercial"
+    ],
+    "lastUpdated": 1750368309388
+  }
+}

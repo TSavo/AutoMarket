@@ -204,6 +204,60 @@ export class FFmpegService {
   }
 
   /**
+   * Get video metadata using ffprobe
+   */  async getVideoMetadata(filePath: string): Promise<{
+    duration?: number;
+    width?: number;
+    height?: number;
+    frameRate?: number;
+    codec?: string;
+  }> {
+    try {
+      // Use JSON output format which is much more reliable than CSV
+      const result = await this.executeFFprobe([
+        '-v', 'quiet',
+        '-print_format', 'json',
+        '-show_format',
+        '-show_streams',
+        '-select_streams', 'v:0', // Select first video stream
+        filePath
+      ]);
+
+      const data = JSON.parse(result);
+      const videoStream = data.streams?.[0];
+      const format = data.format;
+
+      // Parse frame rate from video stream
+      let frameRate: number | undefined;
+      if (videoStream?.r_frame_rate) {
+        const [num, den] = videoStream.r_frame_rate.split('/').map(Number);
+        if (den && den > 0) {
+          frameRate = num / den;
+        }
+      }
+
+      console.log(`[FFmpegService] Raw metadata for ${filePath}:`, {
+        duration: format?.duration,
+        width: videoStream?.width,
+        height: videoStream?.height,
+        frameRate: videoStream?.r_frame_rate,
+        codec: videoStream?.codec_name
+      });
+
+      return {
+        duration: format?.duration ? parseFloat(format.duration) : undefined,
+        width: videoStream?.width ? parseInt(videoStream.width) : undefined,
+        height: videoStream?.height ? parseInt(videoStream.height) : undefined,
+        frameRate,
+        codec: videoStream?.codec_name || undefined
+      };
+    } catch (error) {
+      console.warn('Failed to get video metadata with ffprobe:', error);
+      return {};
+    }
+  }
+
+  /**
    * Execute FFmpeg command
    */
   private executeFFmpeg(args: string[]): Promise<string> {

@@ -7,8 +7,8 @@
  */
 
 import { ModelMetadata } from './Model';
-import { Video, VideoRole } from '../assets/roles';
-import { VideoInput, castToVideo } from '../assets/casting';
+import { Video } from '../assets/roles';
+import { VideoInput } from '../assets/casting';
 
 export interface VideoOverlayConfig {
   // Timing options for this overlay
@@ -99,6 +99,9 @@ export interface VideoCompositionResult {
 
 /**
  * Abstract base class for video-to-video models (composition, overlay, etc.)
+ * 
+ * This class only defines the interface - concrete implementations like
+ * FFMPEGVideoFilterModel handle the actual video processing logic.
  */
 export abstract class VideoToVideoModel {
   protected metadata: ModelMetadata;
@@ -106,6 +109,7 @@ export abstract class VideoToVideoModel {
   constructor(metadata: ModelMetadata) {
     this.metadata = metadata;
   }
+
   /**
    * Transform and compose videos - supports single overlay (legacy) or multiple overlays (new)
    * @param baseVideo The main/background video
@@ -117,6 +121,7 @@ export abstract class VideoToVideoModel {
     overlayVideos: VideoInput | VideoInput[], 
     options?: VideoCompositionOptions
   ): Promise<VideoCompositionResult>;
+
   /**
    * Convenience method for simple overlay composition (legacy - single overlay)
    * @param baseVideo The main/background video
@@ -194,79 +199,5 @@ export abstract class VideoToVideoModel {
    */
   getCapabilities(): string[] {
     return this.metadata.capabilities || [];
-  }
-
-  /**
-   * Calculate smart positioning based on aspect ratios
-   * @param baseAspectRatio Aspect ratio of base video (width/height)
-   * @param overlayAspectRatio Aspect ratio of overlay video (width/height)
-   * @param requestedPosition Requested position
-   * @param fallbackPosition Fallback position if smart positioning fails
-   */
-  protected calculateSmartPosition(
-    baseAspectRatio: number,
-    overlayAspectRatio: number,
-    requestedPosition: VideoCompositionOptions['position'],
-    fallbackPosition: VideoCompositionOptions['fallbackPosition'] = 'bottom-center'
-  ): VideoCompositionOptions['position'] {
-    // If base video is portrait (9:16) and overlay is landscape (16:9)
-    // or vice versa, adjust positioning logic
-    
-    const isBasePortrait = baseAspectRatio < 1;
-    const isOverlayPortrait = overlayAspectRatio < 1;
-    
-    // If aspect ratios are very different, prefer centered positions
-    const aspectRatioDifference = Math.abs(baseAspectRatio - overlayAspectRatio);
-    
-    if (aspectRatioDifference > 1) {
-      // Large aspect ratio difference - prefer center positions
-      if (requestedPosition?.includes('left') || requestedPosition?.includes('right')) {
-        return requestedPosition.replace('left', 'center').replace('right', 'center') as VideoCompositionOptions['position'];
-      }
-    }
-    
-    return requestedPosition || fallbackPosition;
-  }
-
-  /**
-   * Calculate overlay size based on composition options and aspect ratios
-   */
-  protected calculateOverlaySize(
-    baseWidth: number,
-    baseHeight: number,
-    overlayWidth: number,
-    overlayHeight: number,
-    options: VideoCompositionOptions
-  ): { width: number; height: number } {
-    let finalWidth = overlayWidth;
-    let finalHeight = overlayHeight;
-    
-    // Handle percentage-based sizing
-    if (typeof options.overlayWidth === 'string' && options.overlayWidth.endsWith('%')) {
-      const percentage = parseFloat(options.overlayWidth) / 100;
-      finalWidth = baseWidth * percentage;
-    } else if (typeof options.overlayWidth === 'number') {
-      finalWidth = options.overlayWidth;
-    }
-    
-    if (typeof options.overlayHeight === 'string' && options.overlayHeight.endsWith('%')) {
-      const percentage = parseFloat(options.overlayHeight) / 100;
-      finalHeight = baseHeight * percentage;
-    } else if (typeof options.overlayHeight === 'number') {
-      finalHeight = options.overlayHeight;
-    }
-    
-    // Maintain aspect ratio if requested
-    if (options.maintainAspectRatio !== false) {
-      const originalAspectRatio = overlayWidth / overlayHeight;
-      
-      if (options.overlayWidth && !options.overlayHeight) {
-        finalHeight = finalWidth / originalAspectRatio;
-      } else if (options.overlayHeight && !options.overlayWidth) {
-        finalWidth = finalHeight * originalAspectRatio;
-      }
-    }
-    
-    return { width: Math.round(finalWidth), height: Math.round(finalHeight) };
   }
 }

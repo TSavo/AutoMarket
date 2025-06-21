@@ -8,17 +8,17 @@
 import fs from 'fs';
 import path from 'path';
 import { Asset, BaseAsset, AssetMetadata, detectAssetTypeFromPath, validateAssetFile } from '../Asset';
-import { withSpeechRole, withAudioRole, withVideoRole, withTextRole } from '../mixins';
+import { withAudioRole, withVideoRole, withTextRole } from '../mixins';
 import { AudioFormat, VideoFormat } from '../roles';
 
 // ============================================================================
-// MP3 ASSET - Audio + Speech Roles
+// MP3 ASSET - Audio Role Only
 // ============================================================================
 
 /**
- * MP3Asset - Can play both Audio and Speech roles
+ * MP3Asset - Can play Audio role
  */
-export class MP3Asset extends withSpeechRole(withAudioRole(BaseAsset)) {
+export class MP3Asset extends withAudioRole(BaseAsset) {
   constructor(data: Buffer, metadata: AssetMetadata = {}) {
     super(data, {
       format: 'mp3',
@@ -103,9 +103,9 @@ export class MP3Asset extends withSpeechRole(withAudioRole(BaseAsset)) {
 // ============================================================================
 
 /**
- * WAVAsset - Can play both Audio and Speech roles
+ * WAVAsset - Can play Audio role
  */
-export class WAVAsset extends withSpeechRole(withAudioRole(BaseAsset)) {
+export class WAVAsset extends withAudioRole(BaseAsset) {
   constructor(data: Buffer, metadata: AssetMetadata = {}) {
     super(data, {
       format: 'wav',
@@ -190,9 +190,9 @@ export class WAVAsset extends withSpeechRole(withAudioRole(BaseAsset)) {
 // ============================================================================
 
 /**
- * MP4Asset - Can play Video, Audio, and Speech roles
+ * MP4Asset - Can play Video and Audio roles
  */
-export class MP4Asset extends withSpeechRole(withAudioRole(withVideoRole(BaseAsset))) {
+export class MP4Asset extends withAudioRole(withVideoRole(BaseAsset)) {
   constructor(data: Buffer, metadata: AssetMetadata = {}) {
     super(data, {
       format: 'mp4',

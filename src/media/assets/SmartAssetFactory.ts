@@ -9,7 +9,7 @@ import fs from 'fs';
 import path from 'path';
 import { AssetMetadata, BaseAsset } from './Asset';
 import { 
-  withSpeechRole, withAudioRole, withVideoRole, withTextRole
+  withAudioRole, withVideoRole, withTextRole
 } from './mixins';
 
 /**
@@ -67,11 +67,7 @@ export function detectFormat(filePath: string): FormatInfo | null {
 function createDynamicAssetClass(formatInfo: FormatInfo) {
   // Start with BaseAsset
   let AssetClass: any = BaseAsset;
-  
-  // Apply role mixins based on format capabilities
-  if (formatInfo.roles.includes('speech')) {
-    AssetClass = withSpeechRole(AssetClass);
-  }
+    // Apply role mixins based on format capabilities
   if (formatInfo.roles.includes('audio')) {
     AssetClass = withAudioRole(AssetClass);
   }
@@ -92,7 +88,7 @@ export class SmartAssetFactory {
   /**
    * Load an asset from file with automatic format detection and role assignment
    */
-  static load(filePath: string): any {
+  static load<T extends BaseAsset = BaseAsset>(filePath: string): T {
     if (!fs.existsSync(filePath)) {
       throw new Error(`File not found: ${filePath}`);
     }

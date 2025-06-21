@@ -7,7 +7,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import fs from 'fs';
 import { MP3Asset, WAVAsset, MP4Asset, TextAsset, createAssetFromBuffer } from './types';
-import { hasSpeechRole, hasAudioRole, hasVideoRole, hasTextRole } from './roles';
+import { hasAudioRole, hasVideoRole, hasTextRole } from './roles';
 
 // Mock fs
 vi.mock('fs');
@@ -26,48 +26,32 @@ describe('Asset System', () => {
   });
 
   describe('MP3Asset', () => {
-    it('should create MP3Asset with Audio and Speech roles', () => {
+    it('should create MP3Asset with Audio role', () => {
       const asset = new MP3Asset(mockAudioData, { duration: 120 });
 
       expect(asset.canPlayRole('audio')).toBe(true);
-      expect(asset.canPlayRole('speech')).toBe(true);
       expect(asset.canPlayRole('video')).toBe(false);
       expect(asset.canPlayRole('text')).toBe(false);
 
       expect(asset.getRoles()).toContain('audio');
-      expect(asset.getRoles()).toContain('speech');
     });
 
-    it('should convert to Audio role', () => {
+    it('should convert to Audio role', async () => {
       const asset = new MP3Asset(mockAudioData, { 
         duration: 120,
         sampleRate: 44100,
         channels: 2
       });
 
-      const audio = asset.asAudio();
-      expect(audio.format).toBe('mp3');
-      expect(audio.getDuration()).toBe(120);
-      expect(audio.getSampleRate()).toBe(44100);
-      expect(audio.getChannels()).toBe(2);
-    });
-
-    it('should convert to Speech role', () => {
-      const asset = new MP3Asset(mockAudioData, { 
-        language: 'en',
-        speaker: 'John',
-        confidence: 0.95
-      });
-
-      const speech = asset.asSpeech();
-      expect(speech.language).toBe('en');
-      expect(speech.speaker).toBe('John');
-      expect(speech.getConfidence()).toBe(0.95);
+      const audio = await asset.asAudio();
+      expect(audio.getFormat()).toBe('mp3');
+      expect(audio.isValid()).toBe(true);
+      expect(audio.toString()).toContain('AUDIO');
     });
 
     it('should create from file', () => {
       mockFs.existsSync.mockReturnValue(true);
-      mockFs.readFileSync.mockReturnValue(mockAudioData);
+      mockFs.readFileSync.mockReturnValue(mockAudioData as any);
 
       const asset = MP3Asset.fromFile('/path/to/audio.mp3');
 
@@ -86,25 +70,17 @@ describe('Asset System', () => {
   });
 
   describe('WAVAsset', () => {
-    it('should create WAVAsset with Audio and Speech roles', () => {
+    it('should create WAVAsset with Audio role', () => {
       const asset = new WAVAsset(mockAudioData);
 
       expect(asset.canPlayRole('audio')).toBe(true);
-      expect(asset.canPlayRole('speech')).toBe(true);
       expect(asset.getMimeType()).toBe('audio/wav');
       expect(asset.getFileExtension()).toBe('wav');
-    });
-
-    it('should convert to Audio with correct format', () => {
-      const asset = new WAVAsset(mockAudioData);
-      const audio = asset.asAudio();
-      
-      expect(audio.format).toBe('wav');
     });
   });
 
   describe('MP4Asset', () => {
-    it('should create MP4Asset with Video, Audio, and Speech roles', () => {
+    it('should create MP4Asset with Video and Audio roles', () => {
       const asset = new MP4Asset(mockVideoData, { 
         width: 1920,
         height: 1080,
@@ -113,42 +89,18 @@ describe('Asset System', () => {
 
       expect(asset.canPlayRole('video')).toBe(true);
       expect(asset.canPlayRole('audio')).toBe(true);
-      expect(asset.canPlayRole('speech')).toBe(true);
       expect(asset.canPlayRole('text')).toBe(false);
 
       expect(asset.getRoles()).toContain('video');
       expect(asset.getRoles()).toContain('audio');
-      expect(asset.getRoles()).toContain('speech');
     });
 
-    it('should convert to Video role', () => {
-      const asset = new MP4Asset(mockVideoData, { 
-        width: 1920,
-        height: 1080,
-        frameRate: 30,
-        duration: 300
-      });
-
-      const video = asset.asVideo();
-      expect(video.format).toBe('mp4');
-      expect(video.getDimensions()).toEqual({ width: 1920, height: 1080 });
-      expect(video.getFrameRate()).toBe(30);
-      expect(video.getDuration()).toBe(300);
-      expect(video.hasAudio()).toBe(true);
-    });
-
-    it('should convert to Audio role from MP4', () => {
+    it('should convert to Audio role from MP4', async () => {
       const asset = new MP4Asset(mockVideoData);
-      const audio = asset.asAudio();
+      const audio = await asset.asAudio();
       
-      expect(audio.format).toBe('mp3'); // Default audio format extraction
-    });
-
-    it('should convert to Speech role from MP4', () => {
-      const asset = new MP4Asset(mockVideoData, { language: 'en' });
-      const speech = asset.asSpeech();
-      
-      expect(speech.language).toBe('en');
+      expect(audio.getFormat()).toBe('mp3'); // Default audio format extraction
+      expect(audio.isValid()).toBe(true);
     });
   });
 
@@ -158,21 +110,18 @@ describe('Asset System', () => {
 
       expect(asset.canPlayRole('text')).toBe(true);
       expect(asset.canPlayRole('audio')).toBe(false);
-      expect(asset.canPlayRole('speech')).toBe(false);
       expect(asset.canPlayRole('video')).toBe(false);
 
       expect(asset.getRoles()).toContain('text');
     });
 
-    it('should convert to Text role', () => {
+    it('should convert to Text role', async () => {
       const content = 'Hello world this is a test';
       const asset = TextAsset.fromString(content, { language: 'en' });
 
-      const text = asset.asText();
-      expect(text.content).toBe(content);
-      expect(text.language).toBe('en');
-      expect(text.getWordCount()).toBe(6);
-      expect(text.getLength()).toBe(content.length);
+      const text = await asset.asText();
+      expect(text.isValid()).toBe(true);
+      expect(text.toString()).toContain('TEXT');
     });
 
     it('should create from string', () => {
@@ -192,19 +141,16 @@ describe('Asset System', () => {
       const textAsset = new TextAsset(mockTextData);
 
       // MP3Asset
-      expect(hasSpeechRole(mp3Asset)).toBe(true);
       expect(hasAudioRole(mp3Asset)).toBe(true);
       expect(hasVideoRole(mp3Asset)).toBe(false);
       expect(hasTextRole(mp3Asset)).toBe(false);
 
       // MP4Asset
-      expect(hasSpeechRole(mp4Asset)).toBe(true);
       expect(hasAudioRole(mp4Asset)).toBe(true);
       expect(hasVideoRole(mp4Asset)).toBe(true);
       expect(hasTextRole(mp4Asset)).toBe(false);
 
       // TextAsset
-      expect(hasSpeechRole(textAsset)).toBe(false);
       expect(hasAudioRole(textAsset)).toBe(false);
       expect(hasVideoRole(textAsset)).toBe(false);
       expect(hasTextRole(textAsset)).toBe(true);

@@ -20,10 +20,6 @@ async function testAsyncRoleCasting() {
 
     console.log('📝 Created MP4 asset with mock data');
 
-    // Test async speech casting
-    console.log('🎤 Testing asSpeech() casting...');
-    const speech = await videoAsset.asSpeech();
-    console.log('✅ Successfully cast to Speech:', speech.toString());
 
     // Test async audio casting
     console.log('🔊 Testing asAudio() casting...');
@@ -37,7 +33,6 @@ async function testAsyncRoleCasting() {
 
     // Test capability checks
     console.log('\n🔍 Checking capabilities:');
-    console.log('  - Can play speech role:', videoAsset.canPlaySpeechRole());
     console.log('  - Can play audio role:', videoAsset.canPlayAudioRole());
     console.log('  - Can play video role:', videoAsset.canPlayVideoRole());
 

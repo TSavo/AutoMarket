@@ -7,14 +7,14 @@
  * Coordinates WhisperAPIClient and WhisperDockerService for Docker-based Whisper STT.
  */
 
-import { SpeechToTextModel, SpeechToTextOptions } from './SpeechToTextModel';
 import { WhisperAPIClient } from '../clients/WhisperAPIClient';
 import { WhisperDockerService } from '../services/WhisperDockerService';
-import { Speech, Text } from '../assets/roles';
-import { SpeechInput, castToSpeech } from '../assets/casting';
+import { Audio, Text } from '../assets/roles';
+import { AudioInput, castToAudio } from '../assets/casting';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
+import { AudioToTextModel, AudioToTextOptions } from './AudioToTextModel';
 
 /**
  * Configuration for WhisperDockerModel
@@ -28,7 +28,7 @@ export interface WhisperDockerModelConfig {
 /**
  * Docker-specific Whisper STT Model implementation
  */
-export class WhisperDockerModel extends SpeechToTextModel {
+export class WhisperDockerModel extends AudioToTextModel {
   private readonly apiClient: WhisperAPIClient;
   private readonly dockerService: WhisperDockerService;
   private readonly tempDir: string;
@@ -57,17 +57,17 @@ export class WhisperDockerModel extends SpeechToTextModel {
   }
 
   /**
-   * Transform speech to text using Docker-based Whisper
+   * Transform audio to text using Docker-based Whisper
    */
-  async transform(input: SpeechInput, options?: SpeechToTextOptions): Promise<Text> {
+  async transform(input: Audio, options?: AudioToTextOptions): Promise<Text> {
     const startTime = Date.now();
 
-    // Cast input to Speech
-    const speech = await castToSpeech(input);
+    // Use the audio input directly
+    const audio = input;
     
-    // Validate speech data
-    if (!speech.isValid()) {
-      throw new Error('Invalid speech data provided');
+    // Validate audio data
+    if (!audio.isValid()) {
+      throw new Error('Invalid audio data provided');
     }
 
     try {
@@ -83,14 +83,14 @@ export class WhisperDockerModel extends SpeechToTextModel {
         throw new Error('Whisper Docker service is not healthy');
       }
 
-      // Save speech data to temporary file
-      const tempFilePath = await this.saveSpeechToTempFile(speech);
+      // Save audio data to temporary file
+      const tempFilePath = await this.saveAudioToTempFile(audio);
 
       try {
         // Create transcription request
         const request = this.apiClient.createTranscriptionRequest(tempFilePath, {
           task: options?.task || 'transcribe',
-          language: options?.language, // No fallback to speech metadata - we don't have it
+          language: options?.language, // No fallback to audio metadata - we don't have it
           word_timestamps: options?.wordTimestamps
         });
 
@@ -103,7 +103,7 @@ export class WhisperDockerModel extends SpeechToTextModel {
         // Create Text result
         const text = new Text(
           response.text,
-          response.language || options?.language || 'auto', // No fallback to speech metadata
+          response.language || options?.language || 'auto', // No fallback to audio metadata
           response.confidence || 0.9,
           {
             segments: this.convertToSpeechSegments(response.segments),
@@ -112,7 +112,7 @@ export class WhisperDockerModel extends SpeechToTextModel {
             provider: 'whisper-docker',
             duration: response.duration
           },
-          speech.sourceAsset // Preserve source Asset reference
+          audio.sourceAsset // Preserve source Asset reference
         );
 
         return text;
@@ -155,8 +155,22 @@ export class WhisperDockerModel extends SpeechToTextModel {
   /**
    * Get supported languages
    */
-  getSupportedLanguages(): string[] {
+  async getSupportedLanguages(): Promise<string[]> {
     return this.apiClient.getSupportedLanguages();
+  }
+
+  /**
+   * Get maximum audio duration supported (in seconds)
+   */
+  getMaxAudioDuration(): number {
+    return 600; // 10 minutes max for Whisper
+  }
+
+  /**
+   * Get maximum audio file size supported (in bytes)
+   */
+  getMaxAudioSize(): number {
+    return 25 * 1024 * 1024; // 25MB max for Whisper
   }
 
   /**
@@ -181,17 +195,17 @@ export class WhisperDockerModel extends SpeechToTextModel {
   }
 
   /**
-   * Save speech data to temporary file
+   * Save audio data to temporary file
    */
-  private async saveSpeechToTempFile(speech: Speech): Promise<string> {
+  private async saveAudioToTempFile(audio: Audio): Promise<string> {
     const timestamp = Date.now();
     const tempFilePath = path.join(this.tempDir, `whisper_input_${timestamp}.wav`);
-    
+
     try {
-      fs.writeFileSync(tempFilePath, speech.data);
+      fs.writeFileSync(tempFilePath, audio.data);
       return tempFilePath;
     } catch (error) {
-      throw new Error(`Failed to save speech to temp file: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(`Failed to save audio to temp file: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 

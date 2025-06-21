@@ -6,7 +6,7 @@
  * Extracted from WhisperSTTService for separation of concerns.
  */
 
-import fs from 'fs';
+import * as fs from 'fs';
 import axios from 'axios';
 import FormData from 'form-data';
 

@@ -17,22 +17,14 @@ async function demonstrateAsyncRoleCasting() {
     duration: 120,
     hasAudio: true 
   });
-
   try {
-    console.log('Converting video to speech...');
-    
-    // This will now automatically extract audio using FFmpeg
-    const speechData = await videoAsset.asSpeech();
-    console.log('✅ Successfully extracted speech from video:', speechData.toString());
-
     console.log('Converting video to audio...');
     
-    // This will also extract audio using FFmpeg
+    // This will extract audio using FFmpeg
     const audioData = await videoAsset.asAudio();
     console.log('✅ Successfully extracted audio from video:', audioData.toString());
 
     // Check capabilities
-    console.log('Video can play speech role:', videoAsset.canPlaySpeechRole());
     console.log('Video can play audio role:', videoAsset.canPlayAudioRole());
 
   } catch (error) {
@@ -42,12 +34,6 @@ async function demonstrateAsyncRoleCasting() {
 
 // Example of how you might use this in practice
 async function processVideoContent(videoAsset: MP4Asset) {
-  // Extract speech for transcription
-  if (videoAsset.canPlaySpeechRole()) {
-    const speech = await videoAsset.asSpeech();
-    console.log('Ready for transcription:', speech.isValid());
-  }
-
   // Extract audio for analysis
   if (videoAsset.canPlayAudioRole()) {
     const audio = await videoAsset.asAudio();

@@ -16,22 +16,10 @@ export interface ModelMetadata {
   outputTypes: string[];
 }
 
-export interface TransformationResult<T = any> {
-  success: boolean;
-  data?: T;
-  error?: string;
-  metadata?: {
-    processingTime?: number;
-    modelUsed?: string;
-    provider?: string;
-    [key: string]: any;
-  };
-}
-
 /**
  * Abstract base class for all media transformation models
  */
-export abstract class Model<TInput = any, TOutput = any> {
+export abstract class Model<TInput = any, TOptions = any, TOutput = any> {
   protected metadata: ModelMetadata;
 
   constructor(metadata: ModelMetadata) {
@@ -41,17 +29,7 @@ export abstract class Model<TInput = any, TOutput = any> {
   /**
    * Core transformation method that all models must implement
    */
-  abstract transform(input: TInput): Promise<TransformationResult<TOutput>>;
-
-  /**
-   * Get the input schema for this model
-   */
-  abstract getInputSchema(): any;
-
-  /**
-   * Get the output schema for this model
-   */
-  abstract getOutputSchema(): any;
+  abstract transform(input: TInput | TInput[], options?: TOptions): Promise<TOutput>;
 
   /**
    * Check if the model is available and ready to use
@@ -156,42 +134,6 @@ export abstract class Model<TInput = any, TOutput = any> {
   protected validateOutput(output: TOutput): boolean {
     // Default implementation - subclasses can override for specific validation
     return output !== null && output !== undefined;
-  }
-
-  /**
-   * Create a successful transformation result
-   */
-  protected createSuccessResult(
-    data: TOutput, 
-    metadata?: Record<string, any>
-  ): TransformationResult<TOutput> {
-    return {
-      success: true,
-      data,
-      metadata: {
-        modelUsed: this.metadata.id,
-        provider: this.metadata.provider,
-        ...metadata
-      }
-    };
-  }
-
-  /**
-   * Create a failed transformation result
-   */
-  protected createErrorResult(
-    error: string, 
-    metadata?: Record<string, any>
-  ): TransformationResult<TOutput> {
-    return {
-      success: false,
-      error,
-      metadata: {
-        modelUsed: this.metadata.id,
-        provider: this.metadata.provider,
-        ...metadata
-      }
-    };
   }
 
   /**

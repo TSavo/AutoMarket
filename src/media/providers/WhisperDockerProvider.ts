@@ -5,17 +5,16 @@
  * Manages the Docker service lifecycle and provides model implementations.
  */
 
-import { LocalProvider } from '../registry/BaseProvider';
 import { WhisperDockerService } from '../services/WhisperDockerService';
 import { WhisperAPIClient } from '../clients/WhisperAPIClient';
 import { WhisperDockerModel } from '../models/WhisperDockerModel';
-import { SpeechToTextModel } from '../models/SpeechToTextModel';
-import { SpeechToTextProvider } from '../registry/ProviderRoles';
+import { AudioToTextProvider } from './roles';
+import { AudioToTextModel } from '../models/AudioToTextModel';
 
 /**
  * Provider for Whisper STT models via Docker
  */
-export class WhisperDockerProvider extends LocalProvider implements SpeechToTextProvider {
+export class WhisperDockerProvider implements AudioToTextProvider {
   readonly id = 'whisper-docker';
   readonly name = 'Whisper Docker Provider';
 
@@ -117,7 +116,7 @@ export class WhisperDockerProvider extends LocalProvider implements SpeechToText
   /**
    * Create a model instance
    */
-  async createModel(modelId: string): Promise<SpeechToTextModel> {
+  async createModel(modelId: string): Promise<AudioToTextModel> {
     if (!this.supportsModel(modelId)) {
       throw new Error(`Model '${modelId}' not supported by WhisperDockerProvider`);
     }
@@ -135,24 +134,45 @@ export class WhisperDockerProvider extends LocalProvider implements SpeechToText
   }
 
   /**
-   * Create a speech-to-text model instance (SpeechToTextProvider interface)
+   * Create an audio-to-text model instance (AudioToTextProvider interface)
    */
-  async createSpeechToTextModel(modelId: string): Promise<SpeechToTextModel> {
+  async createAudioToTextModel(modelId: string): Promise<AudioToTextModel> {
     return this.createModel(modelId);
   }
 
   /**
-   * Get supported speech-to-text models (SpeechToTextProvider interface)
+   * Get supported audio-to-text models (AudioToTextProvider interface)
    */
-  getSupportedSpeechToTextModels(): string[] {
+  getSupportedAudioToTextModels(): string[] {
     return this.getAvailableModels();
   }
 
   /**
-   * Check if provider supports a specific STT model (SpeechToTextProvider interface)
+   * Check if provider supports a specific audio-to-text model (AudioToTextProvider interface)
+   */
+  supportsAudioToTextModel(modelId: string): boolean {
+    return this.supportsModel(modelId);
+  }
+
+  /**
+   * Create a speech-to-text model instance (SpeechToTextProvider interface - alias)
+   */
+  async createSpeechToTextModel(modelId: string): Promise<AudioToTextModel> {
+    return this.createAudioToTextModel(modelId);
+  }
+
+  /**
+   * Get supported speech-to-text models (SpeechToTextProvider interface - alias)
+   */
+  getSupportedSpeechToTextModels(): string[] {
+    return this.getSupportedAudioToTextModels();
+  }
+
+  /**
+   * Check if provider supports a specific STT model (SpeechToTextProvider interface - alias)
    */
   supportsSpeechToTextModel(modelId: string): boolean {
-    return this.supportsModel(modelId);
+    return this.supportsAudioToTextModel(modelId);
   }
 
   /**
@@ -167,7 +187,6 @@ export class WhisperDockerProvider extends LocalProvider implements SpeechToText
    */
   getInfo() {
     return {
-      ...super.getInfo(),
       description: 'Provides Whisper STT models via Docker containers',
       dockerImage: 'onerahmet/openai-whisper-asr-webservice:latest',
       defaultPort: 9000,
