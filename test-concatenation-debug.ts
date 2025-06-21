@@ -20,6 +20,7 @@ async function testConcatenationDebug() {
     const baseVideoPath = path.join(testVideoDir, 'base.mp4');
     const overlayVideoPath = path.join(testVideoDir, 'overlay1.webm');
     const introVideoPath = path.join(testVideoDir, 'intro.mp4');
+    const outroVideoPath = path.join(testVideoDir, 'outro.mp4');
 
     if (!fs.existsSync(baseVideoPath) || !fs.existsSync(overlayVideoPath) || !fs.existsSync(introVideoPath)) {
       console.log('❌ Required test videos not found');
@@ -27,15 +28,16 @@ async function testConcatenationDebug() {
     }    const baseAsset = SmartAssetFactory.load(baseVideoPath);
     const overlayAsset = SmartAssetFactory.load(overlayVideoPath);
     const introAsset = SmartAssetFactory.load(introVideoPath);
+    const outroAsset = SmartAssetFactory.load(outroVideoPath);
     
-    if (!hasVideoRole(baseAsset) || !hasVideoRole(overlayAsset) || !hasVideoRole(introAsset)) {
+    if (!hasVideoRole(baseAsset) || !hasVideoRole(overlayAsset) || !hasVideoRole(introAsset) || !hasVideoRole(outroAsset)) {
       throw new Error('Videos do not have video role capabilities');
     }
     
     const baseVideo = await baseAsset.asVideo();
     const overlayVideo = await overlayAsset.asVideo();
     const introVideo = await introAsset.asVideo();
-    
+    const outroVideo = await outroAsset.asVideo();
     console.log('✅ Loaded videos');
 
     // Test simple concatenation with single overlay
@@ -48,11 +50,21 @@ async function testConcatenationDebug() {
         position: 'top-right',
         opacity: 0.8,
         width: '25%',
-        colorKey: '#00FF00',
+        height: '25%',
+        colorKey: '#000000',
         colorKeySimilarity: 0.3,
         colorKeyBlend: 0.1,
-        startTime: 2
-      });
+        startTime: 10
+      }).addOverlay(overlayVideo, {
+        position: 'bottom-right',
+        opacity: 0.8,
+        width: '25%',
+        height: '25%',
+        colorKey: '#000000',
+        colorKeySimilarity: 0.3,
+        colorKeyBlend: 0.1,
+        startTime: 10
+      }).append(outroVideo);
     
     const filterComplex = composition.preview();
     console.log('✅ Generated filter complex:');

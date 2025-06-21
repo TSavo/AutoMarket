@@ -32,8 +32,6 @@ builder1
   .compose(video2);
 
 console.log('Input videos:', builder1.getAllVideos().map((v: any) => v.metadata?.sourceFile?.split('\\').pop() || 'Unknown'));
-console.log('Requires concatenation preprocessing:', builder1.requiresConcatenationPreprocessing());
-console.log('Videos for concatenation:', builder1.getVideosForConcatenation().map((v: any) => v.metadata?.sourceFile?.split('\\').pop() || 'Unknown'));
 
 try {
   const filter1 = builder1.buildFilterComplex();
@@ -70,8 +68,6 @@ builder2
   });
 
 console.log('Input videos:', builder2.getAllVideos().map((v: any) => v.metadata?.sourceFile?.split('\\').pop() || 'Unknown'));
-console.log('Requires concatenation preprocessing:', builder2.requiresConcatenationPreprocessing());
-console.log('Videos for concatenation:', builder2.getVideosForConcatenation().map((v: any) => v.metadata?.sourceFile?.split('\\').pop() || 'Unknown'));
 
 try {
   const filter2 = builder2.buildFilterComplex();
@@ -95,7 +91,6 @@ builder3
   });
 
 console.log('Input videos:', builder3.getAllVideos().map((v: any) => v.metadata?.sourceFile?.split('\\').pop() || 'Unknown'));
-console.log('Requires concatenation preprocessing:', builder3.requiresConcatenationPreprocessing());
 
 try {
   const filter3 = builder3.buildFilterComplex();
@@ -158,5 +153,72 @@ inputArgs.push('-c:v', 'libx264', '-c:a', 'aac', '-preset', 'fast', 'test_output
 
 console.log('\n🚀 FFmpeg Command that would be executed:');
 console.log('ffmpeg', inputArgs.join(' '));
+
+console.log('\n=== Test 6: FULL PIPELINE - Prepend + Append + 2 Black Color-Keyed Overlays ===');
+const builder6 = new FFMPEGCompositionBuilder();
+const fullIntro = loadVideo('intro.mp4');
+const fullMain = loadVideo('base.mp4');
+const fullOutro = loadVideo('outro.mp4');
+const fullOverlay1 = loadVideo('overlay1.webm');
+const fullOverlay2 = loadVideo('overlay2.webm');
+
+builder6
+  .prepend(fullIntro)
+  .compose(fullMain)
+  .append(fullOutro)
+  .addOverlay(fullOverlay1, {
+    position: 'top-right',
+    opacity: 0.8,
+    width: '25%',
+    height: '25%',
+    colorKey: '#000000',
+    colorKeySimilarity: 0.3,
+    colorKeyBlend: 0.1,
+    startTime: 1.0
+  })
+  .addOverlay(fullOverlay2, {
+    position: 'bottom-left',
+    opacity: 0.7,
+    width: '30%',
+    height: '30%',
+    colorKey: '#000000',
+    colorKeySimilarity: 0.25,
+    colorKeyBlend: 0.05,
+    startTime: 2.5
+  });
+
+console.log('🎬 FULL PIPELINE TEST:');
+console.log('Input videos:', builder6.getAllVideos().map((v: any) => v.metadata?.sourceFile?.split('\\').pop() || 'Unknown'));
+console.log('Video order: [prepend] intro.mp4 → [main] base.mp4 → [append] outro.mp4 + [overlays] overlay1.webm + overlay2.webm');
+
+try {
+  const filter6 = builder6.buildFilterComplex();
+  console.log('✅ Full Pipeline Filter Complex Generated:');
+  console.log(filter6);
+  
+  // Generate actual FFmpeg command with real file paths
+  const fullInputVideos = builder6.getAllVideos();
+  const fullInputArgs: string[] = [];
+
+  // Add input arguments with real video files
+  fullInputVideos.forEach((video, index) => {
+    const filename = video.metadata?.sourceFile?.split('\\').pop() || `input_${index}.mp4`;
+    fullInputArgs.push('-i', `test-videos/${filename}`);
+  });
+
+  // Add filter complex
+  fullInputArgs.push('-filter_complex', `"${filter6}"`);
+
+  // Add output mapping
+  fullInputArgs.push('-map', '[final_video]', '-map', '[mixed_audio]');
+  // Add output options
+  fullInputArgs.push('-c:v', 'libx264', '-c:a', 'aac', '-preset', 'fast', 'test_full_pipeline.mp4', '-y');
+
+  console.log('\n🚀 Full Pipeline FFmpeg Command:');
+  console.log('ffmpeg', fullInputArgs.join(' '));
+  
+} catch (error) {
+  console.log('❌ Full Pipeline Error:', error);
+}
 
 console.log('\n🎉 All tests completed!');
