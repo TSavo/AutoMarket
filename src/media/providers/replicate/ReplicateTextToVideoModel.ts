@@ -314,8 +314,53 @@ export class ReplicateTextToVideoModel extends TextToVideoModel {
       console.log(`[ReplicateTextToVideo] Waiting ${waitTime}ms before next poll...`);
       await new Promise(resolve => setTimeout(resolve, waitTime));
     }
-    
-    throw new Error(`Video generation timed out after ${maxWaitTime}ms`);
+      throw new Error(`Video generation timed out after ${maxWaitTime}ms`);
+  }
+
+  /**
+   * Get supported video formats
+   */
+  getSupportedFormats(): string[] {
+    return ['mp4', 'webm', 'mov'];
+  }
+
+  /**
+   * Get available aspect ratios for this model
+   */
+  getSupportedAspectRatios(): string[] {
+    return ['16:9', '9:16', '1:1', '4:3'];
+  }
+
+  /**
+   * Get supported video duration range
+   */
+  getSupportedDurationRange(): { min: number; max: number } {
+    return { min: 1, max: 10 }; // Replicate models typically support 1-10 seconds
+  }
+
+  /**
+   * Get maximum resolution supported by this model
+   */
+  getMaxResolution(): { width: number; height: number } {
+    return { width: 1280, height: 720 }; // Most Replicate models support up to 720p
+  }
+
+  /**
+   * Estimate processing time for a given prompt and options
+   */
+  estimateProcessingTime(prompt: string, options?: any): number {
+    const duration = options?.duration || 5;
+    const complexity = prompt.length > 100 ? 1.5 : 1.0;
+    // Replicate models are typically slower, estimate ~20-30 seconds per second of video
+    return duration * 25000 * complexity; // milliseconds
+  }
+
+  /**
+   * Check if this model supports specific features
+   */
+  supportsFeature(feature: string): boolean {
+    const supportedFeatures = ['text-to-video', 'custom-duration'];
+    return supportedFeatures.includes(feature);
   }
 }
 

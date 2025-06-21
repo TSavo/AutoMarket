@@ -91,8 +91,15 @@ export class FFMPEGDockerModel extends VideoToAudioModel {
       try {
         // Extract audio using API client
         console.log('🎵 Extracting audio from video using FFMPEG service...');
+        
+        // Ensure outputFormat is compatible with API client
+        const supportedFormats = ['wav', 'mp3', 'flac', 'm4a', 'aac', 'ogg'] as const;
+        const outputFormat = mergedOptions.outputFormat && supportedFormats.includes(mergedOptions.outputFormat as any) 
+          ? mergedOptions.outputFormat as 'wav' | 'mp3' | 'flac' | 'm4a' | 'aac' | 'ogg'
+          : 'mp3';
+        
         const result = await this.apiClient.extractAudio(tempFilePath, {
-          outputFormat: mergedOptions.outputFormat,
+          outputFormat,
           sampleRate: mergedOptions.sampleRate,
           channels: mergedOptions.channels,
           bitrate: mergedOptions.bitrate,

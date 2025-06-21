@@ -234,13 +234,31 @@ export class ReplicateTextToAudioModel extends TextToAudioModel {
   getDefaultVoice(): string {
     return 'default';
   }
-
   /**
    * Get maximum text length
    */
   getMaxTextLength(): number {
     // Conservative default - actual limit depends on the specific model
     return 1000;
+  }
+
+  /**
+   * Get available voices for this model
+   */
+  async getAvailableVoices(): Promise<string[]> {
+    // This would depend on the specific model's capabilities
+    // For now, return empty array as most Replicate TTS models don't expose voice lists
+    return [];
+  }
+
+  /**
+   * Check if this model supports voice cloning
+   */
+  supportsVoiceCloning(): boolean {
+    // Check if the model supports voice cloning based on its metadata
+    return this.modelMetadata.id.includes('voice-clone') || 
+           this.modelMetadata.id.includes('xtts') ||
+           this.modelMetadata.description?.includes('voice cloning') || false;
   }
 }
 

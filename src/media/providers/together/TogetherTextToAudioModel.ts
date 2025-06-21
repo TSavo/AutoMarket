@@ -290,11 +290,10 @@ export class TogetherTextToAudioModel extends TextToAudioModel {
       'language'
     ];
   }
-
   /**
    * Get available voices for this model
    */
-  getAvailableVoices(): string[] {
+  async getAvailableVoices(): Promise<string[]> {
     // Cartesia Sonic models typically support various voices
     if (this.modelId.includes('sonic')) {
       return [
@@ -327,7 +326,6 @@ export class TogetherTextToAudioModel extends TextToAudioModel {
       return false;
     }
   }
-
   /**
    * Get estimated cost for text generation
    */
@@ -341,5 +339,26 @@ export class TogetherTextToAudioModel extends TextToAudioModel {
       estimatedCost: Math.round(estimatedCost * 1000) / 1000, // Round to 3 decimal places
       currency: 'USD'
     };
+  }
+
+  /**
+   * Get supported audio formats
+   */
+  getSupportedFormats(): string[] {
+    return ['mp3', 'wav'];
+  }
+
+  /**
+   * Check if this model supports voice cloning
+   */
+  supportsVoiceCloning(): boolean {
+    return false; // Cartesia Sonic models don't support voice cloning
+  }
+
+  /**
+   * Get maximum text length for this model
+   */
+  getMaxTextLength(): number {
+    return 5000; // Typical limit for Cartesia models
   }
 }

@@ -418,4 +418,19 @@ export class ChatterboxDockerModel extends TextToAudioModel {
       required: ['data', 'format']
     };
   }
+
+  /**
+   * Get available voices for this model
+   */
+  async getAvailableVoices(): Promise<string[]> {
+    // Return standard voices supported by Chatterbox
+    return [
+      'en-US-AriaNeural',
+      'en-US-DavisNeural', 
+      'en-US-GuyNeural',
+      'en-US-JennyNeural',
+      'en-GB-SoniaNeural',
+      'en-AU-NatashaNeural'
+    ];
+  }
 }

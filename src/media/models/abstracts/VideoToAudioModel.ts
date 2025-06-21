@@ -1,23 +1,107 @@
 /**
  * VideoToAudioModel - Abstract Base Class
  * 
- * Abstract base class for video-to-audio transformation models.
- * Uses Asset-role system with automatic casting.
+ * Abstract base class for video-to-audio transformation models that extract 
+ * audio content from video files. This class provides a unified interface for 
+ * audio extraction operations using various processing engines and services.
+ * 
+ * ## Features
+ * - **Audio Extraction**: Extract audio tracks from video files
+ * - **Format Conversion**: Support multiple output audio formats
+ * - **Quality Control**: Configurable bitrate, sample rate, and quality settings
+ * - **Time-based Extraction**: Extract audio from specific time ranges
+ * - **Audio Processing**: Volume adjustment, normalization, and channel control
+ * - **Multi-track Support**: Handle videos with multiple audio tracks
+ * - **Codec Flexibility**: Support various input video and output audio codecs
+ * 
+ * ## Architecture
+ * Uses the Asset-role system for type-safe input/output handling with automatic
+ * casting between VideoRole and Audio types. Supports extensive configuration
+ * through the VideoToAudioOptions interface.
+ * 
+ * ## Usage Patterns
+ * 
+ * ### Basic Audio Extraction
+ * ```typescript
+ * const model = await provider.createVideoToAudioModel('ffmpeg-extractor');
+ * const video = AssetLoader.load('movie.mp4');
+ * const audio = await model.transform(video, {
+ *   outputFormat: 'mp3',
+ *   sampleRate: 44100,
+ *   quality: 'high'
+ * });
+ * ```
+ * 
+ * ### Time-based Extraction
+ * ```typescript
+ * const audio = await model.transform(video, {
+ *   startTime: 30,    // Start at 30 seconds
+ *   duration: 120,    // Extract 2 minutes
+ *   outputFormat: 'wav',
+ *   normalize: true
+ * });
+ * ```
+ * 
+ * ### Professional Audio Production
+ * ```typescript
+ * const audio = await model.transform(video, {
+ *   outputFormat: 'flac',
+ *   sampleRate: 96000,
+ *   channels: 2,
+ *   bitrate: '1411k',
+ *   volume: 1.2,
+ *   normalize: false
+ * });
+ * ```
+ * 
+ * @abstract
  */
 
 import { ModelMetadata } from './Model';
 import { Video, Audio, VideoRole, AudioRole } from '../../assets/roles';
 
+/**
+ * Configuration options for video-to-audio transformation.
+ * 
+ * These options control various aspects of the audio extraction and processing,
+ * from basic format selection to advanced audio manipulation settings.
+ */
 export interface VideoToAudioOptions {
-  outputFormat?: 'wav' | 'mp3' | 'flac' | 'm4a' | 'aac' | 'ogg';
+  /** Output audio format */
+  outputFormat?: 'wav' | 'mp3' | 'flac' | 'm4a' | 'aac' | 'ogg' | 'opus';
+  
+  /** Sample rate in Hz (e.g., 44100, 48000, 96000) */
   sampleRate?: number;
+  
+  /** Number of audio channels (1 = mono, 2 = stereo, 6 = 5.1, etc.) */
   channels?: number;
+  
+  /** Audio bitrate (e.g., '128k', '320k', '1411k') */
   bitrate?: string;
-  quality?: string;
+  
+  /** Quality setting ('low', 'medium', 'high', 'lossless') */
+  quality?: 'low' | 'medium' | 'high' | 'lossless';
+  
+  /** Start time in seconds for extraction */
   startTime?: number;
+  
+  /** Duration in seconds to extract (from start time) */
   duration?: number;
+  
+  /** Volume multiplier (1.0 = original, 0.5 = half volume, 2.0 = double) */
   volume?: number;
+  
+  /** Apply audio normalization to optimize levels */
   normalize?: boolean;
+  
+  /** Audio track/stream index to extract (for multi-track videos) */
+  trackIndex?: number;
+  
+  /** Audio codec to use for encoding */
+  codec?: string;
+  
+  /** Additional FFmpeg or processor-specific options */
+  [key: string]: any;
 }
 
 /**

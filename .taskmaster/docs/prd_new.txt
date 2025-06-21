@@ -1,0 +1,481 @@
+# AutoMarket Media Processing Platform - Current Architecture
+
+## 🎯 CURRENT STATE - PRODUCTION ARCHITECTURE
+
+### ✅ Completed Production Systems
+- ✅ **Multi-Provider Architecture** - Local Docker services + Remote API providers unified under MediaProvider interface
+- ✅ **Capability-Driven Provider Discovery** - MediaProvider interface with capability enumeration and automatic selection
+- ✅ **Smart Asset Loading System** - Format-agnostic `AssetLoader.load()` with auto-detection and role mixins
+- ✅ **Production Provider Implementations** - FAL.ai, Replicate, Together.ai, OpenRouter, Docker-based (FFMPEG, Chatterbox, Whisper)
+- ✅ **Dynamic Model Discovery** - Providers scrape/discover available models dynamically
+- ✅ **Comprehensive Video Composition** - N-video composition with FFMPEG, overlay support, concatenation
+- ✅ **Docker Service Management** - Local FFMPEG, Chatterbox TTS, Whisper STT services
+- ✅ **Type-Safe Provider System** - Consistent interfaces across all providers with validation
+- ✅ **Role-Based Asset System** - Audio, Video, Text roles with automatic format detection
+
+## 🏗️ PRODUCTION ARCHITECTURE: PROVIDER SYSTEM
+
+### **Core Achievement: Unified Provider Interface**
+
+The system implements a consistent MediaProvider interface that works across both remote API providers and local Docker services, enabling seamless provider switching and capability-based selection.
+
+```typescript
+// CURRENT PRODUCTION PATTERN - Provider System
+import { FalAiProvider, ReplicateProvider, TogetherProvider } from './src/media/providers';
+
+// 1. Provider configuration and discovery
+const falAiProvider = new FalAiProvider();
+await falAiProvider.configure({ apiKey: process.env.FALAI_API_KEY });
+
+const replicateProvider = new ReplicateProvider();
+await replicateProvider.configure({ apiKey: process.env.REPLICATE_API_TOKEN });
+
+// 2. Capability-based model discovery
+const imageModels = falAiProvider.getModelsForCapability(MediaCapability.IMAGE_GENERATION);
+const videoModels = falAiProvider.getModelsForCapability(MediaCapability.VIDEO_ANIMATION);
+
+// 3. Dynamic model creation and execution
+const textToImageModel = await falAiProvider.createTextToImageModel('fal-ai/flux-pro');
+const result = await textToImageModel.transform(textInput);
+```
+
+### **Key Architectural Principles Achieved**
+
+1. **Unified Provider Interface** - All providers implement MediaProvider with consistent methods
+2. **Capability-Driven Discovery** - Providers declare capabilities (IMAGE_GENERATION, VIDEO_ANIMATION, etc.)
+3. **Dynamic Model Discovery** - Models are discovered at runtime via API scraping or provider APIs
+4. **Local + Remote Providers** - Docker services and API providers use the same interface
+5. **Type-Safe Operations** - Full TypeScript support with proper validation
+6. **Automatic Provider Selection** - Choose providers based on capabilities and availability
+7. **Smart Asset System** - Format-agnostic loading with role-based transformations
+
+## 🎯 PRODUCTION PROVIDER ARCHITECTURE
+
+### **Layer 1: MediaProvider Interface** (Capability Declaration)
+
+**Achievement**: Unified interface for all providers (local Docker + remote APIs) with capability-driven discovery.
+
+```typescript
+// PRODUCTION INTERFACE - All providers implement this
+interface MediaProvider {
+  readonly id: string;
+  readonly name: string;
+  readonly type: ProviderType;                    // 'local' | 'remote'
+  readonly capabilities: MediaCapability[];      // What this provider can do
+  readonly models: ProviderModel[];              // Available models per capability
+  
+  configure(config: ProviderConfig): Promise<void>;
+  isAvailable(): Promise<boolean>;
+  getModelsForCapability(capability: MediaCapability): ProviderModel[];
+  getHealth(): Promise<HealthStatus>;
+}
+
+// PRODUCTION ENUM - Extensive capability coverage
+enum MediaCapability {
+  // Core capabilities currently supported
+  IMAGE_GENERATION = 'image-generation',
+  IMAGE_UPSCALING = 'image-upscaling', 
+  IMAGE_ENHANCEMENT = 'image-enhancement',
+  VIDEO_GENERATION = 'video-generation',
+  VIDEO_ANIMATION = 'video-animation',
+  VIDEO_UPSCALING = 'video-upscaling',
+  AUDIO_GENERATION = 'audio-generation',
+  TEXT_GENERATION = 'text-generation',
+  TEXT_TO_TEXT = 'text-to-text',
+  // ... many more capabilities
+}
+```
+
+### **Layer 2: Provider Implementations** (Production Providers)
+
+**Remote API Providers**:
+```typescript
+// PRODUCTION IMPLEMENTATION - FAL.ai Provider
+export class FalAiProvider implements MediaProvider, 
+  TextToImageProvider, TextToVideoProvider, VideoToVideoProvider, TextToAudioProvider {
+  readonly id = 'fal-ai';
+  readonly capabilities = [
+    MediaCapability.IMAGE_GENERATION,
+    MediaCapability.VIDEO_GENERATION,
+    MediaCapability.VIDEO_ANIMATION,
+    MediaCapability.AUDIO_GENERATION
+  ];
+  
+  async configure(config: ProviderConfig): Promise<void> {
+    this.client = new FalAiClient(config.apiKey);
+    await this.discoverModels(); // Dynamic model discovery
+  }
+  
+  async createTextToImageModel(modelId: string): Promise<TextToImageModel> {
+    return new FalTextToImageModel(this.client, modelId);
+  }
+}
+```
+
+**Local Docker Providers**:
+```typescript
+// PRODUCTION IMPLEMENTATION - FFMPEG Docker Provider
+export class FFMPEGDockerProvider implements MediaProvider {
+  readonly id = 'ffmpeg-docker';
+  readonly capabilities = [
+    MediaCapability.VIDEO_GENERATION,
+    MediaCapability.VIDEO_ANIMATION,
+    MediaCapability.AUDIO_ENHANCEMENT
+  ];
+  
+  async configure(config: FFMPEGDockerConfig): Promise<void> {
+    this.dockerService = new DockerComposeService('ffmpeg');
+    await this.dockerService.ensureRunning();
+  }
+}
+```
+
+### **Layer 3: Video Composition System** (Advanced FFmpeg Pipeline)
+
+**Production Achievement**: Comprehensive N-video composition with FFMPEG supporting concatenation, overlays, and complex filter operations.
+
+```typescript
+// PRODUCTION PATTERN - Video Composition Builder
+export class FFMPEGCompositionBuilder {
+  // Fluent API for complex video compositions
+  prepend(...videos: Video[]): FFMPEGCompositionBuilder;
+  compose(...videos: Video[]): FFMPEGCompositionBuilder;
+  append(...videos: Video[]): FFMPEGCompositionBuilder;
+  addOverlay(video: Video, options: OverlayOptions): FFMPEGCompositionBuilder;
+  
+  // Advanced overlay options
+  interface OverlayOptions {
+    position: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'center';
+    opacity?: number;
+    width?: string | number;
+    height?: string | number;
+    startTime?: number;
+    duration?: number;
+    colorKey?: string;          // Green screen removal
+    colorKeySimilarity?: number;
+    colorKeyBlend?: number;
+  }
+  
+  // Dynamic filter complex generation
+  buildFilterComplex(): string;
+  transform(model: VideoToVideoModel): Promise<Video>;
+}
+
+// PRODUCTION USAGE - Complex video composition
+const composer = new FFMPEGCompositionBuilder()
+  .prepend(introVideo)                    // Add intro
+  .compose(mainVideo)                     // Main content
+  .append(outroVideo)                     // Add outro
+  .addOverlay(logoVideo, {               // Logo overlay
+    position: 'top-right',
+    opacity: 0.8,
+    width: '20%',
+    colorKey: '#000000'                   // Remove black background
+  })
+  .addOverlay(watermarkVideo, {          // Watermark overlay
+    position: 'bottom-left',
+    opacity: 0.6,
+    startTime: 5,                        // Appears after 5 seconds
+    duration: 10                         // Lasts 10 seconds
+  });
+
+const finalVideo = await composer.transform(ffmpegModel);
+```
+
+**Docker Services**:
+```typescript
+// PRODUCTION SERVICES - Docker service management
+DockerComposeService     // Base class for Docker management
+├── FFMPEGDockerService  // FFMPEG video processing
+├── ChatterboxService    // Text-to-speech service  
+└── WhisperService       // Speech-to-text service
+
+// PRODUCTION CLIENTS - API communication
+FFMPEGAPIClient          // Docker FFMPEG API communication
+├── composeVideo()       // N-video composition
+├── filterVideo()        // Video filtering
+└── getMetadata()        // Video metadata extraction
+
+FFMPEGLocalClient        // Local FFMPEG fallback
+├── Same interface as API client
+└── Direct ffmpeg binary execution
+```
+
+### **Layer 4: Smart Asset System** (Role-Based Architecture)
+
+**Production Achievement**: Format-agnostic asset loading with automatic role detection and transformation capabilities.
+
+```typescript
+// PRODUCTION PATTERN - Smart asset loading
+export class AssetLoader {
+  static load(filePath: string): BaseAsset & AnyRole;
+  static fromBuffer(buffer: Buffer, format: string): BaseAsset & AnyRole;
+}
+
+// PRODUCTION ROLES - Runtime role assignment
+export interface AudioRole {
+  asAudio(): Promise<Audio>;
+  getDuration(): Promise<number>;
+  getSampleRate(): Promise<number>;
+}
+
+export interface VideoRole {
+  asVideo(): Promise<Video>;
+  getDuration(): Promise<number>;
+  getResolution(): Promise<{ width: number; height: number }>;
+  extractAudio(): Promise<Audio>;  // Video → Audio conversion via FFmpeg
+}
+
+export interface TextRole {
+  asText(): Promise<Text>;
+  getContent(): Promise<string>;
+  getLanguage(): Promise<string>;
+}
+
+// PRODUCTION USAGE - Automatic format detection
+const asset = AssetLoader.load('video.mp4');  // Auto-detects as VideoRole + AudioRole
+const video = await asset.asVideo();          // Access video functionality
+const audio = await asset.asAudio();          // Extract audio via FFmpeg
+
+// Type-safe role checking
+if (hasVideoRole(asset)) {
+  const metadata = await asset.getResolution();
+}
+```
+
+## 🛠️ CURRENT PROVIDER ECOSYSTEM
+
+### **Remote API Providers** (Production Status: ✅ Complete)
+
+#### **1. FAL.ai Provider**
+- **Capabilities**: Image generation, video animation, video generation, audio generation
+- **Models**: 100+ models discovered dynamically via scraping
+- **Features**: AI-powered model categorization, file downloads, progress tracking
+- **Implementation**: `FalAiProvider`, supports all major model types
+
+#### **2. Replicate Provider** 
+- **Capabilities**: Image generation, video generation, image upscaling
+- **Models**: Dynamic discovery via Replicate API
+- **Features**: Model metadata caching, automatic capability mapping
+- **Implementation**: `ReplicateProvider`, full API integration
+
+#### **3. Together.ai Provider**
+- **Capabilities**: Text generation, image generation, audio generation
+- **Models**: 150+ models with free tier support
+- **Features**: Model discovery, pricing information, parameter optimization
+- **Implementation**: `TogetherProvider`, comprehensive model support
+
+#### **4. OpenRouter Provider**
+- **Capabilities**: Text generation, LLM access
+- **Models**: Popular models with fallback support
+- **Features**: Free model detection, rate limiting, error handling
+- **Implementation**: `OpenRouterProvider`, lightweight LLM access
+
+### **Local Docker Providers** (Production Status: ✅ Complete)
+
+#### **1. FFMPEG Provider**
+- **Capabilities**: Video generation, video animation, audio enhancement
+- **Services**: Docker containerized FFMPEG with REST API
+- **Features**: N-video composition, overlay support, filter complex generation
+- **Implementation**: `FFMPEGDockerProvider`, `FFMPEGAPIClient`, `FFMPEGLocalClient`
+
+#### **2. Chatterbox TTS Provider**
+- **Capabilities**: Text-to-speech, voice cloning
+- **Services**: Docker TTS service with multiple voice options
+- **Features**: Voice cloning, natural speech synthesis
+- **Implementation**: `ChatterboxDockerProvider`, full TTS pipeline
+
+#### **3. Whisper STT Provider**
+- **Capabilities**: Speech-to-text, audio transcription
+- **Services**: Docker Whisper service with OpenAI Whisper
+- **Features**: Multi-language support, high accuracy transcription
+- **Implementation**: `WhisperDockerProvider`, complete STT pipeline
+
+### **Provider Usage Patterns**
+
+```typescript
+// Dynamic provider configuration
+const providers = [
+  new FalAiProvider(),
+  new ReplicateProvider(), 
+  new TogetherProvider(),
+  new FFMPEGDockerProvider()
+];
+
+// Configure all providers
+for (const provider of providers) {
+  await provider.configure({
+    apiKey: process.env[`${provider.id.toUpperCase()}_API_KEY`]
+  });
+}
+
+// Capability-based selection
+const imageProviders = providers.filter(p => 
+  p.capabilities.includes(MediaCapability.IMAGE_GENERATION)
+);
+
+const videoProviders = providers.filter(p =>
+  p.capabilities.includes(MediaCapability.VIDEO_GENERATION)
+);
+
+// Usage example
+const textToImageModel = await falAiProvider.createTextToImageModel('fal-ai/flux-pro');
+const image = await textToImageModel.transform(textInput);
+
+const textToVideoModel = await falAiProvider.createTextToVideoModel('fal-ai/runway-gen3');
+const video = await textToVideoModel.transform(textInput);
+```
+
+## 🎬 VIDEO COMPOSITION ARCHITECTURE
+
+### **Advanced N-Video Composition System** (Production Status: ✅ Complete)
+
+**Achievement**: Comprehensive video composition system supporting any number of videos with concatenation, overlays, and complex FFMPEG filter operations.
+
+```typescript
+// PRODUCTION PATTERN - Video Composition Builder
+const composer = new FFMPEGCompositionBuilder()
+  .prepend(introVideo)                    // Add intro sequence
+  .compose(mainVideo)                     // Main content video
+  .append(outroVideo)                     // Add outro sequence
+  .addOverlay(logoVideo, {               // Brand logo overlay
+    position: 'top-right',
+    opacity: 0.8,
+    width: '20%',
+    height: '20%',
+    colorKey: '#000000',                  // Remove black background
+    colorKeySimilarity: 0.3,
+    startTime: 2.0                        // Appears after 2 seconds
+  })
+  .addOverlay(watermarkVideo, {          // Watermark overlay
+    position: 'bottom-left',
+    opacity: 0.6,
+    width: '15%',
+    startTime: 5,                        // Appears after 5 seconds
+    duration: 10                         // Lasts 10 seconds
+  });
+
+// Generate FFMPEG filter complex
+const filterComplex = composer.buildFilterComplex();
+
+// Execute composition using any video model
+const finalVideo = await composer.transform(ffmpegModel);
+```
+
+### **Key Composition Features**
+
+- **N-Video Support**: Handle any number of input videos
+- **Smart Concatenation**: Automatic video format standardization and concatenation
+- **Advanced Overlays**: Multiple overlays with positioning, timing, color keying
+- **Green Screen Support**: Color key removal for professional compositing
+- **Audio Mixing**: Intelligent audio mixing across all video streams
+- **Filter Complex Generation**: Dynamic FFMPEG filter generation
+- **Local + Docker Support**: Works with both local FFMPEG and Docker services
+
+### **Docker Services Infrastructure**
+
+```typescript
+// Docker service management
+services/
+├── ffmpeg/              # FFMPEG video processing service
+├── chatterbox/          # Text-to-speech service
+└── whisper/             # Speech-to-text service
+
+// API clients for service communication
+FFMPEGAPIClient          # Docker FFMPEG communication
+ChatterboxAPIClient      # TTS service communication  
+WhisperAPIClient         # STT service communication
+
+// Local fallback clients
+FFMPEGLocalClient        # Direct FFMPEG binary execution
+```
+
+## 📊 CURRENT PROJECT STATUS
+
+### **✅ Implemented & Working**
+- **Provider System**: FAL.ai, Replicate, Together.ai, OpenRouter providers
+- **Asset System**: Smart asset loading with role-based transformations
+- **Video Composition**: N-video composition with overlays and concatenation
+- **Docker Services**: FFMPEG, Chatterbox TTS, Whisper STT
+- **Dynamic Discovery**: Model discovery for remote API providers
+- **Type Safety**: Full TypeScript support throughout system
+
+### **📁 Current Directory Structure**
+```
+src/
+├── media/                     # Main media processing system
+│   ├── assets/               # Smart asset loading and roles
+│   ├── providers/            # Provider implementations
+│   │   ├── falai/           # FAL.ai provider
+│   │   ├── replicate/       # Replicate provider  
+│   │   ├── together/        # Together.ai provider
+│   │   ├── openrouter/      # OpenRouter provider
+│   │   └── docker/          # Docker-based providers
+│   │       ├── ffmpeg/      # FFMPEG video processing
+│   │       ├── chatterbox/  # TTS services
+│   │       └── whisper/     # STT services
+│   ├── models/              # Model implementations
+│   ├── types/               # TypeScript type definitions
+│   └── utils/               # Utility functions
+├── services/                # Base Docker service management
+└── components/              # React components (currently empty)
+
+services/                    # Docker service configurations
+├── ffmpeg/                 # FFMPEG Docker setup
+├── chatterbox/             # TTS Docker setup
+└── whisper/                # STT Docker setup
+```
+
+### **🔧 Environment Configuration**
+```bash
+# API Provider Keys
+FALAI_API_KEY=your_fal_ai_key
+REPLICATE_API_TOKEN=your_replicate_token
+TOGETHER_API_KEY=your_together_key
+OPENROUTER_API_KEY=your_openrouter_key
+
+# Docker Service URLs
+FFMPEG_SERVICE_URL=http://localhost:8006
+CHATTERBOX_DOCKER_URL=http://localhost:8004
+WHISPER_SERVICE_URL=http://localhost:9000
+```
+
+### **🚀 Usage Examples**
+
+```typescript
+// Provider-based media generation
+const falAiProvider = new FalAiProvider();
+await falAiProvider.configure({ apiKey: process.env.FALAI_API_KEY });
+
+const textToImageModel = await falAiProvider.createTextToImageModel('fal-ai/flux-pro');
+const image = await textToImageModel.transform(textInput);
+
+const textToVideoModel = await falAiProvider.createTextToVideoModel('fal-ai/runway-gen3');
+const video = await textToVideoModel.transform(textInput);
+
+// Smart asset loading and transformation
+const videoAsset = AssetLoader.load('input.mp4');
+const audio = await videoAsset.asAudio();        // Extract audio via FFMPEG
+const video = await videoAsset.asVideo();        // Access video directly
+
+// Video composition pipeline
+const composer = new FFMPEGCompositionBuilder()
+  .compose(mainVideo)
+  .addOverlay(overlayVideo, { position: 'top-right', opacity: 0.8 });
+
+const result = await composer.transform(ffmpegModel);
+```
+
+---
+
+## 📝 DOCUMENTATION STATUS
+
+This PRD reflects the **actual current implementation** as of December 2024. The system focuses on:
+
+1. **Multi-provider media processing** with unified interfaces
+2. **Advanced video composition** using FFMPEG
+3. **Smart asset management** with role-based transformations  
+4. **Docker service integration** for local processing
+5. **Type-safe development** with comprehensive TypeScript support
+
+For implementation details, see the provider-specific documentation in `src/media/providers/` and the video composition documentation in the FFMPEG provider directory.

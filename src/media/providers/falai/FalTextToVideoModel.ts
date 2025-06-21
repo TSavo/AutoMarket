@@ -296,12 +296,53 @@ export class FalTextToVideoModel extends TextToVideoModel {
   getDisplayName(): string {
     return this.modelMetadata.name || this.modelMetadata.id;
   }
-
   /**
    * Get model-specific parameters
    */
   getSupportedParameters(): string[] {
     return Object.keys(this.modelMetadata.parameters || {});
+  }
+
+  /**
+   * Get available aspect ratios for this model
+   */
+  getSupportedAspectRatios(): string[] {
+    // Common aspect ratios supported by fal.ai models
+    return ['16:9', '9:16', '1:1', '4:3', '3:4', '21:9'];
+  }
+
+  /**
+   * Get supported video duration range
+   */
+  getSupportedDurationRange(): { min: number; max: number } {
+    // fal.ai models typically support 1-30 seconds
+    return { min: 1, max: 30 };
+  }
+
+  /**
+   * Get maximum resolution supported by this model
+   */
+  getMaxResolution(): { width: number; height: number } {
+    // Most fal.ai models support up to 1080p
+    return { width: 1920, height: 1080 };
+  }
+
+  /**
+   * Estimate processing time for a given prompt and options
+   */
+  estimateProcessingTime(prompt: string, options?: any): number {
+    const duration = options?.duration || 5;
+    const complexity = prompt.length > 100 ? 1.5 : 1.0;
+    // Estimate ~10-15 seconds per second of video
+    return duration * 12000 * complexity; // milliseconds
+  }
+
+  /**
+   * Check if this model supports specific features
+   */
+  supportsFeature(feature: string): boolean {
+    const supportedFeatures = ['text-to-video', 'custom-duration', 'aspect-ratio'];
+    return supportedFeatures.includes(feature);
   }
 }
 

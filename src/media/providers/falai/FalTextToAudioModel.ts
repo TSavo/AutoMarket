@@ -330,7 +330,7 @@ export class FalTextToAudioModel extends TextToAudioModel {
   /**
    * Get available voices for this model
    */
-  getAvailableVoices(): string[] {
+  async getAvailableVoices(): Promise<string[]> {
     // Model-specific voice lists
     if (this.modelMetadata.id.includes('xtts')) {
       return ['male_1', 'male_2', 'female_1', 'female_2', 'custom']; // XTTS supports custom voices
