@@ -3,11 +3,14 @@
  * 
  * Represents audio data with validation and utility methods.
  * Serves as both DTO and rich interface for audio assets.
+ * Implements AudioRole to be compatible with model interfaces.
  */
 
 import { AudioMetadata } from '../types';
+import { AudioRole } from '../interfaces/AudioRole';
+import { AudioFormat } from '../types/formats';
 
-export class Audio {
+export class Audio implements AudioRole {
   constructor(
     public readonly data: Buffer,
     public readonly sourceAsset?: any,
@@ -20,6 +23,23 @@ export class Audio {
 
   toString(): string {
     return `Audio(${this.data.length} bytes)`;
+  }
+
+  // AudioRole interface implementation
+  async asAudio(): Promise<Audio> {
+    return this;
+  }
+  getAudioMetadata(): AudioMetadata {
+    return this.metadata || {
+      format: this.getFormat() as AudioFormat,
+      duration: this.getDuration(),
+      sampleRate: 44100,
+      channels: 2
+    };
+  }
+
+  canPlayAudioRole(): boolean {
+    return this.isValid();
   }
 
   // Rich interface methods for compatibility

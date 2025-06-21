@@ -41,29 +41,6 @@ export {
   hasTextRole
 } from './assets/roles';
 
-// Export Asset casting utilities
-export {
-  castToAudio,
-  castToVideo,
-  castToText,
-  castAssetToAllRoles as castToRoles,
-  canCastToAudio,
-  canCastToVideo,
-  canCastToText,
-  safeCastToAudio,
-  safeCastToVideo,
-  safeCastToText,
-  getAvailableRoles,
-  RoleCastingError
-} from './assets/casting';
-
-// Export casting input types
-export type {
-  AudioInput,
-  VideoInput,
-  TextInput,
-  MediaInput
-} from './assets/casting';
 
 // Export Provider Capabilities (what providers can do)
 export type {

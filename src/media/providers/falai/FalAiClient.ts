@@ -257,72 +257,154 @@ export class FalAiClient {
   }
   /**
    * Discover models from OpenRouter API
+   */  /**
+   * Discover models from fal.ai exclusively (no static registry)
+   * Uses web scraping + AI categorization with FREE models only
    */
   async discoverModels(config?: ModelDiscoveryConfig): Promise<FalModelMetadata[]> {
-    const apiKey = config?.openRouterApiKey || this.config.apiKey;
-    const cacheDir = config?.cacheDir || './model-cache';
+    const openRouterApiKey = config?.openRouterApiKey || this.config.discovery?.openRouterApiKey;
+    const cacheDir = config?.cacheDir || './cache';
     const maxCacheAge = config?.maxCacheAge || 24 * 60 * 60 * 1000; // 24 hours
 
     // Ensure cache directory exists
     await fs.mkdir(cacheDir, { recursive: true });
 
-    // Fetch model metadata from cache or API
-    const metadata: FalModelMetadata[] = [];
-    const apiUrl = 'https://api.openrouter.ai/v1/models';
+    console.log('[FalAiClient] Starting dynamic model discovery from fal.ai...');
 
     try {
-      const response = await fetch(apiUrl, {
+      // 1. Scrape fal.ai main models page to get model list
+      const modelsPageUrl = 'https://fal.ai/models';
+      const response = await fetch(modelsPageUrl, {
         headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'Content-Type': 'application/json'
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
         }
       });
 
       if (!response.ok) {
-        throw new Error(`Failed to fetch models: ${response.statusText}`);
+        throw new Error(`Failed to fetch models page: ${response.status}`);
       }
 
-      const data = await response.json() as { models: FalModelMetadata[] };
-      for (const model of data.models) {
-        // Save to cache
-        const cacheFile = path.join(cacheDir, `${model.id}.json`);
-        await fs.writeFile(cacheFile, JSON.stringify(model), { flag: 'w' });
+      const html = await response.text();
+      
+      // 2. Extract model IDs from HTML using basic pattern matching
+      const modelIdPattern = /fal-ai\/[\w-]+/g;
+      const modelMatches = html.match(modelIdPattern) || [];
+      const uniqueModelIds = [...new Set(modelMatches)];
 
-        metadata.push(model);
-      }
-    } catch (error) {
-      console.warn('Model discovery failed:', error);
-    }
+      console.log(`[FalAiClient] Found ${uniqueModelIds.length} potential models to discover`);
 
-    // Load from cache
-    try {
-      const files = await fs.readdir(cacheDir);
-      for (const file of files) {
-        const filePath = path.join(cacheDir, file);
-        const stat = await fs.stat(filePath);
+      // 3. Discover metadata for each model
+      const discoveredModels: FalModelMetadata[] = [];
+      const batchSize = 5; // Process in small batches to avoid rate limits
 
-        // Check file age
-        if (Date.now() - stat.mtimeMs > maxCacheAge) {
-          // Skip stale cache
-          continue;
+      for (let i = 0; i < uniqueModelIds.length; i += batchSize) {
+        const batch = uniqueModelIds.slice(i, i + batchSize);
+        
+        const batchPromises = batch.map(async (modelId) => {
+          try {
+            console.log(`[FalAiClient] Discovering metadata for ${modelId}...`);
+            const metadata = await this.getModelMetadata(modelId);
+            
+            // Only include if we successfully got metadata
+            if (metadata && metadata.id) {
+              return metadata;
+            }
+          } catch (error) {
+            console.warn(`[FalAiClient] Failed to discover ${modelId}:`, error);
+          }
+          return null;
+        });
+
+        const batchResults = await Promise.all(batchPromises);
+        discoveredModels.push(...batchResults.filter(Boolean) as FalModelMetadata[]);
+
+        // Small delay between batches to be respectful
+        if (i + batchSize < uniqueModelIds.length) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
         }
+      }
 
-        const data = await fs.readFile(filePath, 'utf-8');
-        const model = JSON.parse(data);
+      console.log(`[FalAiClient] Successfully discovered ${discoveredModels.length} models`);
 
-        metadata.push(model);
+      // 4. Use FREE OpenRouter models for AI categorization if available
+      if (openRouterApiKey) {
+        console.log('[FalAiClient] Enhancing model categorization with FREE AI models...');
+        
+        for (const model of discoveredModels) {
+          try {
+            const enhanced = await this.enhanceModelWithAI(model, openRouterApiKey);
+            if (enhanced.category !== 'unknown') {
+              model.category = enhanced.category;
+              model.capabilities = enhanced.capabilities;
+            }
+          } catch (error) {
+            console.warn(`[FalAiClient] AI enhancement failed for ${model.id}:`, error);
+          }
+        }
+      }
+
+      // Cache the discovered models
+      this.modelCache = new Map(discoveredModels.map(model => [model.id, model]));
+      return discoveredModels;
+
+    } catch (error) {
+      console.error('[FalAiClient] Model discovery failed:', error);
+      throw new Error(`Failed to discover fal.ai models: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  /**
+   * Enhance model with AI categorization using FREE models only
+   */
+  private async enhanceModelWithAI(model: FalModelMetadata, openRouterApiKey: string): Promise<{category: string, capabilities: string[]}> {
+    try {
+      const aiResponse = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${openRouterApiKey}`,
+          'Content-Type': 'application/json',
+          'HTTP-Referer': 'https://automarket.ai',
+          'X-Title': 'AutoMarket fal.ai Model Discovery'
+        },
+        body: JSON.stringify({
+          model: 'deepseek/deepseek-chat:free', // FREE model only
+          messages: [
+            {
+              role: 'system',
+              content: `Categorize this fal.ai model and extract capabilities. Return valid JSON:
+{
+  "category": "text-to-image|text-to-video|image-to-video|video-to-video|image-to-image|text-to-audio|audio-to-audio|other",
+  "capabilities": ["capability1", "capability2", "capability3"]
+}
+
+Focus on the model's primary purpose and output type.`
+            },
+            {
+              role: 'user',
+              content: `Model: ${model.id}
+Name: ${model.name || 'Unknown'}
+Description: ${model.description || 'No description'}
+Tags: ${model.tags?.join(', ') || 'None'}`
+            }
+          ],
+          max_tokens: 200,
+          temperature: 0.1
+        })
+      });
+
+      if (aiResponse.ok) {
+        const aiResult = await aiResponse.json() as any;
+        const parsed = JSON.parse(aiResult.choices[0].message.content);
+        return {
+          category: parsed.category || 'unknown',
+          capabilities: parsed.capabilities || []
+        };
       }
     } catch (error) {
-      console.warn('Failed to load model cache:', error);
+      console.warn(`AI enhancement failed for ${model.id}:`, error);
     }
 
-    // Deduplicate models
-    const uniqueMetadata = Array.from(new Set(metadata.map(m => m.id)))
-      .map(id => metadata.find(m => m.id === id))
-      .filter((m): m is FalModelMetadata => !!m);
-
-    this.modelCache = new Map(uniqueMetadata.map(model => [model.id, model]));
-    return uniqueMetadata;
+    return { category: 'unknown', capabilities: [] };
   }
   /**
    * Execute request with retry logic

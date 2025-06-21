@@ -6,7 +6,7 @@
  */
 
 import { Model, ModelMetadata } from './Model';
-import { Audio, Text } from '../../assets/roles';
+import { Audio, AudioRole, Text } from '../../assets/roles';
 
 // Legacy interface for backward compatibility
 export interface AudioToTextOptions {
@@ -97,7 +97,7 @@ export interface AudioToTextSchema {
 /**
  * Abstract base class for audio-to-text models
  */
-export abstract class AudioToTextModel extends Model<Audio, AudioToTextOptions, Text> {
+export abstract class AudioToTextModel extends Model<AudioRole, AudioToTextOptions, Text> {
   constructor(metadata: ModelMetadata) {
     // Ensure the model supports audio-to-text transformation
     const enhancedMetadata: ModelMetadata = {
@@ -113,7 +113,7 @@ export abstract class AudioToTextModel extends Model<Audio, AudioToTextOptions, 
   /**
    * Transform audio to text - must be implemented by concrete classes
    */
-  abstract transform(input: Audio, options?: AudioToTextOptions): Promise<Text>;
+  abstract transform(input: AudioRole, options?: AudioToTextOptions): Promise<Text>;
 
 
   /**

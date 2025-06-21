@@ -6,8 +6,7 @@
  */
 
 import { ModelMetadata } from '../../../models/abstracts/Model';
-import { Audio, Text } from '../../../assets/roles';
-import { AudioInput, castToAudio } from '../../../assets/casting';
+import { Audio, Text, AudioRole } from '../../../assets/roles';
 import { WhisperAPIClient } from './WhisperAPIClient';
 import { WhisperDockerService } from '../../../services/WhisperDockerService';
 import fs from 'fs';
@@ -58,11 +57,11 @@ export class WhisperSTTModel extends AudioToTextModel {
   /**
    * Transform audio to text using Whisper
    */
-  async transform(input: AudioInput, options?: AudioToTextOptions): Promise<Text> {
+  async transform(input: AudioRole, options?: AudioToTextOptions): Promise<Text> {
     const startTime = Date.now();
 
-    // Cast input to Audio
-    const audio = await castToAudio(input);
+    // Get audio from the AudioRole
+    const audio = await input.asAudio();
 
     // Validate audio data
     if (!audio.isValid()) {

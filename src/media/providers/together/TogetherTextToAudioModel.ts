@@ -7,8 +7,7 @@
 
 import { TextToAudioModel, TextToAudioOptions } from '../../models/abstracts/TextToAudioModel';
 import { ModelMetadata } from '../../models/abstracts/Model';
-import { Audio } from '../../assets/roles';
-import { TextInput, castToText } from '../../assets/casting';
+import { Audio, TextRole, AudioRole } from '../../assets/roles';
 import { TogetherAPIClient, TogetherModel } from './TogetherAPIClient';
 import axios from 'axios';
 import * as fs from 'fs';
@@ -54,46 +53,40 @@ export class TogetherTextToAudioModel extends TextToAudioModel {
     this.modelId = config.modelId;
     this.modelMetadata = config.modelMetadata;
   }
-
   /**
    * Transform text to audio using Together AI (Cartesia Sonic) - basic TTS
    */
-  async transform(input: TextInput, options?: TogetherTextToAudioOptions): Promise<Audio>;
+  async transform(input: TextRole, options?: TogetherTextToAudioOptions): Promise<Audio>;
 
   /**
    * Transform text to audio with voice cloning (not supported by Cartesia Sonic)
    */
-  async transform(text: TextInput, voiceAudio: Audio, options?: TogetherTextToAudioOptions): Promise<Audio>;
+  async transform(text: TextRole, voiceAudio: AudioRole, options?: TogetherTextToAudioOptions): Promise<Audio>;
 
   /**
    * Implementation of transform method
    */
   async transform(
-    inputOrText: TextInput,
-    optionsOrVoiceAudio?: TogetherTextToAudioOptions | Audio,
+    inputOrText: TextRole,
+    optionsOrVoiceAudio?: TogetherTextToAudioOptions | AudioRole,
     voiceOptions?: TogetherTextToAudioOptions
   ): Promise<Audio> {
     const startTime = Date.now();
 
     // Check if this is voice cloning call (second signature)
-    if (optionsOrVoiceAudio instanceof Audio) {
+    if (optionsOrVoiceAudio && typeof optionsOrVoiceAudio === 'object' && 'asAudio' in optionsOrVoiceAudio) {
       throw new Error('Voice cloning is not supported by Cartesia Sonic models. Use basic text-to-speech instead.');
     }
 
     // Handle basic text-to-speech (first signature)
     const options = optionsOrVoiceAudio as TogetherTextToAudioOptions | undefined;
 
-    // Handle string input directly or cast to Text
-    let textContent: string;
-    if (typeof inputOrText === 'string') {
-      textContent = inputOrText;
-    } else {
-      const text = await castToText(inputOrText);
-      if (!text.isValid()) {
-        throw new Error('Invalid text data provided');
-      }
-      textContent = text.content;
+    // Get text from the TextRole
+    const text = await inputOrText.asText();
+    if (!text.isValid()) {
+      throw new Error('Invalid text data provided');
     }
+    const textContent = text.content;
 
     try {
       // Prepare request payload for Together AI audio generation

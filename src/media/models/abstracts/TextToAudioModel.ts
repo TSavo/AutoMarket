@@ -6,8 +6,7 @@
  */
 
 import { Model, ModelMetadata } from './Model';
-import { Audio } from '../../assets/roles';
-import { TextInput } from '../../assets/casting';
+import { Audio, AudioRole, TextRole } from '../../assets/roles';
 
 export interface TextToAudioOptions {
   language?: string;
@@ -25,7 +24,7 @@ export interface TextToAudioOptions {
 /**
  * Abstract base class for text-to-audio models
  */
-export abstract class TextToAudioModel extends Model<TextInput, TextToAudioOptions, Audio> {
+export abstract class TextToAudioModel extends Model<TextRole, TextToAudioOptions, Audio> {
   constructor(metadata: ModelMetadata) {
     // Ensure the model supports text-to-audio transformation
     const enhancedMetadata: ModelMetadata = {
@@ -40,12 +39,12 @@ export abstract class TextToAudioModel extends Model<TextInput, TextToAudioOptio
   /**
    * Transform text to audio - basic TTS
    */
-  abstract transform(input: TextInput, options?: TextToAudioOptions): Promise<Audio>;
+  abstract transform(input: TextRole, options?: TextToAudioOptions): Promise<Audio>;
 
   /**
    * Transform text to audio with voice cloning - dual-signature pattern
    */
-  abstract transform(text: TextInput, voiceAudio: Audio, options?: TextToAudioOptions): Promise<Audio>;
+  abstract transform(text: TextRole, voiceAudio: AudioRole, options?: TextToAudioOptions): Promise<Audio>;
 
   /**
    * Check if the model is available

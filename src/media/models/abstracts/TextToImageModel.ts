@@ -6,10 +6,7 @@
  */
 
 import { Model, ModelMetadata } from './Model';
-import { Text, Image, ImageFormat } from '../../assets/roles';
-import { TextInput, castToText } from '../../assets/casting';
-import * as fs from 'fs';
-import * as path from 'path';
+import { Text, Image, ImageFormat, TextRole } from '../../assets/roles';
 
 export interface TextToImageOptions {
   width?: number;
@@ -27,7 +24,7 @@ export interface TextToImageOptions {
 /**
  * Abstract base class for text-to-image models
  */
-export abstract class TextToImageModel extends Model<TextInput, TextToImageOptions, Image> {
+export abstract class TextToImageModel extends Model<TextRole, TextToImageOptions, Image> {
   protected metadata: ModelMetadata;
 
   constructor(metadata: ModelMetadata) {
@@ -38,7 +35,7 @@ export abstract class TextToImageModel extends Model<TextInput, TextToImageOptio
   /**
    * Transform text to image
    */
-  abstract transform(input: TextInput, options?: TextToImageOptions): Promise<Image>;
+  abstract transform(input: TextRole, options?: TextToImageOptions): Promise<Image>;
 
   /**
    * Check if the model is available

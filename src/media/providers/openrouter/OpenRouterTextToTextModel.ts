@@ -7,8 +7,7 @@
 
 import { TextToTextModel, TextToTextOptions } from '../../models/abstracts/TextToTextModel';
 import { ModelMetadata } from '../../models/abstracts/Model';
-import { Text } from '../../assets/roles';
-import { TextInput, castToText } from '../../assets/casting';
+import { Text, TextRole } from '../../assets/roles';
 import { OpenRouterAPIClient } from './OpenRouterAPIClient';
 
 export interface OpenRouterTextToTextOptions extends TextToTextOptions {
@@ -44,15 +43,12 @@ export class OpenRouterTextToTextModel extends TextToTextModel {
     this.apiClient = config.apiClient;
     this.modelId = config.modelId;
   }
-
   /**
    * Transform text to text using OpenRouter
    */
-  async transform(input: TextInput, options?: OpenRouterTextToTextOptions): Promise<Text> {
-    const startTime = Date.now();
-
-    // Cast input to Text
-    const text = await castToText(input);
+  async transform(input: TextRole, options?: OpenRouterTextToTextOptions): Promise<Text> {
+    const startTime = Date.now();    // Get text from the TextRole
+    const text = await input.asText();
 
     // Validate text data
     if (!text.isValid()) {

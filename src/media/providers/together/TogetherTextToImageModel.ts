@@ -6,9 +6,8 @@
  */
 
 import { TextToImageModel, TextToImageOptions } from '../../models/abstracts/TextToImageModel';
-import { Image } from '../../assets/roles';
+import { Image, TextRole } from '../../assets/roles';
 import { ModelMetadata } from '../../models/abstracts/Model';
-import { TextInput, castToText } from '../../assets/casting';
 import { TogetherAPIClient, TogetherModel } from './TogetherAPIClient';
 import axios from 'axios';
 import * as fs from 'fs';
@@ -57,15 +56,14 @@ export class TogetherTextToImageModel extends TextToImageModel {
     this.modelId = config.modelId;
     this.modelMetadata = config.modelMetadata;
   }
-
   /**
    * Transform text to image using Together AI
    */
-  async transform(input: TextInput, options?: TogetherTextToImageOptions): Promise<Image> {
+  async transform(input: TextRole, options?: TogetherTextToImageOptions): Promise<Image> {
     const startTime = Date.now();
 
-    // Cast input to Text
-    const text = await castToText(input);
+    // Get text from the TextRole
+    const text = await input.asText();
 
     // Validate text data
     if (!text.isValid()) {

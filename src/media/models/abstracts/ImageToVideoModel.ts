@@ -6,7 +6,7 @@
  */
 
 import { Model, ModelMetadata } from './Model';
-import { Video } from '../../assets/roles';
+import { ImageRole, Video } from '../../assets/roles';
 import { Image, ImageFormat } from '../../assets/roles';
 
 export type ImageInput = Image | Buffer | string; // Image object, buffer, or file path
@@ -50,7 +50,7 @@ export async function castToImage(input: ImageInput): Promise<Image> {
 /**
  * Abstract base class for image-to-video models
  */
-export abstract class ImageToVideoModel extends Model<ImageInput, ImageToVideoOptions, Video> {
+export abstract class ImageToVideoModel extends Model<ImageRole, ImageToVideoOptions, Video> {
   protected metadata: ModelMetadata;
 
   constructor(metadata: ModelMetadata) {
@@ -61,7 +61,7 @@ export abstract class ImageToVideoModel extends Model<ImageInput, ImageToVideoOp
   /**
    * Transform image to video
    */
-  abstract transform(input: ImageInput, options?: ImageToVideoOptions): Promise<Video>;
+  abstract transform(input: ImageRole, options?: ImageToVideoOptions): Promise<Video>;
 
   /**
    * Check if the model is available

@@ -7,8 +7,7 @@
 
 import { TextToAudioModel, TextToAudioOptions } from '../../../models/abstracts/TextToAudioModel';
 import { ModelMetadata } from '../../../models/abstracts/Model';
-import { Text, Audio } from '../../../assets/roles';
-import { TextInput, castToText } from '../../../assets/casting';
+import { Text, Audio, TextRole, AudioRole } from '../../../assets/roles';
 import { ChatterboxAPIClient } from './ChatterboxAPIClient';
 import { ChatterboxDockerService } from '../../../services/ChatterboxDockerService';
 import * as fs from 'fs';
@@ -75,24 +74,24 @@ export class ChatterboxTTSModel extends TextToAudioModel {
   /**
    * Transform text to audio using Chatterbox - basic TTS
    */
-  async transform(input: TextInput, options?: ChatterboxTTSOptions): Promise<Audio>;
+  async transform(input: TextRole, options?: ChatterboxTTSOptions): Promise<Audio>;
 
   /**
    * Transform text to audio with voice cloning - dual-signature pattern
    */
-  async transform(text: TextInput, voiceAudio: Audio, options?: ChatterboxTTSOptions): Promise<Audio>;
+  async transform(text: TextRole, voiceAudio: AudioRole, options?: ChatterboxTTSOptions): Promise<Audio>;
 
   /**
    * Implementation of transform method
    */
-  async transform(input: TextInput, optionsOrVoiceAudio?: ChatterboxTTSOptions | Audio, options?: ChatterboxTTSOptions): Promise<Audio> {
+  async transform(input: TextRole, optionsOrVoiceAudio?: ChatterboxTTSOptions | AudioRole, options?: ChatterboxTTSOptions): Promise<Audio> {
     // Handle dual signature pattern
     let actualOptions: ChatterboxTTSOptions | undefined;
-    let voiceAudio: Audio | undefined;
+    let voiceAudio: AudioRole | undefined;
 
-    if (optionsOrVoiceAudio && typeof optionsOrVoiceAudio === 'object' && 'data' in optionsOrVoiceAudio) {
-      // Second parameter is Audio (voice cloning mode)
-      voiceAudio = optionsOrVoiceAudio as Audio;
+    if (optionsOrVoiceAudio && typeof optionsOrVoiceAudio === 'object' && 'asAudio' in optionsOrVoiceAudio) {
+      // Second parameter is AudioRole (voice cloning mode)
+      voiceAudio = optionsOrVoiceAudio as AudioRole;
       actualOptions = options;
     } else {
       // Second parameter is options (basic TTS mode)
@@ -100,8 +99,8 @@ export class ChatterboxTTSModel extends TextToAudioModel {
     }
     const startTime = Date.now();
 
-    // Cast input to Text
-    const text = await castToText(input);
+    // Get text from the TextRole
+    const text = await input.asText();
 
     // Validate text data
     if (!text.isValid()) {

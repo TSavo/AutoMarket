@@ -3,11 +3,13 @@
  * 
  * Represents video data with format and metadata information.
  * Serves as both DTO and rich interface for video assets.
+ * Implements VideoRole to be compatible with model interfaces.
  */
 
 import { VideoFormat, VideoMetadata } from '../types';
+import { VideoRole } from '../interfaces/VideoRole';
 
-export class Video {
+export class Video implements VideoRole {
   constructor(
     public readonly data: Buffer,
     public readonly format: VideoFormat,
@@ -21,6 +23,19 @@ export class Video {
 
   toString(): string {
     return `Video(${this.format}, ${this.data.length} bytes)`;
+  }
+
+  // VideoRole interface implementation
+  async asVideo(): Promise<Video> {
+    return this;
+  }
+
+  getVideoMetadata(): VideoMetadata {
+    return this.metadata;
+  }
+
+  canPlayVideoRole(): boolean {
+    return this.isValid();
   }
 
   // Rich interface methods for compatibility

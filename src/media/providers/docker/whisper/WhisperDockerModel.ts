@@ -9,8 +9,7 @@
 
 import { WhisperAPIClient } from './WhisperAPIClient';
 import { WhisperDockerService } from '../../../services/WhisperDockerService';
-import { Audio, Text } from '../../../assets/roles';
-import { AudioInput, castToAudio } from '../../../assets/casting';
+import { Audio, Text, AudioRole } from '../../../assets/roles';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
@@ -59,11 +58,11 @@ export class WhisperDockerModel extends AudioToTextModel {
   /**
    * Transform audio to text using Docker-based Whisper
    */
-  async transform(input: Audio, options?: AudioToTextOptions): Promise<Text> {
+  async transform(input: AudioRole, options?: AudioToTextOptions): Promise<Text> {
     const startTime = Date.now();
 
-    // Use the audio input directly
-    const audio = input;
+    // Get audio from the AudioRole
+    const audio = await input.asAudio();
     
     // Validate audio data
     if (!audio.isValid()) {

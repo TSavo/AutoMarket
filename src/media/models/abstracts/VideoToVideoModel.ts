@@ -2,13 +2,12 @@
  * VideoToVideoModel - Abstract Base Class
  * 
  * Abstract base class for video-to-video transformation models.
- * Supports video composition, overlay, and transformation operations.
+ * Simple transformation interface - for composition use VideoCompositionBuilder.
  * Uses Asset-role system with automatic casting.
  */
 
 import { ModelMetadata } from './Model';
-import { Video } from '../../assets/roles';
-import { VideoInput } from '../../assets/casting';
+import { Video, VideoRole } from '../../assets/roles';
 
 export interface VideoOverlayConfig {
   // Timing options for this overlay
@@ -117,8 +116,8 @@ export abstract class VideoToVideoModel {
    * @param options Composition options for positioning, timing, etc.
    */
   abstract transform(
-    baseVideo: VideoInput, 
-    overlayVideos: VideoInput | VideoInput[], 
+    baseVideo: VideoRole, 
+    overlayVideos: VideoRole | VideoRole[], 
     options?: VideoCompositionOptions
   ): Promise<VideoCompositionResult>;
 
@@ -130,8 +129,8 @@ export abstract class VideoToVideoModel {
    * @param startTime When to start the overlay (seconds)
    */
   async overlay(
-    baseVideo: VideoInput,
-    overlayVideo: VideoInput,
+    baseVideo: VideoRole,
+    overlayVideo: VideoRole,
     position: VideoCompositionOptions['position'] = 'bottom-right',
     startTime: number = 0
   ): Promise<Video> {
@@ -150,8 +149,8 @@ export abstract class VideoToVideoModel {
    * @param overlayConfigs Array of configuration for each overlay
    */
   async multiOverlay(
-    baseVideo: VideoInput,
-    overlayVideos: VideoInput[],
+    baseVideo: VideoRole,
+    overlayVideos: VideoRole[],
     overlayConfigs: VideoOverlayConfig[]
   ): Promise<Video> {
     const result = await this.transform(baseVideo, overlayVideos, {

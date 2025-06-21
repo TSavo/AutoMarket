@@ -10,8 +10,7 @@
 import { TextToAudioModel, TextToAudioOptions } from '../../../models/abstracts/TextToAudioModel';
 import { ChatterboxAPIClient } from './ChatterboxAPIClient';
 import { ChatterboxDockerService } from '../../../services/ChatterboxDockerService';
-import { Text, Audio, hasAudioRole } from '../../../assets/roles';
-import { castToText } from '../../../assets/casting';
+import { Text, Audio, TextRole, AudioRole, hasAudioRole } from '../../../assets/roles';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
@@ -64,25 +63,25 @@ export class ChatterboxDockerModel extends TextToAudioModel {
   /**
    * Transform text to audio using Docker-based Chatterbox - basic TTS
    */
-  async transform(input: Text, options?: ChatterboxDockerTTSOptions): Promise<Audio>;
+  async transform(input: TextRole, options?: ChatterboxDockerTTSOptions): Promise<Audio>;
 
   /**
    * Transform text to audio with voice cloning - dual-signature pattern
    */
-  async transform(text: Text, voiceAudio: Audio, options?: ChatterboxDockerTTSOptions): Promise<Audio>;
+  async transform(text: TextRole, voiceAudio: AudioRole, options?: ChatterboxDockerTTSOptions): Promise<Audio>;
 
   /**
    * Implementation for both transform signatures
    */
   async transform(
-    input: Text,
-    voiceAudioOrOptions?: Audio | ChatterboxDockerTTSOptions,
+    input: TextRole,
+    voiceAudioOrOptions?: AudioRole | ChatterboxDockerTTSOptions,
     options?: ChatterboxDockerTTSOptions
   ): Promise<Audio> {
     const startTime = Date.now();
 
-    // Cast input to Text
-    const text = await castToText(input);
+    // Get text from the TextRole
+    const text = await input.asText();
     
     // Validate text data
     if (!text.isValid()) {
@@ -93,7 +92,7 @@ export class ChatterboxDockerModel extends TextToAudioModel {
     let voiceAudio: Audio | undefined;
     let actualOptions: ChatterboxDockerTTSOptions | undefined;
 
-    if (voiceAudioOrOptions && hasAudioRole(voiceAudioOrOptions)) {
+    if (voiceAudioOrOptions && typeof voiceAudioOrOptions === 'object' && 'asAudio' in voiceAudioOrOptions) {
       // Second signature: transform(text, voiceAudio, options)
       voiceAudio = await voiceAudioOrOptions.asAudio();
       actualOptions = options;

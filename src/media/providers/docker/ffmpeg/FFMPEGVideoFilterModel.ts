@@ -7,47 +7,16 @@
 
 import { FFMPEGAPIClient } from './FFMPEGAPIClient';
 import { FFMPEGDockerService } from '../../../services/FFMPEGDockerService';
-import { Video } from '../../../assets/roles';
+import { Video, VideoRole } from '../../../assets/roles';
 import { VideoToVideoModel, VideoCompositionOptions, VideoCompositionResult } from '../../../models/abstracts/VideoToVideoModel';
-import { VideoInput, castToVideo } from '../../../assets/casting';
 import { ModelMetadata } from '../../../models/abstracts/Model';
+import { FFMPEGCompositionBuilder, OverlayOptions, FilterOptions } from './FFMPEGCompositionBuilder';
 
-export interface OverlayOptions {
-  x?: string | number;
-  y?: string | number;
-  width?: string | number;
-  height?: string | number;
-  startTime?: number;
-  duration?: number;
-  opacity?: number;
-  position?: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'center' | 'custom';
-  colorKey?: string;
-  colorKeySimilarity?: number;
-  colorKeyBlend?: number;
-}
-
-export interface FilterOptions {
-  outputFormat?: 'mp4' | 'webm' | 'avi' | 'mov';
-  codec?: string;
-  bitrate?: string;
-  fps?: number;
-  resolution?: string;
-  videoOutputLabel?: string;
-  audioOutputLabel?: string;
-  customAudioMapping?: boolean;
-}
+// Re-export interfaces for backward compatibility
+export type { OverlayOptions, FilterOptions };
 
 export class FFMPEGVideoFilterModel extends VideoToVideoModel {
-  private videos: Video[] = [];
-  private overlays: Array<{ video: Video; options: OverlayOptions }> = [];
-  private prependVideos: Video[] = [];
-  private appendVideos: Video[] = [];
-  private customFilters: string[] = [];
-  private filterOptions: FilterOptions = {
-    videoOutputLabel: 'final_video',
-    audioOutputLabel: 'mixed_audio',
-    customAudioMapping: true
-  };
+  private compositionBuilder: FFMPEGCompositionBuilder;
 
   constructor(
     private dockerService?: FFMPEGDockerService,
@@ -64,25 +33,25 @@ export class FFMPEGVideoFilterModel extends VideoToVideoModel {
       outputTypes: ['video']
     };
     super(metadata);
+    
+    this.compositionBuilder = new FFMPEGCompositionBuilder();
   }
 
   // ===============================
   // ABSTRACT METHOD IMPLEMENTATIONS
   // ===============================
-
   /**
    * Implementation of VideoToVideoModel abstract method
-   */
-  async transform(
-    baseVideo: VideoInput, 
-    overlayVideos: VideoInput | VideoInput[], 
+   */  async transform(
+    baseVideo: VideoRole, 
+    overlayVideos: VideoRole | VideoRole[], 
     options?: VideoCompositionOptions
   ): Promise<VideoCompositionResult> {
-    // Cast inputs to Video objects
-    const baseVideoObj = await castToVideo(baseVideo);
+    // Get Video objects from the VideoRoles
+    const baseVideoObj = await baseVideo.asVideo();
     const overlayVideoObjs = Array.isArray(overlayVideos) 
-      ? await Promise.all(overlayVideos.map(v => castToVideo(v)))
-      : [await castToVideo(overlayVideos)];
+      ? await Promise.all(overlayVideos.map(v => v.asVideo()))
+      : [await overlayVideos.asVideo()];
 
     // Build filter complex using simplified logic
     const filterParts: string[] = [];
@@ -98,7 +67,7 @@ export class FFMPEGVideoFilterModel extends VideoToVideoModel {
       
       let position = 'x=W-w-10:y=H-h-10'; // default bottom-right
       if (options?.position) {
-        position = this.convertPositionToFFmpeg(options.position);
+        position = FFMPEGCompositionBuilder.convertPositionToFFmpeg(options.position);
       }
       
       filterParts.push(`[${currentBase}][ov${index}]overlay=${position}[${nextBase}]`);
@@ -167,28 +136,9 @@ export class FFMPEGVideoFilterModel extends VideoToVideoModel {
   async isAvailable(): Promise<boolean> {
     return this.apiClient !== undefined;
   }
-
   // ===============================
   // HELPER METHODS (FROM VIDEOMODTOVIDEOMODEL)
   // ===============================
-
-  /**
-   * Convert position string to FFmpeg overlay position
-   */
-  private convertPositionToFFmpeg(position: string): string {
-    switch (position) {
-      case 'top-left': return 'x=10:y=10';
-      case 'top-center': return 'x=(W-w)/2:y=10';
-      case 'top-right': return 'x=W-w-10:y=10';
-      case 'center-left': return 'x=10:y=(H-h)/2';
-      case 'center': return 'x=(W-w)/2:y=(H-h)/2';
-      case 'center-right': return 'x=W-w-10:y=(H-h)/2';
-      case 'bottom-left': return 'x=10:y=H-h-10';
-      case 'bottom-center': return 'x=(W-w)/2:y=H-h-10';
-      case 'bottom-right': return 'x=W-w-10:y=H-h-10';
-      default: return 'x=W-w-10:y=H-h-10';
-    }
-  }
 
   /**
    * Calculate smart positioning based on aspect ratios (moved from VideoToVideoModel)
@@ -256,12 +206,11 @@ export class FFMPEGVideoFilterModel extends VideoToVideoModel {
   // ===============================
   // FLUENT API METHODS (ORIGINAL DESIGN)
   // ===============================
-
   /**
    * Start composition with a base video or multiple videos (Fluent API)
    */
   compose(...videos: Video[]): FFMPEGVideoFilterModel {
-    this.videos = [...videos];
+    this.compositionBuilder.compose(...videos);
     return this;
   }
 
@@ -269,7 +218,7 @@ export class FFMPEGVideoFilterModel extends VideoToVideoModel {
    * Add an overlay video with options (Fluent API) 
    */
   addOverlay(video: Video, options: OverlayOptions = {}): FFMPEGVideoFilterModel {
-    this.overlays.push({ video, options });
+    this.compositionBuilder.addOverlay(video, options);
     return this;
   }
 
@@ -277,7 +226,7 @@ export class FFMPEGVideoFilterModel extends VideoToVideoModel {
    * Add intro video(s) that will be prepended to the main composition
    */
   prepend(...videos: Video[]): FFMPEGVideoFilterModel {
-    this.prependVideos.push(...videos);
+    this.compositionBuilder.prepend(...videos);
     return this;
   }
 
@@ -285,7 +234,7 @@ export class FFMPEGVideoFilterModel extends VideoToVideoModel {
    * Add outro video(s) that will be appended to the main composition
    */
   append(...videos: Video[]): FFMPEGVideoFilterModel {
-    this.appendVideos.push(...videos);
+    this.compositionBuilder.append(...videos);
     return this;
   }
 
@@ -293,7 +242,7 @@ export class FFMPEGVideoFilterModel extends VideoToVideoModel {
    * Add a custom filter operation
    */
   filter(filterExpression: string): FFMPEGVideoFilterModel {
-    this.customFilters.push(filterExpression);
+    this.compositionBuilder.filter(filterExpression);
     return this;
   }
 
@@ -301,27 +250,21 @@ export class FFMPEGVideoFilterModel extends VideoToVideoModel {
    * Set output options
    */
   options(options: FilterOptions): FFMPEGVideoFilterModel {
-    this.filterOptions = { ...this.filterOptions, ...options };
+    this.compositionBuilder.options(options);
     return this;
   }
-
   /**
    * Execute the fluent composition and return buffer
    */
   async execute(): Promise<Buffer> {
-    if (this.videos.length === 0) {
-      throw new Error('No videos provided for composition. Use compose() to add videos first.');
+    const validation = this.compositionBuilder.validate();
+    if (!validation.isValid) {
+      throw new Error(validation.errors.join('; '));
     }
 
-    const filterComplex = this.buildFilterComplex();
-    const allVideos = [
-      ...this.prependVideos,
-      ...this.videos, 
-      ...this.overlays.map(o => o.video),
-      ...this.appendVideos
-    ];
-    
-    const videoBuffers = allVideos.map(video => video.data);
+    const filterComplex = this.compositionBuilder.buildFilterComplex();
+    const videoBuffers = this.compositionBuilder.getVideoBuffers();
+    const state = this.compositionBuilder.getState();
 
     if (!this.apiClient) {
       throw new Error('FFMPEGAPIClient is required for execute operation');
@@ -329,14 +272,14 @@ export class FFMPEGVideoFilterModel extends VideoToVideoModel {
 
     const result = await this.apiClient.filterMultipleVideos(videoBuffers, {
       filterComplex,
-      videoOutputLabel: this.filterOptions.videoOutputLabel,
-      audioOutputLabel: this.filterOptions.audioOutputLabel,
-      customAudioMapping: this.filterOptions.customAudioMapping,
-      outputFormat: this.filterOptions.outputFormat,
-      codec: this.filterOptions.codec as any,
-      bitrate: this.filterOptions.bitrate,
-      fps: this.filterOptions.fps,
-      resolution: this.filterOptions.resolution
+      videoOutputLabel: state.filterOptions.videoOutputLabel,
+      audioOutputLabel: state.filterOptions.audioOutputLabel,
+      customAudioMapping: state.filterOptions.customAudioMapping,
+      outputFormat: state.filterOptions.outputFormat,
+      codec: state.filterOptions.codec as any,
+      bitrate: state.filterOptions.bitrate,
+      fps: state.filterOptions.fps,
+      resolution: state.filterOptions.resolution
     });
 
     if (!result.videoBuffer) {
@@ -345,86 +288,12 @@ export class FFMPEGVideoFilterModel extends VideoToVideoModel {
 
     return result.videoBuffer;
   }
-
   /**
    * Build the filter complex string from the fluent operations
    */
   private buildFilterComplex(): string {
-    if (this.customFilters.length > 0) {
-      return this.customFilters.join(';\n');
-    }
-
-    const filterParts: string[] = [];
-    const hasIntroOutro = this.prependVideos.length > 0 || this.appendVideos.length > 0;
-    
-    let inputIndex = 0;
-    const prependIndices = this.prependVideos.map(() => inputIndex++);
-    const mainIndices = this.videos.map(() => inputIndex++);
-    const overlayIndices = this.overlays.map(() => inputIndex++);
-    const appendIndices = this.appendVideos.map(() => inputIndex++);
-    
-    if (hasIntroOutro) {
-      return this.buildConcatenationFilterComplex(prependIndices, mainIndices, overlayIndices, appendIndices);
-    }
-    
-    // Format base videos
-    for (let i = 0; i < this.videos.length; i++) {
-      filterParts.push(`[${mainIndices[i]}:v]format=yuv420p[base${i}]`);
-    }
-
-    // Process overlays
-    let currentBase = 'base0';
-    for (let i = 0; i < this.overlays.length; i++) {
-      const overlayIndex = overlayIndices[i];
-      const overlay = this.overlays[i];
-      const overlayLabel = `ov${i}`;
-      const nextBase = i === this.overlays.length - 1 ? this.filterOptions.videoOutputLabel! : `tmp${i}`;
-
-      // Build overlay processing
-      let overlayFilter = `[${overlayIndex}:v]`;
-      
-      if (overlay.options.startTime !== undefined) {
-        overlayFilter += `tpad=start_duration=${overlay.options.startTime}:start_mode=add:color=black@0.0,setpts=PTS-STARTPTS,`;
-      }
-      
-      if (overlay.options.colorKey) {
-        const similarity = overlay.options.colorKeySimilarity || 0.30;
-        const blend = overlay.options.colorKeyBlend || 0.10;
-        overlayFilter += `colorkey=${overlay.options.colorKey}:${similarity}:${blend},`;
-      }
-
-      if (overlay.options.width || overlay.options.height) {
-        const width = this.parseSize(overlay.options.width, 'width') || 'iw';
-        const height = this.parseSize(overlay.options.height, 'height') || 'ih';
-        overlayFilter += `scale=${width}:${height},`;
-      }
-      
-      overlayFilter = overlayFilter.replace(/,$/, '') + `[${overlayLabel}]`;
-      filterParts.push(overlayFilter);
-
-      let overlayPosition = this.buildOverlayPosition(overlay.options);
-      let overlayComposition = `[${currentBase}][${overlayLabel}]overlay=format=auto:${overlayPosition}`;
-      
-      if (overlay.options.opacity !== undefined && overlay.options.opacity < 1.0) {
-        overlayComposition += `:alpha=${overlay.options.opacity}`;
-      }
-      
-      overlayComposition += `[${nextBase}]`;
-      filterParts.push(overlayComposition);
-      
-      currentBase = nextBase;
-    }
-
-    // Add audio mixing if multiple videos
-    const allVideosCount = this.videos.length + this.overlays.length;
-    if (allVideosCount > 1 && this.filterOptions.customAudioMapping) {
-      const audioInputs = Array.from({ length: allVideosCount }, (_, i) => `[${mainIndices[0] + i}:a]`).join('');
-      filterParts.push(`${audioInputs}amix=inputs=${allVideosCount}:duration=longest:normalize=0[${this.filterOptions.audioOutputLabel}]`);
-    }
-
-    return filterParts.join(';\n');
+    return this.compositionBuilder.buildFilterComplex();
   }
-
   /**
    * Build filter complex for concatenation with intro/outro videos
    */
@@ -434,7 +303,7 @@ export class FFMPEGVideoFilterModel extends VideoToVideoModel {
     overlayIndices: number[], 
     appendIndices: number[]
   ): string {
-    // Simplified implementation - can be expanded as needed
+    // Delegate to composition builder - this could be expanded if needed
     return `[0:v]format=yuv420p[final_video]`;
   }
 
@@ -478,23 +347,14 @@ export class FFMPEGVideoFilterModel extends VideoToVideoModel {
    * Preview the filter complex that would be generated
    */
   preview(): string {
-    return this.buildFilterComplex();
+    return this.compositionBuilder.preview();
   }
 
   /**
    * Reset the composition builder
    */
   reset(): FFMPEGVideoFilterModel {
-    this.videos = [];
-    this.overlays = [];
-    this.prependVideos = [];
-    this.appendVideos = [];
-    this.customFilters = [];
-    this.filterOptions = {
-      videoOutputLabel: 'final_video',
-      audioOutputLabel: 'mixed_audio',
-      customAudioMapping: true
-    };
+    this.compositionBuilder.reset();
     return this;
   }
 }

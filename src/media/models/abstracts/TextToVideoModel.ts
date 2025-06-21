@@ -6,8 +6,7 @@
  */
 
 import { Model, ModelMetadata } from './Model';
-import { Text, Video } from '../../assets/roles';
-import { TextInput, castToText } from '../../assets/casting';
+import { Text, TextRole, Video } from '../../assets/roles';
 
 export interface TextToVideoOptions {
   duration?: number; // Video duration in seconds
@@ -29,7 +28,7 @@ export interface TextToVideoOptions {
 /**
  * Abstract base class for text-to-video models
  */
-export abstract class TextToVideoModel extends Model<TextInput, TextToVideoOptions, Video> {
+export abstract class TextToVideoModel extends Model<TextRole, TextToVideoOptions, Video> {
   protected metadata: ModelMetadata;
 
   constructor(metadata: ModelMetadata) {
@@ -40,7 +39,7 @@ export abstract class TextToVideoModel extends Model<TextInput, TextToVideoOptio
   /**
    * Transform text to video
    */
-  abstract transform(input: TextInput, options?: TextToVideoOptions): Promise<Video>;
+  abstract transform(input: TextRole, options?: TextToVideoOptions): Promise<Video>;
 
   /**
    * Check if the model is available

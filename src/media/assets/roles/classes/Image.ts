@@ -3,11 +3,13 @@
  * 
  * Represents image data with format and metadata information.
  * Serves as both DTO and rich interface for image assets.
+ * Implements ImageRole to be compatible with model interfaces.
  */
 
 import { ImageFormat, ImageMetadata } from '../types';
+import { ImageRole } from '../interfaces/ImageRole';
 
-export class Image {
+export class Image implements ImageRole {
   constructor(
     public readonly data: Buffer,
     public readonly format: ImageFormat,
@@ -21,6 +23,19 @@ export class Image {
 
   toString(): string {
     return `Image(${this.format}, ${this.data.length} bytes)`;
+  }
+
+  // ImageRole interface implementation
+  async asImage(): Promise<Image> {
+    return this;
+  }
+
+  getImageMetadata(): ImageMetadata {
+    return this.metadata;
+  }
+
+  canPlayImageRole(): boolean {
+    return this.isValid();
   }
 
   // Rich interface methods for compatibility

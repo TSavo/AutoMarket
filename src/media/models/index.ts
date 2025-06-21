@@ -18,8 +18,7 @@
 
 // Abstract base classes and interfaces
 export * from './abstracts';
-// Shared types and utilities
-export * from './shared';
+
 
 // Backward compatibility exports - re-export everything at the root level
 // This ensures existing imports like `import { ReplicateTextToImageModel } from '../models'` still work
@@ -46,4 +45,4 @@ export { FFMPEGDockerModel } from '../providers/docker/ffmpeg/FFMPEGDockerModel'
 export { FFMPEGVideoFilterModel } from '../providers/docker/ffmpeg/FFMPEGVideoFilterModel';
 
 // Core media types (now properly organized in shared/)
-export { Audio, Video, Text, Image } from './shared';
+export { Audio, Video, Text, Image } from '@/media/assets/roles';

@@ -6,8 +6,7 @@
  */
 
 import { Model, ModelMetadata } from './Model';
-import { Text } from '../../assets/roles';
-import { TextInput } from '../../assets/casting';
+import { Text, TextRole } from '../../assets/roles';
 
 export interface TextToTextOptions {
   seed?: string;
@@ -18,7 +17,7 @@ export interface TextToTextOptions {
   [key: string]: any; // Allow model-specific parameters
 }
 
-export abstract class TextToTextModel extends Model<TextInput, TextToTextOptions, Text> {
+export abstract class TextToTextModel extends Model<TextRole, TextToTextOptions, Text> {
   constructor(metadata: ModelMetadata) {
     super(metadata);
   }
@@ -26,7 +25,7 @@ export abstract class TextToTextModel extends Model<TextInput, TextToTextOptions
   /**
    * Transform text to text
    */
-  abstract transform(input: TextInput, options?: TextToTextOptions): Promise<Text>;
+  abstract transform(input: TextRole, options?: TextToTextOptions): Promise<Text>;
 
   /**
    * Check if the model is available

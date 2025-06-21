@@ -7,7 +7,6 @@
 
 import { ModelMetadata } from './Model';
 import { Video, Audio, VideoRole, AudioRole } from '../../assets/roles';
-import { VideoInput, castToVideo } from '../../assets/casting';
 
 export interface VideoToAudioOptions {
   outputFormat?: 'wav' | 'mp3' | 'flac' | 'm4a' | 'aac' | 'ogg';
@@ -34,7 +33,7 @@ export abstract class VideoToAudioModel {
   /**
    * Transform video to audio - extracts audio track from video
    */
-  abstract transform(input: VideoInput, options?: VideoToAudioOptions): Promise<Audio>;
+  abstract transform(input: VideoRole, options?: VideoToAudioOptions): Promise<Audio>;
 
   /**
    * Check if the model is available

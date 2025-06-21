@@ -7,8 +7,7 @@
 
 import { VideoToAudioModel, VideoToAudioOptions } from '../../../models/abstracts/VideoToAudioModel';
 import { ModelMetadata } from '../../../models/abstracts/Model';
-import { Video, Audio } from '../../../assets/roles';
-import { VideoInput, castToVideo } from '../../../assets/casting';
+import { Video, Audio, VideoRole } from '../../../assets/roles';
 import { FFMPEGAPIClient } from './FFMPEGAPIClient';
 import { FFMPEGDockerService } from '../../../services/FFMPEGDockerService';
 import fs from 'fs';
@@ -54,12 +53,12 @@ export class FFMPEGDockerModel extends VideoToAudioModel {
   /**
    * Transform video to audio using FFMPEG Docker service
    */
-  async transform(input: VideoInput, options?: VideoToAudioOptions): Promise<Audio> {
+  async transform(input: VideoRole, options?: VideoToAudioOptions): Promise<Audio> {
     const startTime = Date.now();
 
     try {
-      // Cast input to Video
-      const video = await castToVideo(input);
+      // Get video from the VideoRole
+      const video = await input.asVideo();
 
       // Validate input
       if (!video.isValid()) {

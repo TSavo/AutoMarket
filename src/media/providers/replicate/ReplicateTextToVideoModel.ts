@@ -6,9 +6,8 @@
 
 import { ModelMetadata } from '../../models/abstracts/Model';
 import { TextToVideoModel, TextToVideoOptions } from '../../models/abstracts/TextToVideoModel';
-import { Video } from '../../assets/roles';
+import { Video, TextRole } from '../../assets/roles';
 import { ReplicateClient, ReplicateModelMetadata } from './ReplicateClient';
-import { TextInput, castToText } from '../../assets/casting';
 import { SmartAssetFactory } from '../../assets/SmartAssetFactory';
 import Replicate from 'replicate';
 import * as fs from 'fs';
@@ -48,13 +47,12 @@ export class ReplicateTextToVideoModel extends TextToVideoModel {
     this.modelMetadata = config.modelMetadata;
     this.replicateClient = config.replicateClient;
   }
-
   /**
    * Transform text to video using specific Replicate text-to-video model
    */
-  async transform(input: TextInput, options?: TextToVideoOptions): Promise<Video> {
-    // Cast input to Text
-    const text = await castToText(input);
+  async transform(input: TextRole, options?: TextToVideoOptions): Promise<Video> {
+    // Get text from the TextRole
+    const text = await input.asText();
 
     if (!text.isValid()) {
       throw new Error('Invalid text data provided');

@@ -6,9 +6,8 @@
 
 import { ModelMetadata } from '../../models/abstracts/Model';
 import { TextToImageModel, TextToImageOptions } from '../../models/abstracts/TextToImageModel';
-import { Image, ImageFormat } from '../../assets/roles';
+import { Image, ImageFormat, TextRole } from '../../assets/roles';
 import { ReplicateClient, ReplicateModelMetadata } from './ReplicateClient';
-import { TextInput, castToText } from '../../assets/casting';
 import Replicate from 'replicate';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -51,9 +50,9 @@ export class ReplicateTextToImageModel extends TextToImageModel {
   /**
    * Transform text to image using specific Replicate text-to-image model
    */
-  async transform(input: TextInput, options?: TextToImageOptions): Promise<Image> {
+  async transform(input: TextRole, options?: TextToImageOptions): Promise<Image> {
     // Cast input to Text
-    const text = await castToText(input);
+    const text = await input.asText();
 
     if (!text.isValid()) {
       throw new Error('Invalid text data provided');

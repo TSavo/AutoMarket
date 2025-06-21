@@ -7,8 +7,7 @@
 
 import { TextToTextModel, TextToTextOptions } from '../../models/abstracts/TextToTextModel';
 import { ModelMetadata } from '../../models/abstracts/Model';
-import { Text } from '../../assets/roles';
-import { TextInput, castToText } from '../../assets/casting';
+import { Text, TextRole } from '../../assets/roles';
 import { TogetherAPIClient } from './TogetherAPIClient';
 
 export interface TogetherTextToTextOptions extends TextToTextOptions {
@@ -45,15 +44,14 @@ export class TogetherTextToTextModel extends TextToTextModel {
     this.apiClient = config.apiClient;
     this.modelId = config.modelId;
   }
-
   /**
    * Transform text to text using Together AI
    */
-  async transform(input: TextInput, options?: TogetherTextToTextOptions): Promise<Text> {
+  async transform(input: TextRole, options?: TogetherTextToTextOptions): Promise<Text> {
     const startTime = Date.now();
 
-    // Cast input to Text
-    const text = await castToText(input);
+    // Get text from the TextRole
+    const text = await input.asText();
 
     // Validate text data
     if (!text.isValid()) {
