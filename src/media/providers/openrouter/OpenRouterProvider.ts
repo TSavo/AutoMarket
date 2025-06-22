@@ -106,8 +106,7 @@ export class OpenRouterProvider implements MediaProvider, TextToTextProvider {
       apiClient: this.apiClient,
       modelId
     });
-  }
-  /**
+  }  /**
    * Get a model instance by ID with automatic type detection
    */
   async getModel(modelId: string): Promise<any> {
@@ -116,6 +115,9 @@ export class OpenRouterProvider implements MediaProvider, TextToTextProvider {
       // Wait for auto-configuration to complete if it's in progress
       await this.ensureConfigured();
     }
+    
+    // Wait for model discovery to complete before creating model
+    await this.ensureModelsDiscovered();
     
     // For OpenRouter, all models are text-to-text
     return this.createTextToTextModel(modelId);
@@ -157,6 +159,23 @@ export class OpenRouterProvider implements MediaProvider, TextToTextProvider {
     throw new Error('OpenRouterProvider should use Model instances for generation, not direct generation');
   }
 
+  /**
+   * Get free models available on OpenRouter
+   */
+  getFreeModels(): ProviderModel[] {
+    return this.models.filter(model => 
+      model.pricing?.inputCost === 0 && model.pricing?.outputCost === 0
+    );
+  }
+
+  /**
+   * Check if a specific model is free
+   */
+  isModelFree(modelId: string): boolean {
+    const model = this.models.find(m => m.id === modelId);
+    return model ? (model.pricing?.inputCost === 0 && model.pricing?.outputCost === 0) : false;
+  }
+
   // Helper methods
   private async discoverModels(): Promise<void> {
     if (!this.apiClient) {
@@ -165,9 +184,26 @@ export class OpenRouterProvider implements MediaProvider, TextToTextProvider {
 
     try {
       const availableModels = await this.apiClient.getAvailableModels();
-      
-      for (const model of availableModels) {
+        for (const model of availableModels) {
         console.log(`[OpenRouterProvider] Discovered model: ${model.id}`);
+        
+        // Parse pricing information if available
+        let pricing: { inputCost?: number; outputCost?: number; currency: string } | undefined;
+        if (model.pricing) {
+          try {
+            // OpenRouter pricing is in string format like "$0.0001" per token
+            const inputCost = model.pricing.prompt ? parseFloat(model.pricing.prompt.replace('$', '')) : 0;
+            const outputCost = model.pricing.completion ? parseFloat(model.pricing.completion.replace('$', '')) : 0;
+            pricing = {
+              inputCost,
+              outputCost,
+              currency: 'USD'
+            };
+          } catch (error) {
+            console.warn(`[OpenRouterProvider] Failed to parse pricing for ${model.id}:`, error);
+          }
+        }
+        
         const providerModel: ProviderModel = {
           id: model.id,
           name: model.name,
@@ -177,7 +213,8 @@ export class OpenRouterProvider implements MediaProvider, TextToTextProvider {
             temperature: { type: 'number', min: 0, max: 2, default: 0.7 },
             max_tokens: { type: 'number', min: 1, max: 4096, default: 1024 },
             top_p: { type: 'number', min: 0, max: 1, default: 1 }
-          }
+          },
+          ...(pricing && { pricing })
         };
 
         this.discoveredModels.set(model.id, providerModel);
@@ -244,6 +281,24 @@ export class OpenRouterProvider implements MediaProvider, TextToTextProvider {
     if (!this.apiClient) {
       throw new Error('Provider auto-configuration failed - no API key found in environment');
     }
+  }
+
+  /**
+   * Ensure models have been discovered
+   */
+  private async ensureModelsDiscovered(): Promise<void> {
+    // If models are already discovered, no need to wait
+    if (this.discoveredModels.size > 0) {
+      return;
+    }
+    
+    // If not configured yet, wait for configuration first
+    if (!this.apiClient) {
+      await this.ensureConfigured();
+    }
+    
+    // Now discover models
+    await this.discoverModels();
   }
 }
 
