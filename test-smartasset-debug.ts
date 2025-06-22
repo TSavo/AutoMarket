@@ -36,10 +36,9 @@ async function testSmartAssetFactorySteps() {
     console.log(`   Codec: ${directMetadata.codec}`);
     
     // Step 2: Test SmartAssetFactory loading
-    console.log('\n2️⃣ Testing SmartAssetFactory loading...');
-    
+    console.log('\n2️⃣ Testing SmartAssetFactory loading...');    
     const { SmartAssetFactory } = await import('./src/media/assets/SmartAssetFactory');
-    const smartAsset = SmartAssetFactory.load(videoPath);
+    const smartAsset = await SmartAssetFactory.load(videoPath);
     
     console.log(`✅ SmartAsset created: ${smartAsset.constructor.name}`);
     console.log(`   Metadata keys: ${Object.keys(smartAsset.metadata || {})}`);

@@ -139,14 +139,13 @@ export abstract class TextToVideoModel extends Model<TextRole, TextToVideoOption
    * specific capabilities and supported input/output types.
    * 
    * @param metadata - Model metadata including id, name, capabilities, etc.
-   */
-  constructor(metadata: ModelMetadata) {
+   */  constructor(metadata: ModelMetadata) {
     // Ensure the model supports text-to-video transformation
     const enhancedMetadata: ModelMetadata = {
       ...metadata,
-      inputTypes: [...new Set([...metadata.inputTypes, 'text'])],
-      outputTypes: [...new Set([...metadata.outputTypes, 'video'])],
-      capabilities: [...new Set([...metadata.capabilities, 'text-to-video', 'video-generation'])]
+      inputTypes: Array.from(new Set([...metadata.inputTypes, 'text'])),
+      outputTypes: Array.from(new Set([...metadata.outputTypes, 'video'])),
+      capabilities: Array.from(new Set([...metadata.capabilities, 'text-to-video', 'video-generation']))
     };
     
     super(enhancedMetadata);

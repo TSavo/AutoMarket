@@ -107,11 +107,10 @@ export class ProviderRegistry {
   }
   /**
    * Get providers by capability
-   */
-  public async getProvidersByCapability(capability: MediaCapability): Promise<MediaProvider[]> {
+   */  public async getProvidersByCapability(capability: MediaCapability): Promise<MediaProvider[]> {
     const providers: MediaProvider[] = [];
     
-    for (const [id] of this.providers) {
+    for (const [id] of Array.from(this.providers)) {
       try {
         const provider = await this.getProvider(id);
         if (provider.capabilities && provider.capabilities.includes(capability)) {

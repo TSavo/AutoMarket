@@ -5,8 +5,8 @@
  * and applies appropriate role mixins for maximum functionality.
  */
 
-import fs from 'fs';
-import path from 'path';
+import * as fs from 'fs';
+import * as path from 'path';
 import { AssetMetadata, BaseAsset } from './Asset';
 import { 
   withAudioRole, withVideoRole, withTextRole, withImageRole

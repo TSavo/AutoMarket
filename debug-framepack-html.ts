@@ -61,22 +61,21 @@ async function debugFramePackHTML() {
     console.log(`Found ${formTags.length} form tags`);
 
     // Look for code blocks or pre-formatted text
-    const codeBlocks = html.match(/<code[^>]*>[\s\S]*?<\/code>/gi) || [];
-    const preBlocks = html.match(/<pre[^>]*>[\s\S]*?<\/pre>/gi) || [];
+    const codeBlocks = html.match(/<code[^>]*>[\s\S]*?<\/code>/gi) || [];    const preBlocks: string[] = html.match(/<pre[^>]*>[\s\S]*?<\/pre>/gi) || [];
     
     console.log(`\nFound ${codeBlocks.length} code blocks`);
     console.log(`Found ${preBlocks.length} pre blocks`);
 
     if (codeBlocks.length > 0) {
       console.log('\n📋 Code block content:');
-      codeBlocks.forEach((block, i) => {
+      codeBlocks.forEach((block: string, i) => {
         console.log(`   Block ${i + 1}: ${block.substring(0, 200)}...`);
       });
     }
 
     if (preBlocks.length > 0) {
       console.log('\n📋 Pre block content:');
-      preBlocks.forEach((block, i) => {
+      preBlocks.forEach((block: string, i) => {
         console.log(`   Block ${i + 1}: ${block.substring(0, 200)}...`);
       });
     }
@@ -86,15 +85,14 @@ async function debugFramePackHTML() {
     console.log(`\nFound ${dataProps.length} data attributes`);
 
     // Look for window variables or __NEXT_DATA__
-    const windowVars = html.match(/window\.[^=]*=.*?;/gi) || [];
-    const nextData = html.match(/__NEXT_DATA__[^<]*/gi) || [];
+    const windowVars = html.match(/window\.[^=]*=.*?;/gi) || [];    const nextData: string[] = html.match(/__NEXT_DATA__[^<]*/gi) || [];
     
     console.log(`Found ${windowVars.length} window variables`);
     console.log(`Found ${nextData.length} Next.js data blocks`);
 
     if (nextData.length > 0) {
       console.log('\n📋 Next.js data:');
-      nextData.forEach((data, i) => {
+      nextData.forEach((data: string, i) => {
         console.log(`   Data ${i + 1}: ${data.substring(0, 300)}...`);
       });
     }

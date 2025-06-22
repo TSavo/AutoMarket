@@ -100,9 +100,9 @@ export abstract class TextToAudioModel extends Model<TextRole, TextToAudioOption
     // Ensure the model supports text-to-audio transformation
     const enhancedMetadata: ModelMetadata = {
       ...metadata,
-      inputTypes: [...new Set([...metadata.inputTypes, 'text'])],
-      outputTypes: [...new Set([...metadata.outputTypes, 'audio', 'speech'])],
-      capabilities: [...new Set([...metadata.capabilities, 'text-to-audio', 'text-to-speech'])]
+      inputTypes: Array.from(new Set([...metadata.inputTypes, 'text'])),
+      outputTypes: Array.from(new Set([...metadata.outputTypes, 'audio', 'speech'])),
+      capabilities: Array.from(new Set([...metadata.capabilities, 'text-to-audio', 'text-to-speech']))
     };
     super(enhancedMetadata);
   }

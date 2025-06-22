@@ -12,8 +12,8 @@
 import * as falLib from '@fal-ai/client';
 import { v4 as uuidv4 } from 'uuid';
 import fetch from 'node-fetch';
-import fs from 'fs/promises';
-import path from 'path';
+import { promises as fs } from 'fs';
+import * as path from 'path';
 
 const fal = falLib.fal;
 
@@ -282,14 +282,12 @@ export class FalAiClient {
 
       if (!response.ok) {
         throw new Error(`Failed to fetch models page: ${response.status}`);
-      }
-
-      const html = await response.text();
+      }      const html = await response.text();
       
       // 2. Extract model IDs from HTML using basic pattern matching
       const modelIdPattern = /fal-ai\/[\w-]+/g;
       const modelMatches = html.match(modelIdPattern) || [];
-      const uniqueModelIds = [...new Set(modelMatches)];
+      const uniqueModelIds = Array.from(new Set(modelMatches));
 
       console.log(`[FalAiClient] Found ${uniqueModelIds.length} potential models to discover`);
 
