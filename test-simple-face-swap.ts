@@ -48,7 +48,7 @@ async function testFaceSwap() {
     console.log('✅ Videos loaded');
 
     // Find face swap models
-    const models = provider.getModelsForCapability(MediaCapability.VIDEO_ANIMATION);
+    const models = provider.getModelsForCapability(MediaCapability.VIDEO_TO_VIDEO);
     const faceSwapModel = models.find(m => 
       m.id.includes('face-swap') || m.id.includes('faceswap')
     );

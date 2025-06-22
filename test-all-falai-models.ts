@@ -31,7 +31,7 @@ async function testAllFalAiModels() {
     console.log('\n🎨 Test 1: Text-to-Image Generation (FLUX Pro)');
     console.log('================================================');
     
-    const textToImageModels = provider.getModelsForCapability(MediaCapability.IMAGE_GENERATION);
+    const textToImageModels = provider.getModelsForCapability(MediaCapability.TEXT_TO_IMAGE);
     const fluxModel = textToImageModels.find(m => m.id.includes('flux')) || textToImageModels[0];
     
     if (!fluxModel) {
@@ -64,7 +64,7 @@ async function testAllFalAiModels() {
     console.log('\n🎬 Test 2: Text-to-Video Generation');
     console.log('====================================');
     
-    const textToVideoModels = provider.getModelsForCapability(MediaCapability.VIDEO_GENERATION);
+    const textToVideoModels = provider.getModelsForCapability(MediaCapability.TEXT_TO_VIDEO);
     const videoModel = textToVideoModels[0];
     
     if (!videoModel) {
@@ -96,7 +96,7 @@ async function testAllFalAiModels() {
     console.log('\n� Test 3: Video-to-Video Processing');
     console.log('===================================');
     
-    const videoToVideoModels = provider.getModelsForCapability(MediaCapability.VIDEO_ANIMATION);
+    const videoToVideoModels = provider.getModelsForCapability(MediaCapability.VIDEO_TO_VIDEO);
     const enhanceModel = videoToVideoModels.find(m => 
       m.id.includes('enhance') || m.id.includes('upscale') || m.id.includes('face-swap')
     ) || videoToVideoModels[0];
@@ -116,7 +116,7 @@ async function testAllFalAiModels() {
     console.log('\n🔊 Test 4: Text-to-Audio Generation');
     console.log('====================================');
     
-    const textToAudioModels = provider.getModelsForCapability(MediaCapability.AUDIO_GENERATION);
+    const textToAudioModels = provider.getModelsForCapability(MediaCapability.TEXT_TO_AUDIO);
     const audioModel = textToAudioModels[0];
     
     if (!audioModel) {

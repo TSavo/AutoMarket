@@ -26,12 +26,11 @@ import { TogetherTextToAudioModel } from './TogetherTextToAudioModel';
 export class TogetherProvider implements MediaProvider, TextToTextProvider, TextToImageProvider, TextToAudioProvider {
   readonly id = 'together';
   readonly name = 'Together AI';
-  readonly type = ProviderType.REMOTE;
-  readonly capabilities = [
-    MediaCapability.TEXT_GENERATION,
+  readonly type = ProviderType.REMOTE;  readonly capabilities = [
     MediaCapability.TEXT_TO_TEXT,
-    MediaCapability.IMAGE_GENERATION,
-    MediaCapability.AUDIO_GENERATION
+    MediaCapability.TEXT_TO_TEXT,
+    MediaCapability.TEXT_TO_IMAGE,
+    MediaCapability.TEXT_TO_AUDIO
   ];
 
   private config?: ProviderConfig;
@@ -88,7 +87,7 @@ export class TogetherProvider implements MediaProvider, TextToTextProvider, Text
       id: modelId,
       name: this.getModelDisplayName(modelId),
       description: `Together AI text model: ${modelId}`,
-      capabilities: [MediaCapability.TEXT_GENERATION, MediaCapability.TEXT_TO_TEXT],
+      capabilities: [MediaCapability.TEXT_TO_TEXT, MediaCapability.TEXT_TO_TEXT],
       parameters: {
         temperature: { type: 'number', min: 0, max: 2, default: 0.7 },
         max_tokens: { type: 'number', min: 1, max: 8192, default: 1024 },
@@ -107,7 +106,7 @@ export class TogetherProvider implements MediaProvider, TextToTextProvider, Text
       id: modelId,
       name: this.getModelDisplayName(modelId),
       description: `Together AI image model: ${modelId}`,
-      capabilities: [MediaCapability.IMAGE_GENERATION],
+      capabilities: [MediaCapability.TEXT_TO_IMAGE],
       parameters: this.getImageParametersForModel(modelId),
       pricing: {
         inputCost: 0, // Many FLUX models are free
@@ -120,7 +119,7 @@ export class TogetherProvider implements MediaProvider, TextToTextProvider, Text
       id: modelId,
       name: this.getModelDisplayName(modelId),
       description: `Together AI audio model: ${modelId}`,
-      capabilities: [MediaCapability.AUDIO_GENERATION],
+      capabilities: [MediaCapability.TEXT_TO_AUDIO],
       parameters: {
         voice: { type: 'string', default: 'default' },
         speed: { type: 'number', min: 0.5, max: 2.0, default: 1.0 },
@@ -233,7 +232,7 @@ export class TogetherProvider implements MediaProvider, TextToTextProvider, Text
   }
 
   getSupportedTextToImageModels(): string[] {
-    return this.getModelsForCapability(MediaCapability.IMAGE_GENERATION).map(model => model.id);
+    return this.getModelsForCapability(MediaCapability.TEXT_TO_IMAGE).map(model => model.id);
   }
 
   supportsTextToImageModel(modelId: string): boolean {
@@ -261,7 +260,7 @@ export class TogetherProvider implements MediaProvider, TextToTextProvider, Text
   }
 
   getSupportedTextToAudioModels(): string[] {
-    return this.getModelsForCapability(MediaCapability.AUDIO_GENERATION).map(model => model.id);
+    return this.getModelsForCapability(MediaCapability.TEXT_TO_AUDIO).map(model => model.id);
   }
 
   supportsTextToAudioModel(modelId: string): boolean {
@@ -323,13 +322,13 @@ export class TogetherProvider implements MediaProvider, TextToTextProvider, Text
         }
 
         // Count by type
-        if (capabilities.includes(MediaCapability.TEXT_GENERATION)) {
+        if (capabilities.includes(MediaCapability.TEXT_TO_TEXT)) {
           textModelCount++;
         }
-        if (capabilities.includes(MediaCapability.IMAGE_GENERATION)) {
+        if (capabilities.includes(MediaCapability.TEXT_TO_IMAGE)) {
           imageModelCount++;
         }
-        if (capabilities.includes(MediaCapability.AUDIO_GENERATION)) {
+        if (capabilities.includes(MediaCapability.TEXT_TO_AUDIO)) {
           audioModelCount++;
         }
 
@@ -420,7 +419,7 @@ export class TogetherProvider implements MediaProvider, TextToTextProvider, Text
       displayName.includes('image');
 
     if (isImageModel) {
-      capabilities.push(MediaCapability.IMAGE_GENERATION);
+      capabilities.push(MediaCapability.TEXT_TO_IMAGE);
     }
 
     // Text generation models - be more inclusive but exclude image-only models
@@ -451,7 +450,7 @@ export class TogetherProvider implements MediaProvider, TextToTextProvider, Text
       );
 
     if (isTextModel) {
-      capabilities.push(MediaCapability.TEXT_GENERATION, MediaCapability.TEXT_TO_TEXT);
+      capabilities.push(MediaCapability.TEXT_TO_TEXT, MediaCapability.TEXT_TO_TEXT);
     }
 
     // Audio generation models
@@ -471,7 +470,7 @@ export class TogetherProvider implements MediaProvider, TextToTextProvider, Text
       description.includes('text-to-speech');
 
     if (isAudioModel) {
-      capabilities.push(MediaCapability.AUDIO_GENERATION);
+      capabilities.push(MediaCapability.TEXT_TO_AUDIO);
     }
 
     // Debug logging for classification
@@ -486,10 +485,10 @@ export class TogetherProvider implements MediaProvider, TextToTextProvider, Text
    * Get appropriate parameters based on model capabilities (dynamic)
    */
   private getParametersForCapabilities(capabilities: MediaCapability[], modelId?: string): Record<string, any> {
-    if (capabilities.includes(MediaCapability.IMAGE_GENERATION)) {
+    if (capabilities.includes(MediaCapability.TEXT_TO_IMAGE)) {
       // For image models, use dynamic parameters
       return this.getImageParametersForModel(modelId || '');
-    } else if (capabilities.includes(MediaCapability.AUDIO_GENERATION)) {
+    } else if (capabilities.includes(MediaCapability.TEXT_TO_AUDIO)) {
       // For audio models, use audio-specific parameters
       return this.getAudioParametersForModel(modelId || '');
     } else {
@@ -508,15 +507,15 @@ export class TogetherProvider implements MediaProvider, TextToTextProvider, Text
    * Get models by type for easier access
    */
   getTextModels(): ProviderModel[] {
-    return this.getModelsForCapability(MediaCapability.TEXT_GENERATION);
+    return this.getModelsForCapability(MediaCapability.TEXT_TO_TEXT);
   }
 
   getImageModels(): ProviderModel[] {
-    return this.getModelsForCapability(MediaCapability.IMAGE_GENERATION);
+    return this.getModelsForCapability(MediaCapability.TEXT_TO_IMAGE);
   }
 
   getAudioModels(): ProviderModel[] {
-    return this.getModelsForCapability(MediaCapability.AUDIO_GENERATION);
+    return this.getModelsForCapability(MediaCapability.TEXT_TO_AUDIO);
   }
 
   /**
@@ -547,5 +546,28 @@ export class TogetherProvider implements MediaProvider, TextToTextProvider, Text
       sample_rate: { type: 'number', enum: [22050, 44100, 48000], default: 44100 },
       language: { type: 'string', default: 'en' }
     };
+  }
+
+  /**
+   * Get a model instance by ID with automatic type detection
+   */
+  async getModel(modelId: string): Promise<any> {
+    // Determine model type based on model capabilities
+    const modelMetadata = await this.apiClient?.getModelInfo(modelId);
+    if (!modelMetadata) {
+      throw new Error(`Model ${modelId} not found`);
+    }
+
+    // Together AI models are typically text-to-text, but some support other capabilities
+    if (modelId.includes('image') || modelId.includes('vision')) {
+      return this.createTextToImageModel(modelId);
+    }
+    
+    if (modelId.includes('audio') || modelId.includes('speech') || modelId.includes('tts')) {
+      return this.createTextToAudioModel(modelId);
+    }
+    
+    // Default to text-to-text
+    return this.createTextToTextModel(modelId);
   }
 }

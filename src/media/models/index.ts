@@ -35,7 +35,7 @@ export { TogetherTextToTextModel } from '../providers/together/TogetherTextToTex
 
 export { OpenRouterTextToTextModel } from '../providers/openrouter/OpenRouterTextToTextModel';
 
-export { ChatterboxTTSModel } from '../providers/docker/chatterbox/ChatterboxTTSModel';
+export { ChatterboxTextToAudioModel as ChatterboxTTSModel } from '../providers/docker/chatterbox/ChatterboxTextToAudioModel';
 export { ChatterboxDockerModel } from '../providers/docker/chatterbox/ChatterboxDockerModel';
 
 export { WhisperSTTModel } from '../providers/docker/whisper/WhisperSTTModel';

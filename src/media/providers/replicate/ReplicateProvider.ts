@@ -39,12 +39,12 @@ class BaseReplicateProvider implements MediaProvider {
   readonly id = 'replicate';
   readonly name = 'Replicate';
   readonly type = ProviderType.REMOTE;  readonly capabilities = [
-    MediaCapability.IMAGE_GENERATION,
-    MediaCapability.IMAGE_UPSCALING,
-    MediaCapability.IMAGE_ENHANCEMENT,
-    MediaCapability.VIDEO_GENERATION,
-    MediaCapability.VIDEO_ANIMATION,
-    MediaCapability.VIDEO_UPSCALING
+    MediaCapability.TEXT_TO_IMAGE,
+    MediaCapability.IMAGE_TO_IMAGE,
+    MediaCapability.IMAGE_TO_IMAGE,
+    MediaCapability.TEXT_TO_VIDEO,
+    MediaCapability.IMAGE_TO_VIDEO,
+    MediaCapability.VIDEO_TO_VIDEO
   ];
 
   private config?: ProviderConfig;
@@ -160,19 +160,19 @@ class BaseReplicateProvider implements MediaProvider {
 
     // Map from Replicate categories to our MediaCapability enum
     if (category.includes('image') || capabilities.includes('image_generation')) {
-      mapped.push(MediaCapability.IMAGE_GENERATION);
+      mapped.push(MediaCapability.TEXT_TO_IMAGE);
     }
     if (category.includes('video') || capabilities.includes('video_generation')) {
-      mapped.push(MediaCapability.VIDEO_GENERATION);
+      mapped.push(MediaCapability.TEXT_TO_VIDEO);
     }
     if (capabilities.includes('upscaling')) {
-      mapped.push(MediaCapability.IMAGE_UPSCALING);
+      mapped.push(MediaCapability.IMAGE_TO_IMAGE);
     }
     if (capabilities.includes('enhancement')) {
-      mapped.push(MediaCapability.IMAGE_ENHANCEMENT);
+      mapped.push(MediaCapability.IMAGE_TO_IMAGE);
     }
 
-    return mapped.length > 0 ? mapped : [MediaCapability.IMAGE_GENERATION]; // fallback
+    return mapped.length > 0 ? mapped : [MediaCapability.TEXT_TO_IMAGE]; // fallback
   }
 
   async createTextToAudioModel(modelId: string): Promise<TextToAudioModel> {

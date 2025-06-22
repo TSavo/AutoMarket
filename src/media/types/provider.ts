@@ -8,43 +8,35 @@
 import { z } from 'zod';
 
 /**
- * Media generation capabilities that providers can support
+ * Media transformation capabilities that providers can support.
+ * 
+ * Each capability maps directly to a specific Model class and transform signature.
+ * This enables deterministic model instantiation based on input/output types.
  */
 export enum MediaCapability {
-  // Text capabilities
-  TEXT_GENERATION = 'text-generation',
-  TEXT_TO_TEXT = 'text-to-text',
+  // Text transformation capabilities
+  TEXT_TO_TEXT = 'text-to-text',           // TextToTextModel: transform(text) -> Text
 
-  // Image capabilities
-  IMAGE_GENERATION = 'image-generation',
-  IMAGE_UPSCALING = 'image-upscaling',
-  IMAGE_ENHANCEMENT = 'image-enhancement',
-  IMAGE_STYLE_TRANSFER = 'image-style-transfer',
-  IMAGE_INPAINTING = 'image-inpainting',
-  IMAGE_OUTPAINTING = 'image-outpainting',
+  // Image generation and transformation capabilities  
+  TEXT_TO_IMAGE = 'text-to-image',         // TextToImageModel: transform(text) -> Image
+  IMAGE_TO_IMAGE = 'image-to-image',       // ImageToImageModel: transform(image) -> Image
+  IMAGE_TO_TEXT = 'image-to-text',         // ImageToTextModel: transform(image) -> Text
 
-  // Video capabilities
-  VIDEO_GENERATION = 'video-generation',
-  VIDEO_ANIMATION = 'video-animation',
-  VIDEO_UPSCALING = 'video-upscaling',
-  VIDEO_STYLE_TRANSFER = 'video-style-transfer',
-  VIDEO_FACE_SWAP = 'video-face-swap',
-  VIDEO_LIP_SYNC = 'video-lip-sync',
+  // Video generation and transformation capabilities
+  TEXT_TO_VIDEO = 'text-to-video',         // TextToVideoModel: transform(text) -> Video
+  IMAGE_TO_VIDEO = 'image-to-video',       // ImageToVideoModel: transform(image) -> Video
+  VIDEO_TO_VIDEO = 'video-to-video',       // VideoToVideoModel: transform(video) -> Video
+  VIDEO_TO_IMAGE = 'video-to-image',       // VideoToImageModel: transform(video) -> Image
+  VIDEO_TO_AUDIO = 'video-to-audio',       // VideoToAudioModel: transform(video) -> Audio
 
-  // Audio capabilities
-  AUDIO_GENERATION = 'audio-generation',
-  TEXT_TO_SPEECH = 'text-to-speech',
-  VOICE_CLONING = 'voice-cloning',
-  AUDIO_ENHANCEMENT = 'audio-enhancement',
-  MUSIC_GENERATION = 'music-generation',
+  // Audio generation and transformation capabilities
+  TEXT_TO_AUDIO = 'text-to-audio',         // TextToAudioModel: transform(text) -> Audio
+  AUDIO_TO_TEXT = 'audio-to-text',         // AudioToTextModel: transform(audio) -> Text
+  AUDIO_TO_AUDIO = 'audio-to-audio',       // AudioToAudioModel: transform(audio) -> Audio
 
-  // Avatar capabilities
-  AVATAR_GENERATION = 'avatar-generation',
-  AVATAR_ANIMATION = 'avatar-animation',
-
-  // 3D capabilities
-  MODEL_3D_GENERATION = '3d-generation',
-  MODEL_3D_ANIMATION = '3d-animation'
+  // 3D generation capabilities
+  TEXT_TO_3D = 'text-to-3d',               // TextTo3DModel: transform(text) -> Model3D
+  IMAGE_TO_3D = 'image-to-3d'              // ImageTo3DModel: transform(image) -> Model3D
 }
 
 /**
@@ -115,6 +107,23 @@ export interface MediaProvider {
   getModelsForCapability(capability: MediaCapability): ProviderModel[];
   
   /**
+   * Get a model instance by ID with automatic type detection.
+   * 
+   * This method provides the intelligent model instantiation that enables
+   * the elegant getProvider().getModel().transform() pattern. It determines
+   * the correct Model class based on the model's capabilities.
+   * 
+   * @param modelId - ID of the model to instantiate
+   * @returns Promise resolving to the appropriate Model instance
+   * @example
+   * ```typescript
+   * const model = await provider.getModel('fal-ai/flux-pro');
+   * const result = await model.transform(input, options);
+   * ```
+   */
+  getModel(modelId: string): Promise<any>;
+  
+  /**
    * Get provider health and usage statistics
    */
   getHealth(): Promise<{
@@ -177,3 +186,43 @@ export const ProviderConfigSchema = z.object({
   dockerImage: z.string().optional(),
   scriptPath: z.string().optional()
 });
+
+// ============================================================================
+// GENERATION SYSTEM TYPES
+// ============================================================================
+
+/**
+ * Request for media generation
+ */
+export interface GenerationRequest {
+  capability: MediaCapability;
+  modelId: string;
+  parameters: Record<string, any>;
+  metadata?: Record<string, any>;
+}
+
+/**
+ * Result of media generation
+ */
+export interface GenerationResult {
+  jobId: string;
+  status: JobStatus;
+  output?: any;
+  error?: string;
+  metadata?: Record<string, any>;
+}
+
+/**
+ * Status of a generation job
+ */
+export enum JobStatus {
+  PENDING = 'pending',
+  RUNNING = 'running',
+  COMPLETED = 'completed',
+  FAILED = 'failed',
+  CANCELLED = 'cancelled'
+}
+
+// ============================================================================
+// PROVIDER SYSTEM TYPES  
+// ============================================================================

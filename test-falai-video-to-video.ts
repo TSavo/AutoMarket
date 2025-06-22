@@ -63,7 +63,7 @@ async function testFalVideoToVideoFaceSwap() {
       size: `${(sourceVideo.getSize() / 1024 / 1024).toFixed(2)} MB`
     });    // 3. Find available face swap models
     console.log('\n🔍 Finding face swap models...');
-    const videoModels = provider.getModelsForCapability(MediaCapability.VIDEO_ANIMATION);
+    const videoModels = provider.getModelsForCapability(MediaCapability.VIDEO_TO_VIDEO);
     const faceSwapModels = videoModels.filter(model => 
       model.id.toLowerCase().includes('face-swap') || 
       model.id.toLowerCase().includes('faceswap')

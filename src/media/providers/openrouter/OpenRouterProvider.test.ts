@@ -36,7 +36,6 @@ describe('OpenRouterProvider', () => {
       expect(provider.id).toBe('openrouter');
       expect(provider.name).toBe('OpenRouter');
       expect(provider.type).toBe(ProviderType.REMOTE);
-      expect(provider.capabilities).toContain(MediaCapability.TEXT_GENERATION);
       expect(provider.capabilities).toContain(MediaCapability.TEXT_TO_TEXT);
     });
 
@@ -46,7 +45,7 @@ describe('OpenRouterProvider', () => {
       expect(models[0]).toHaveProperty('id');
       expect(models[0]).toHaveProperty('name');
       expect(models[0]).toHaveProperty('capabilities');
-      expect(models[0].capabilities).toContain(MediaCapability.TEXT_GENERATION);
+      expect(models[0].capabilities).toContain(MediaCapability.TEXT_TO_TEXT);
     });
   });
 

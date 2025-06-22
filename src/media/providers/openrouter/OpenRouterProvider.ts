@@ -22,9 +22,8 @@ import { OpenRouterTextToTextModel } from './OpenRouterTextToTextModel';
 export class OpenRouterProvider implements MediaProvider, TextToTextProvider {
   readonly id = 'openrouter';
   readonly name = 'OpenRouter';
-  readonly type = ProviderType.REMOTE;
-  readonly capabilities = [
-    MediaCapability.TEXT_GENERATION,
+  readonly type = ProviderType.REMOTE;  readonly capabilities = [
+    MediaCapability.TEXT_TO_TEXT,
     MediaCapability.TEXT_TO_TEXT
   ];
 
@@ -57,9 +56,8 @@ export class OpenRouterProvider implements MediaProvider, TextToTextProvider {
 
     return this.popularModels.map(modelId => ({
       id: modelId,
-      name: this.getModelDisplayName(modelId),
-      description: `OpenRouter model: ${modelId}`,
-      capabilities: [MediaCapability.TEXT_GENERATION, MediaCapability.TEXT_TO_TEXT],
+      name: this.getModelDisplayName(modelId),      description: `OpenRouter model: ${modelId}`,
+      capabilities: [MediaCapability.TEXT_TO_TEXT, MediaCapability.TEXT_TO_TEXT],
       parameters: {
         temperature: { type: 'number', min: 0, max: 2, default: 0.7 },
         max_tokens: { type: 'number', min: 1, max: 4096, default: 1024 },
@@ -106,7 +104,7 @@ export class OpenRouterProvider implements MediaProvider, TextToTextProvider {
   }
 
   getModelsForCapability(capability: MediaCapability): ProviderModel[] {
-    if (capability === MediaCapability.TEXT_GENERATION || capability === MediaCapability.TEXT_TO_TEXT) {
+    if (capability === MediaCapability.TEXT_TO_TEXT) {
       return this.models;
     }
     return [];
@@ -138,6 +136,14 @@ export class OpenRouterProvider implements MediaProvider, TextToTextProvider {
       apiClient: this.apiClient,
       modelId
     });
+  }
+
+  /**
+   * Get a model instance by ID with automatic type detection
+   */
+  async getModel(modelId: string): Promise<any> {
+    // For OpenRouter, all models are text-to-text
+    return this.createTextToTextModel(modelId);
   }
 
   getSupportedTextToTextModels(): string[] {
@@ -185,7 +191,7 @@ export class OpenRouterProvider implements MediaProvider, TextToTextProvider {
           id: model.id,
           name: model.name,
           description: model.description || `OpenRouter model: ${model.id}`,
-          capabilities: [MediaCapability.TEXT_GENERATION, MediaCapability.TEXT_TO_TEXT],
+          capabilities: [MediaCapability.TEXT_TO_TEXT, MediaCapability.TEXT_TO_TEXT],
           parameters: {
             temperature: { type: 'number', min: 0, max: 2, default: 0.7 },
             max_tokens: { type: 'number', min: 1, max: 4096, default: 1024 },

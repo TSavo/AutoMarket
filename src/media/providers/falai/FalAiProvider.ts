@@ -36,16 +36,14 @@ import { TextToAudioModel } from '../../models/abstracts/TextToAudioModel';
 class BaseFalAiProvider implements MediaProvider {
   readonly id = 'fal-ai';
   readonly name = 'fal.ai';
-  readonly type = ProviderType.REMOTE;
-  readonly capabilities = [
-    MediaCapability.IMAGE_GENERATION,
-    MediaCapability.IMAGE_UPSCALING,
-    MediaCapability.IMAGE_ENHANCEMENT,
-    MediaCapability.VIDEO_GENERATION,
-    MediaCapability.VIDEO_ANIMATION,
-    MediaCapability.VIDEO_UPSCALING,
-    MediaCapability.AUDIO_GENERATION,
-    MediaCapability.AUDIO_ENHANCEMENT
+  readonly type = ProviderType.REMOTE;  readonly capabilities = [
+    MediaCapability.TEXT_TO_IMAGE,
+    MediaCapability.IMAGE_TO_IMAGE,
+    MediaCapability.TEXT_TO_VIDEO,
+    MediaCapability.IMAGE_TO_VIDEO,
+    MediaCapability.VIDEO_TO_VIDEO,
+    MediaCapability.TEXT_TO_AUDIO,
+    MediaCapability.AUDIO_TO_AUDIO
   ];
 
   private config?: ProviderConfig;
@@ -125,15 +123,14 @@ class BaseFalAiProvider implements MediaProvider {
   getSupportedModels(): string[] {
     return Array.from(this.discoveredModels.keys());
   }
-
-  async getModel(modelId: string): Promise<any> {
+  async getModelMetadata(modelId: string): Promise<ProviderModel> {
     if (!this.client) {
       throw new Error('Provider not configured');
     }
 
     // Check if we've already discovered this model
     if (this.discoveredModels.has(modelId)) {
-      return this.discoveredModels.get(modelId);
+      return this.discoveredModels.get(modelId)!;
     }
 
     // Discover the model using FalAiClient
@@ -159,16 +156,15 @@ class BaseFalAiProvider implements MediaProvider {
     } catch (error) {
       throw new Error(`Failed to discover model '${modelId}': ${error.message}`);
     }
-  }
-  private mapCapabilities(category: string, capabilities: string[]): MediaCapability[] {
+  }private mapCapabilities(category: string, capabilities: string[]): MediaCapability[] {
     const mappings: Record<string, MediaCapability[]> = {
-      'text-to-image': [MediaCapability.IMAGE_GENERATION],
-      'text-to-video': [MediaCapability.VIDEO_GENERATION],
-      'image-to-video': [MediaCapability.VIDEO_ANIMATION],
-      'video-to-video': [MediaCapability.VIDEO_UPSCALING, MediaCapability.VIDEO_FACE_SWAP],
-      'image-to-image': [MediaCapability.IMAGE_UPSCALING, MediaCapability.IMAGE_ENHANCEMENT],
-      'text-to-audio': [MediaCapability.AUDIO_GENERATION, MediaCapability.TEXT_TO_SPEECH],
-      'audio-to-audio': [MediaCapability.AUDIO_ENHANCEMENT]
+      'text-to-image': [MediaCapability.TEXT_TO_IMAGE],
+      'text-to-video': [MediaCapability.TEXT_TO_VIDEO],
+      'image-to-video': [MediaCapability.IMAGE_TO_VIDEO],
+      'video-to-video': [MediaCapability.VIDEO_TO_VIDEO],
+      'image-to-image': [MediaCapability.IMAGE_TO_IMAGE],
+      'text-to-audio': [MediaCapability.TEXT_TO_AUDIO],
+      'audio-to-audio': [MediaCapability.AUDIO_TO_AUDIO]
     };
 
     return mappings[category] || [];
@@ -208,21 +204,19 @@ class BaseFalAiProvider implements MediaProvider {
         };
 
         this.discoveredModels.set(model.id, providerModel);
-      }
-
-      console.log(`[FalAiProvider] Categorized models by capability:`);
-      console.log(`  - Text-to-Image: ${this.getModelsForCapability(MediaCapability.IMAGE_GENERATION).length}`);
-      console.log(`  - Text-to-Video: ${this.getModelsForCapability(MediaCapability.VIDEO_GENERATION).length}`);
-      console.log(`  - Image-to-Video: ${this.getModelsForCapability(MediaCapability.VIDEO_ANIMATION).length}`);
-      console.log(`  - Video-to-Video: ${this.getModelsForCapability(MediaCapability.VIDEO_UPSCALING).length}`);
-      console.log(`  - Text-to-Audio: ${this.getModelsForCapability(MediaCapability.AUDIO_GENERATION).length}`);
+      }      console.log(`[FalAiProvider] Categorized models by capability:`);
+      console.log(`  - Text-to-Image: ${this.getModelsForCapability(MediaCapability.TEXT_TO_IMAGE).length}`);
+      console.log(`  - Text-to-Video: ${this.getModelsForCapability(MediaCapability.TEXT_TO_VIDEO).length}`);
+      console.log(`  - Image-to-Video: ${this.getModelsForCapability(MediaCapability.IMAGE_TO_VIDEO).length}`);
+      console.log(`  - Video-to-Video: ${this.getModelsForCapability(MediaCapability.VIDEO_TO_VIDEO).length}`);
+      console.log(`  - Text-to-Audio: ${this.getModelsForCapability(MediaCapability.TEXT_TO_AUDIO).length}`);
 
     } catch (error) {
       console.warn('[FalAiProvider] Model discovery failed:', error);
       // Continue with empty model set - models can be discovered on-demand
     }
   }  async createTextToImageModel(modelId: string): Promise<TextToImageModel> {
-    const modelMetadata = await this.getModelMetadata(modelId);
+    const modelMetadata = await this.getFalModelMetadata(modelId);
     
     // Create and return FalTextToImageModel instance for specific text-to-image model
     const { FalTextToImageModel } = await import('./FalTextToImageModel');
@@ -235,7 +229,7 @@ class BaseFalAiProvider implements MediaProvider {
   }
 
   async createTextToVideoModel(modelId: string): Promise<TextToVideoModel> {
-    const modelMetadata = await this.getModelMetadata(modelId);
+    const modelMetadata = await this.getFalModelMetadata(modelId);
     
     // Create and return FalTextToVideoModel instance for specific text-to-video model
     const { FalTextToVideoModel } = await import('./FalTextToVideoModel');
@@ -248,7 +242,7 @@ class BaseFalAiProvider implements MediaProvider {
   }
 
   async createVideoToVideoModel(modelId: string): Promise<VideoToVideoModel> {
-    const modelMetadata = await this.getModelMetadata(modelId);
+    const modelMetadata = await this.getFalModelMetadata(modelId);
     
     // Create and return FalVideoToVideoModel instance for specific video-to-video model
     const { FalVideoToVideoModel } = await import('./FalVideoToVideoModel');
@@ -261,7 +255,7 @@ class BaseFalAiProvider implements MediaProvider {
   }
 
   async createTextToAudioModel(modelId: string): Promise<TextToAudioModel> {
-    const modelMetadata = await this.getModelMetadata(modelId);
+    const modelMetadata = await this.getFalModelMetadata(modelId);
     
     // Create and return FalTextToAudioModel instance for specific text-to-audio model
     const { FalTextToAudioModel } = await import('./FalTextToAudioModel');
@@ -274,7 +268,7 @@ class BaseFalAiProvider implements MediaProvider {
   }
 
   async createImageToImageModel(modelId: string): Promise<any> {
-    const modelMetadata = await this.getModelMetadata(modelId);
+    const modelMetadata = await this.getFalModelMetadata(modelId);
     
     // Create and return FalImageToImageModel instance for specific image-to-image model
     const { FalImageToImageModel } = await import('./FalImageToImageModel');
@@ -286,13 +280,62 @@ class BaseFalAiProvider implements MediaProvider {
     });
   }
 
+  async createImageToVideoModel(modelId: string): Promise<any> {
+    const modelMetadata = await this.getFalModelMetadata(modelId);
+    
+    // Create and return FalImageToVideoModel instance for specific image-to-video model
+    const { FalImageToVideoModel } = await import('./FalImageToVideoModel');
+
+    return new FalImageToVideoModel({
+      client: this.client!,
+      modelMetadata,
+      falAiClient: this.client!
+    });
+  }
   // Helper methods
-  private async getModelMetadata(modelId: string) {
+  private async getFalModelMetadata(modelId: string) {
     if (!this.client) {
       throw new Error('Provider not configured');
     }
 
     return await this.client.getModelMetadata(modelId);
+  }
+  /**
+   * Get a model instance by ID with automatic type detection.
+   * 
+   * This method enables the elegant getProvider().getModel().transform() pattern
+   * by determining the correct Model class based on the model's capabilities.
+   */
+  async getModel(modelId: string): Promise<any> {
+    const modelMetadata = await this.getFalModelMetadata(modelId);
+    const capabilities = modelMetadata.capabilities || [];
+    
+    // Determine model type based on capabilities
+    if (capabilities.includes('text-to-image')) {
+      return this.createTextToImageModel(modelId);
+    }
+    
+    if (capabilities.includes('text-to-video')) {
+      return this.createTextToVideoModel(modelId);
+    }
+    
+    if (capabilities.includes('image-to-video')) {
+      return this.createImageToVideoModel(modelId);
+    }
+    
+    if (capabilities.includes('video-to-video')) {
+      return this.createVideoToVideoModel(modelId);
+    }
+    
+    if (capabilities.includes('text-to-audio')) {
+      return this.createTextToAudioModel(modelId);
+    }
+    
+    if (capabilities.includes('image-to-image')) {
+      return this.createImageToImageModel(modelId);
+    }
+    
+    throw new Error(`No model implementation found for capabilities: ${capabilities.join(', ')}`);
   }
 }
 

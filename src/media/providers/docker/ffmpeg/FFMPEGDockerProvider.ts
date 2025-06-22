@@ -27,14 +27,13 @@ export interface FFMPEGDockerConfig extends ProviderConfig {
 export class FFMPEGDockerProvider implements MediaProvider {
   readonly id = 'ffmpeg-docker';
   readonly name = 'FFMPEG Docker Provider';
-  readonly type = ProviderType.LOCAL;
-  readonly capabilities = [
-    MediaCapability.VIDEO_GENERATION,
-    MediaCapability.VIDEO_ANIMATION,
-    MediaCapability.VIDEO_UPSCALING,
-    MediaCapability.VIDEO_STYLE_TRANSFER,
-    MediaCapability.AUDIO_ENHANCEMENT,
-    MediaCapability.MUSIC_GENERATION
+  readonly type = ProviderType.LOCAL;  readonly capabilities = [
+    MediaCapability.TEXT_TO_VIDEO,
+    MediaCapability.IMAGE_TO_VIDEO,
+    MediaCapability.VIDEO_TO_VIDEO,
+    MediaCapability.VIDEO_TO_IMAGE,
+    MediaCapability.AUDIO_TO_AUDIO,
+    MediaCapability.AUDIO_TO_TEXT // Music generation is similar to audio synthesis
   ];
 
   private config: FFMPEGDockerConfig = {};
@@ -93,7 +92,7 @@ export class FFMPEGDockerProvider implements MediaProvider {
         id: 'ffmpeg-video-composer',
         name: 'FFMPEG Video Composer',
         description: 'Video composition and editing using FFMPEG',
-        capabilities: [MediaCapability.VIDEO_GENERATION, MediaCapability.VIDEO_ANIMATION],
+        capabilities: [MediaCapability.TEXT_TO_VIDEO, MediaCapability.IMAGE_TO_VIDEO],
         pricing: { inputCost: 0, outputCost: 0, currency: 'USD' },
         limits: { maxInputSize: 1000000000, maxOutputSize: 1000000000, rateLimit: 10 },
         parameters: {}
@@ -102,7 +101,7 @@ export class FFMPEGDockerProvider implements MediaProvider {
         id: 'ffmpeg-video-filter',
         name: 'FFMPEG Video Filter',
         description: 'Video filtering and effects using FFMPEG',
-        capabilities: [MediaCapability.VIDEO_STYLE_TRANSFER, MediaCapability.VIDEO_UPSCALING],
+        capabilities: [MediaCapability.VIDEO_TO_VIDEO, MediaCapability.VIDEO_TO_IMAGE],
         pricing: { inputCost: 0, outputCost: 0, currency: 'USD' },
         limits: { maxInputSize: 1000000000, maxOutputSize: 1000000000, rateLimit: 10 },
         parameters: {}
@@ -111,7 +110,7 @@ export class FFMPEGDockerProvider implements MediaProvider {
         id: 'ffmpeg-video-to-audio',
         name: 'FFMPEG Video to Audio',
         description: 'Extract audio from video using FFMPEG',
-        capabilities: [MediaCapability.AUDIO_ENHANCEMENT],
+        capabilities: [MediaCapability.AUDIO_TO_AUDIO],
         pricing: { inputCost: 0, outputCost: 0, currency: 'USD' },
         limits: { maxInputSize: 1000000000, maxOutputSize: 1000000000, rateLimit: 10 },
         parameters: {}
@@ -236,5 +235,14 @@ export class FFMPEGDockerProvider implements MediaProvider {
         }
       };
     }
+  }
+
+  /**
+   * Get a model instance by ID with automatic type detection
+   */
+  async getModel(modelId: string): Promise<any> {
+    // For Docker providers, we typically return a wrapper that handles the Docker execution
+    // This is a simplified implementation - in practice you might return a proper Model class
+    throw new Error('FFMPEGDockerProvider.getModel() not yet implemented - use direct generation methods');
   }
 }

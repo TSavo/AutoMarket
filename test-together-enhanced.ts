@@ -134,18 +134,18 @@ async function testTogetherEnhanced() {
 
     // 8. Test capability filtering
     console.log('8️⃣ Testing Capability Filtering...');
-    const textCapabilityModels = provider.getModelsForCapability(MediaCapability.TEXT_GENERATION);
-    const imageCapabilityModels = provider.getModelsForCapability(MediaCapability.IMAGE_GENERATION);
+    const textCapabilityModels = provider.getModelsForCapability(MediaCapability.TEXT_TO_TEXT);
+    const imageCapabilityModels = provider.getModelsForCapability(MediaCapability.TEXT_TO_IMAGE);
     
     console.log(`✅ Models with TEXT_GENERATION: ${textCapabilityModels.length}`);
     console.log(`✅ Models with IMAGE_GENERATION: ${imageCapabilityModels.length}`);
     
     // Verify no overlap in capabilities
     const textOnlyModels = textCapabilityModels.filter(m => 
-      !m.capabilities.includes(MediaCapability.IMAGE_GENERATION)
+      !m.capabilities.includes(MediaCapability.TEXT_TO_IMAGE)
     );
     const imageOnlyModels = imageCapabilityModels.filter(m => 
-      !m.capabilities.includes(MediaCapability.TEXT_GENERATION)
+      !m.capabilities.includes(MediaCapability.TEXT_TO_TEXT)
     );
     
     console.log(`✅ Text-only models: ${textOnlyModels.length}`);

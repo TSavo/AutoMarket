@@ -30,7 +30,7 @@ export interface VoiceInfo {
   emotions: string[];
 }
 
-export interface ChatterboxTTSModelConfig {
+export interface ChatterboxTextToAudioModelConfig {
   apiClient?: ChatterboxAPIClient;
   dockerService?: ChatterboxDockerService;
   baseUrl?: string;
@@ -41,12 +41,12 @@ export interface ChatterboxTTSModelConfig {
 /**
  * Concrete Chatterbox TTS model implementation
  */
-export class ChatterboxTTSModel extends TextToAudioModel {
+export class ChatterboxTextToAudioModel extends TextToAudioModel {
   private apiClient: ChatterboxAPIClient;
   private dockerService: ChatterboxDockerService;
   private tempDir: string;
 
-  constructor(config: ChatterboxTTSModelConfig = {}) {
+  constructor(config: ChatterboxTextToAudioModelConfig = {}) {
     const metadata: ModelMetadata = {
       id: 'chatterbox-tts',
       name: 'Chatterbox Text-to-Speech',
