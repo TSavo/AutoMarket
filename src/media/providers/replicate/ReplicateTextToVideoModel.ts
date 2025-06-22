@@ -120,8 +120,7 @@ export class ReplicateTextToVideoModel extends TextToVideoModel {
         console.log(`[ReplicateTextToVideo] Video saved to: ${localPath} (${(videoBuffer.length / 1024 / 1024).toFixed(2)} MB)`);
       
       // Use SmartAssetFactory to create Asset with automatic metadata extraction
-      console.log(`[ReplicateTextToVideo] Loading video asset with metadata extraction...`);
-      const smartAsset = SmartAssetFactory.load(localPath);
+      console.log(`[ReplicateTextToVideo] Loading video asset with metadata extraction...`);      const smartAsset = await SmartAssetFactory.load(localPath);
       const video = await (smartAsset as any).asVideo();
       
       // Add our custom metadata to the video

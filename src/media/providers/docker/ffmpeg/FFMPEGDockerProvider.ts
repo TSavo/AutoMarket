@@ -258,7 +258,6 @@ export class FFMPEGDockerProvider implements MediaProvider {
       };
     }
   }
-
   /**
    * Get a model instance by ID with automatic type detection
    */
@@ -268,3 +267,7 @@ export class FFMPEGDockerProvider implements MediaProvider {
     throw new Error('FFMPEGDockerProvider.getModel() not yet implemented - use direct generation methods');
   }
 }
+
+// Self-register with the provider registry
+import { ProviderRegistry } from '../../../registry/ProviderRegistry';
+ProviderRegistry.getInstance().register('ffmpeg-docker', FFMPEGDockerProvider);

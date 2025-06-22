@@ -69,23 +69,24 @@ export class FalTextToImageModel extends TextToImageModel {
         model: this.modelMetadata.id,
         input: falInput,
         logs: true
-      });      console.log(`[FalTextToImage] Generation completed:`, result);
-
-      if (result.data) {
+      });      console.log(`[FalTextToImage] Generation completed:`, result);      if (result.data) {
         // Handle different output formats from fal.ai
         let imageUrl: string;
         
-        if (Array.isArray(result.data.images)) {
+        // Check for nested data structure first
+        const responseData = result.data.data || result.data;
+        
+        if (Array.isArray(responseData.images)) {
           // Multiple images - take first one
-          imageUrl = result.data.images[0].url;
-        } else if (result.data.image) {
+          imageUrl = responseData.images[0].url;
+        } else if (responseData.image) {
           // Single image object
-          imageUrl = typeof result.data.image === 'string' 
-            ? result.data.image 
-            : result.data.image.url;
-        } else if (typeof result.data === 'string') {
+          imageUrl = typeof responseData.image === 'string' 
+            ? responseData.image 
+            : responseData.image.url;
+        } else if (typeof responseData === 'string') {
           // Direct URL
-          imageUrl = result.data;
+          imageUrl = responseData;
         } else {
           throw new Error('Unexpected output format from fal.ai');
         }
@@ -131,11 +132,8 @@ export class FalTextToImageModel extends TextToImageModel {
       // Save the image to disk
       fs.writeFileSync(localPath, imageBuffer);
       
-      console.log(`[FalTextToImage] Image saved to: ${localPath} (${(imageBuffer.length / 1024).toFixed(2)} KB)`);
-      
-      // Use SmartAssetFactory to create Asset with automatic metadata extraction
-      console.log(`[FalTextToImage] Loading image asset with metadata extraction...`);
-      const smartAsset = SmartAssetFactory.load(localPath);
+      console.log(`[FalTextToImage] Image saved to: ${localPath} (${(imageBuffer.length / 1024).toFixed(2)} KB)`);      // Use SmartAssetFactory to create Asset with automatic metadata extraction
+      const smartAsset = await SmartAssetFactory.load(localPath);
       const image = await (smartAsset as any).asImage();
       
       // Add our custom metadata to the image

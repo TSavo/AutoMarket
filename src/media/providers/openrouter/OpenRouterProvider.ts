@@ -30,45 +30,15 @@ export class OpenRouterProvider implements MediaProvider, TextToTextProvider {
   private config?: ProviderConfig;
   private apiClient?: OpenRouterAPIClient;
   private discoveredModels = new Map<string, ProviderModel>();
+  private configurationPromise: Promise<void> | null = null;
 
-  // Pre-configured popular models (can be extended with dynamic discovery)
-  private popularModels = [
-    'anthropic/claude-3.5-sonnet',
-    'anthropic/claude-3-haiku',
-    'openai/gpt-4o',
-    'openai/gpt-4o-mini', 
-    'openai/gpt-3.5-turbo',
-    'google/gemini-pro-1.5',
-    'meta-llama/llama-3.2-90b-vision-instruct',
-    'meta-llama/llama-3.1-70b-instruct',
-    'qwen/qwen-2.5-72b-instruct',
-    'deepseek/deepseek-chat',
-    'deepseek/deepseek-r1-distill-llama-70b', // Free model
-    'mistralai/mixtral-8x7b-instruct',
-    'microsoft/phi-3-medium-4k-instruct'
-  ];
 
   get models(): ProviderModel[] {
     // Return discovered models if available, otherwise return popular models
-    if (this.discoveredModels.size > 0) {
-      return Array.from(this.discoveredModels.values());
-    }
 
-    return this.popularModels.map(modelId => ({
-      id: modelId,
-      name: this.getModelDisplayName(modelId),      description: `OpenRouter model: ${modelId}`,
-      capabilities: [MediaCapability.TEXT_TO_TEXT, MediaCapability.TEXT_TO_TEXT],
-      parameters: {
-        temperature: { type: 'number', min: 0, max: 2, default: 0.7 },
-        max_tokens: { type: 'number', min: 1, max: 4096, default: 1024 },
-        top_p: { type: 'number', min: 0, max: 1, default: 1 }
-      },
-      pricing: {
-        inputCost: 0, // Would need real pricing data from OpenRouter
-        outputCost: 0,
-        currency: 'USD'
-      }
-    }));
+      return Array.from(this.discoveredModels.values());
+
+
   }
 
   async configure(config: ProviderConfig): Promise<void> {
@@ -137,11 +107,16 @@ export class OpenRouterProvider implements MediaProvider, TextToTextProvider {
       modelId
     });
   }
-
   /**
    * Get a model instance by ID with automatic type detection
    */
   async getModel(modelId: string): Promise<any> {
+    // Ensure we're configured before proceeding
+    if (!this.apiClient) {
+      // Wait for auto-configuration to complete if it's in progress
+      await this.ensureConfigured();
+    }
+    
     // For OpenRouter, all models are text-to-text
     return this.createTextToTextModel(modelId);
   }
@@ -149,8 +124,13 @@ export class OpenRouterProvider implements MediaProvider, TextToTextProvider {
   getSupportedTextToTextModels(): string[] {
     return this.models.map(model => model.id);
   }
-
   supportsTextToTextModel(modelId: string): boolean {
+    // If models haven't been discovered yet, assume the model is supported
+    // This allows the provider to work even before model discovery completes
+    if (this.discoveredModels.size === 0) {
+      return true; // Optimistic assumption for popular models
+    }
+    
     return this.getSupportedTextToTextModels().includes(modelId);
   }
 
@@ -187,6 +167,7 @@ export class OpenRouterProvider implements MediaProvider, TextToTextProvider {
       const availableModels = await this.apiClient.getAvailableModels();
       
       for (const model of availableModels) {
+        console.log(`[OpenRouterProvider] Discovered model: ${model.id}`);
         const providerModel: ProviderModel = {
           id: model.id,
           name: model.name,
@@ -215,14 +196,14 @@ export class OpenRouterProvider implements MediaProvider, TextToTextProvider {
       return `${provider.charAt(0).toUpperCase() + provider.slice(1)} ${model}`;
     }
     return modelId;
-  }
-  /**
+  }  /**
    * Constructor automatically configures from environment variables
    */
   constructor() {
-    // Auto-configure from environment variables (async but non-blocking)
-    this.autoConfigureFromEnv().catch(error => {
+    // Auto-configure from environment variables (store the promise)
+    this.configurationPromise = this.autoConfigureFromEnv().catch(error => {
       // Silent fail - provider will just not be available until manually configured
+      this.configurationPromise = null;
     });
   }
 
@@ -240,7 +221,32 @@ export class OpenRouterProvider implements MediaProvider, TextToTextProvider {
         });
       } catch (error) {
         console.warn(`[OpenRouterProvider] Auto-configuration failed: ${error.message}`);
+        throw error;
       }
+    } else {
+      throw new Error('No OPENROUTER_API_KEY found in environment');
+    }
+  }
+
+  /**
+   * Ensure the provider is configured (wait for auto-configuration to complete)
+   */
+  private async ensureConfigured(): Promise<void> {
+    if (this.apiClient) {
+      return; // Already configured
+    }
+    
+    // Wait for the configuration promise if it exists
+    if (this.configurationPromise) {
+      await this.configurationPromise;
+    }
+    
+    if (!this.apiClient) {
+      throw new Error('Provider auto-configuration failed - no API key found in environment');
     }
   }
 }
+
+// Self-register with the provider registry
+import { ProviderRegistry } from '../../registry/ProviderRegistry';
+ProviderRegistry.getInstance().register('openrouter', OpenRouterProvider);

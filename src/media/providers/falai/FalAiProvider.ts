@@ -45,17 +45,17 @@ class BaseFalAiProvider implements MediaProvider {
     MediaCapability.VIDEO_TO_VIDEO,
     MediaCapability.TEXT_TO_AUDIO
   ];
-
   protected config?: ProviderConfig;
-  protected client?: FalAiClient;
-  protected discoveredModels = new Map<string, ProviderModel>();
-  /**
+  protected client?: FalAiClient;  protected discoveredModels = new Map<string, ProviderModel>();
+  private configurationPromise: Promise<void> | null = null;
+  private modelMetadataCache = new Map<string, Promise<ProviderModel>>();/**
    * Constructor automatically configures from environment variables
    */
   constructor() {
-    // Auto-configure from environment variables (async but non-blocking)
-    this.autoConfigureFromEnv().catch(error => {
+    // Auto-configure from environment variables (store the promise)
+    this.configurationPromise = this.autoConfigureFromEnv().catch(error => {
       // Silent fail - provider will just not be available until manually configured
+      this.configurationPromise = null;
     });
   }
 
@@ -73,7 +73,10 @@ class BaseFalAiProvider implements MediaProvider {
         });
       } catch (error) {
         console.warn(`[FalAiProvider] Auto-configuration failed: ${error.message}`);
+        throw error;
       }
+    } else {
+      throw new Error('No FALAI_API_KEY found in environment');
     }
   }
 
@@ -96,12 +99,10 @@ class BaseFalAiProvider implements MediaProvider {
         maxCacheAge: 24 * 60 * 60 * 1000, // 24 hours
         cacheDir: './cache'
       }
-    };
+    };    this.client = new FalAiClient(falConfig);
 
-    this.client = new FalAiClient(falConfig);
-
-    // Discover available models on initialization
-    await this.discoverModels();
+    // Models will be discovered dynamically when requested
+    // No upfront discovery to avoid memory issues
   }
 
   async isAvailable(): Promise<boolean> {
@@ -149,41 +150,91 @@ class BaseFalAiProvider implements MediaProvider {
   // Helper methods for provider role system
   getSupportedModels(): string[] {
     return Array.from(this.discoveredModels.keys());
-  }
-  async getModelMetadata(modelId: string): Promise<ProviderModel> {
+  }  async getModelMetadata(modelId: string): Promise<ProviderModel> {
     if (!this.client) {
-      throw new Error('Provider not configured');
+      await this.ensureConfigured();
     }
 
-    // Check if we've already discovered this model
-    if (this.discoveredModels.has(modelId)) {
-      return this.discoveredModels.get(modelId)!;
+    // Check if we have a cached promise for this model
+    if (this.modelMetadataCache.has(modelId)) {
+      return await this.modelMetadataCache.get(modelId)!;
     }
 
-    // Discover the model using FalAiClient
+    // Wrap the discoveryPromise to auto-remove on error
+    const discoveryPromise = this.discoverSingleModel(modelId).catch(err => {
+      this.modelMetadataCache.delete(modelId);
+      throw err;
+    });
+    this.modelMetadataCache.set(modelId, discoveryPromise);
+
+    return await discoveryPromise;
+  }
+  private async discoverSingleModel(modelId: string): Promise<ProviderModel> {
     try {
-      const metadata = await this.client.getModelMetadata(modelId);
+      // Add a timeout: if getModelMetadata takes >60s, reject
+      const timeoutMs = 60000;
+      let timeoutId: NodeJS.Timeout | undefined;
+      const metadataPromise = this.client!.getModelMetadata(modelId);
+      const timeoutPromise = new Promise((_, reject) => {
+        timeoutId = setTimeout(() => reject(new Error('getModelMetadata timeout')), timeoutMs);
+      });
       
-      // Convert to ProviderModel format
-      const providerModel: ProviderModel = {
-        id: modelId,
-        name: metadata.name || modelId,
-        description: metadata.description || '',
-        capabilities: this.mapCapabilities(metadata.category, metadata.capabilities),
-        parameters: metadata.parameters || {},
-        pricing: {
-          inputCost: 0, // fal.ai uses per-generation pricing
-          outputCost: 0,
-          currency: 'USD'
+      try {
+        const metadata = await Promise.race([metadataPromise, timeoutPromise]);
+        // Clear timeout when main promise resolves
+        if (timeoutId) {
+          clearTimeout(timeoutId);
         }
-      };
-
-      this.discoveredModels.set(modelId, providerModel);
-      return providerModel;
+        
+        // Type guard for metadata
+        if (!metadata || typeof metadata !== 'object') {
+          throw new Error('getModelMetadata did not return an object');
+        }
+        const meta = metadata as any;
+        // Convert to ProviderModel format
+        const providerModel: ProviderModel = {
+          id: modelId,
+          name: meta.name || modelId,
+          description: meta.description || '',
+          capabilities: this.mapCapabilities(meta.category, meta.capabilities),
+          parameters: meta.parameters || {},
+          pricing: {
+            inputCost: 0, // fal.ai uses per-generation pricing
+            outputCost: 0,
+            currency: 'USD'
+          }
+        };
+        // Cache the discovered model
+        this.discoveredModels.set(modelId, providerModel);
+        return providerModel;
+        
+      } catch (timeoutError) {
+        // Ensure timeout is cleared even on error
+        if (timeoutId) {
+          clearTimeout(timeoutId);
+        }
+        throw timeoutError;
+      }
     } catch (error) {
-      throw new Error(`Failed to discover model '${modelId}': ${error.message}`);
+      this.modelMetadataCache.delete(modelId);      throw new Error(`Failed to discover model '${modelId}': ${error.message}`);
     }
-  }private mapCapabilities(category: string, capabilities: string[]): MediaCapability[] {
+  }
+
+  private reverseMapCapabilities(capabilities: MediaCapability[]): string {
+    const reverseMappings: Record<string, string> = {
+      [MediaCapability.TEXT_TO_IMAGE]: 'text-to-image',
+      [MediaCapability.TEXT_TO_VIDEO]: 'text-to-video',
+      [MediaCapability.IMAGE_TO_VIDEO]: 'image-to-video',
+      [MediaCapability.VIDEO_TO_VIDEO]: 'video-to-video',
+      [MediaCapability.IMAGE_TO_IMAGE]: 'image-to-image',
+      [MediaCapability.TEXT_TO_AUDIO]: 'text-to-audio',
+      [MediaCapability.AUDIO_TO_AUDIO]: 'audio-to-audio'
+    };
+
+    return capabilities.length > 0 ? reverseMappings[capabilities[0]] || 'unknown' : 'unknown';
+  }
+
+  private mapCapabilities(category: string, capabilities: string[]): MediaCapability[] {
     const mappings: Record<string, MediaCapability[]> = {
       'text-to-image': [MediaCapability.TEXT_TO_IMAGE],
       'text-to-video': [MediaCapability.TEXT_TO_VIDEO],
@@ -196,63 +247,25 @@ class BaseFalAiProvider implements MediaProvider {
 
     return mappings[category] || [];
   }
-
   /**
    * Discover models by scraping fal.ai exclusively (no static registry)
+   * NOTE: This method is deprecated - models are now discovered dynamically on-demand
    */
-  private async discoverModels(): Promise<void> {
-    if (!this.client) return;
-
-    try {
-      console.log('[FalAiProvider] Starting dynamic model discovery...');
-      
-      // Use FalAiClient's discovery system to find models
-      const models = await this.client.discoverModels({
-        openRouterApiKey: process.env.OPENROUTER_API_KEY,
-        cacheDir: './cache',
-        maxCacheAge: 24 * 60 * 60 * 1000
-      });
-
-      console.log(`[FalAiProvider] Discovered ${models.length} models`);
-
-      // Convert discovered models to ProviderModel format
-      for (const model of models) {
-        const providerModel: ProviderModel = {
-          id: model.id,
-          name: model.name || model.id,
-          description: model.description || '',
-          capabilities: this.mapCapabilities(model.category, model.capabilities),
-          parameters: model.parameters || {},
-          pricing: {
-            inputCost: 0,
-            outputCost: 0,
-            currency: 'USD'
-          }
-        };
-
-        this.discoveredModels.set(model.id, providerModel);
-      }      console.log(`[FalAiProvider] Categorized models by capability:`);
-      console.log(`  - Text-to-Image: ${this.getModelsForCapability(MediaCapability.TEXT_TO_IMAGE).length}`);
-      console.log(`  - Text-to-Video: ${this.getModelsForCapability(MediaCapability.TEXT_TO_VIDEO).length}`);
-      console.log(`  - Image-to-Video: ${this.getModelsForCapability(MediaCapability.IMAGE_TO_VIDEO).length}`);
-      console.log(`  - Video-to-Video: ${this.getModelsForCapability(MediaCapability.VIDEO_TO_VIDEO).length}`);
-      console.log(`  - Text-to-Audio: ${this.getModelsForCapability(MediaCapability.TEXT_TO_AUDIO).length}`);
-
-    } catch (error) {
-      console.warn('[FalAiProvider] Model discovery failed:', error);
-      // Continue with empty model set - models can be discovered on-demand
-    }
-  }  async createTextToImageModel(modelId: string): Promise<TextToImageModel> {
+  private async discoverModels(): Promise<void> {    // No longer used - models are discovered dynamically when requested
+  }
+  
+  async createTextToImageModel(modelId: string): Promise<TextToImageModel> {
     const modelMetadata = await this.getFalModelMetadata(modelId);
-    
-    // Create and return FalTextToImageModel instance for specific text-to-image model
+      // Create and return FalTextToImageModel instance for specific text-to-image model
     const { FalTextToImageModel } = await import('./FalTextToImageModel');
 
-    return new FalTextToImageModel({
+    const modelInstance = new FalTextToImageModel({
       client: this.client!,
       modelMetadata,
       falAiClient: this.client!
     });
+
+    return modelInstance;
   }
 
   async createTextToVideoModel(modelId: string): Promise<TextToVideoModel> {
@@ -318,50 +331,113 @@ class BaseFalAiProvider implements MediaProvider {
       modelMetadata,
       falAiClient: this.client!
     });
-  }
-  // Helper methods
+  }  // Helper methods
   private async getFalModelMetadata(modelId: string) {
+    // Ensure we're configured before proceeding
     if (!this.client) {
-      throw new Error('Provider not configured');
+      await this.ensureConfigured();
+    }    // Check if we already have this in our in-memory cache to avoid recursion
+    if (this.modelMetadataCache.has(modelId)) {
+      const cachedProviderModel = await this.modelMetadataCache.get(modelId)!;
+      // Convert from ProviderModel back to raw FalAi format
+      return {
+        id: cachedProviderModel.id,
+        name: cachedProviderModel.name,
+        description: cachedProviderModel.description || 'No description',
+        category: this.reverseMapCapabilities(cachedProviderModel.capabilities),
+        parameters: cachedProviderModel.parameters,
+        capabilities: cachedProviderModel.capabilities.map(cap => cap.toLowerCase().replace('_', '-')),
+        tags: [],
+        lastUpdated: Date.now()
+      };
     }
 
-    return await this.client.getModelMetadata(modelId);
+    // Get the raw FAL metadata directly from client - no circular calls
+    const meta = await this.client!.getModelMetadata(modelId);
+    try {
+      console.log(`[FalAiProvider] getFalModelMetadata typeof:`, typeof meta);
+      if (meta && typeof meta === 'object') {
+        const keys = Object.keys(meta);
+        console.log(`[FalAiProvider] getFalModelMetadata keys:`, keys);
+        if (keys.length > 0) {
+          for (const k of keys) {
+            const v = meta[k];
+            if (typeof v === 'object' && v !== null) {
+              console.log(`  - ${k}: object with keys [${Object.keys(v).slice(0,10).join(', ')}]`);
+            } else {
+              console.log(`  - ${k}:`, typeof v, v && v.length ? `(length: ${v.length})` : '');
+            }
+          }
+        }
+      }
+      // Try to stringify, but catch errors
+      let size = 0;
+      try {
+        const str = JSON.stringify(meta);
+        size = Buffer.byteLength(str, 'utf8');
+        console.log(`[FalAiProvider] getFalModelMetadata JSON size: ${size} bytes (${(size/1024/1024).toFixed(2)} MB)`);
+      } catch (err) {
+        console.log(`[FalAiProvider] getFalModelMetadata JSON.stringify error:`, err);
+      }
+    } catch (err) {
+      console.log(`[FalAiProvider] getFalModelMetadata debug error:`, err);
+    }
+    return meta;
   }
+
   /**
+   * Ensure the provider is configured (wait for auto-configuration to complete)
+   */
+  private async ensureConfigured(): Promise<void> {
+    if (this.client) {
+      return; // Already configured
+    }
+    
+    // Wait for the configuration promise if it exists
+    if (this.configurationPromise) {
+      await this.configurationPromise;
+    }
+    
+    if (!this.client) {
+      throw new Error('Provider auto-configuration failed - no API key found in environment');
+    }
+  }  /**
    * Get a model instance by ID with automatic type detection.
-   * 
    * This method enables the elegant getProvider().getModel().transform() pattern
    * by determining the correct Model class based on the model's capabilities.
-   */
-  async getModel(modelId: string): Promise<any> {
-    const modelMetadata = await this.getFalModelMetadata(modelId);
-    const capabilities = modelMetadata.capabilities || [];
+   */  async getModel(modelId: string): Promise<any> {
+    // Debug: who is calling this?
+    const stack = new Error().stack;
+    const caller = stack?.split('\n')[2]?.trim() || 'unknown';
+    console.log(`[FalAiProvider] getModel called for ${modelId} by: ${caller}`);
     
-    // Determine model type based on capabilities
-    if (capabilities.includes('text-to-image')) {
+    // Ensure we're configured before proceeding
+    if (!this.client) {
+      await this.ensureConfigured();
+    }
+
+    // Get standardized metadata with properly mapped capabilities (cached)
+    const providerModel = await this.getModelMetadata(modelId);
+    const capabilities = providerModel.capabilities || [];
+
+    if (capabilities.includes(MediaCapability.TEXT_TO_IMAGE)) {
       return this.createTextToImageModel(modelId);
     }
-    
-    if (capabilities.includes('text-to-video')) {
+    if (capabilities.includes(MediaCapability.TEXT_TO_VIDEO)) {
       return this.createTextToVideoModel(modelId);
     }
-    
-    if (capabilities.includes('image-to-video')) {
+    if (capabilities.includes(MediaCapability.IMAGE_TO_VIDEO)) {
       return this.createImageToVideoModel(modelId);
     }
-    
-    if (capabilities.includes('video-to-video')) {
+    if (capabilities.includes(MediaCapability.VIDEO_TO_VIDEO)) {
       return this.createVideoToVideoModel(modelId);
     }
-    
-    if (capabilities.includes('text-to-audio')) {
+    if (capabilities.includes(MediaCapability.TEXT_TO_AUDIO)) {
       return this.createTextToAudioModel(modelId);
     }
-    
-    if (capabilities.includes('image-to-image')) {
+    if (capabilities.includes(MediaCapability.IMAGE_TO_IMAGE)) {
       return this.createImageToImageModel(modelId);
     }
-    
     throw new Error(`No model implementation found for capabilities: ${capabilities.join(', ')}`);
   }
 }
@@ -375,21 +451,11 @@ const FalAiProviderWithTextToAudio = withTextToAudioProvider(FalAiProviderWithVi
 // Export the final provider class with all role capabilities
 export class FalAiProvider extends FalAiProviderWithTextToAudio 
   implements TextToImageProvider, TextToVideoProvider, VideoToVideoProvider, TextToAudioProvider {
-    // Override to ensure our implementation is used instead of mixin fallback
-  async createTextToVideoModel(modelId: string): Promise<TextToVideoModel> {
-    console.log('[FalAiProvider] Creating TextToVideoModel for:', modelId);
-    const modelMetadata = await (this as any).getModelMetadata(modelId);    
-    // Create and return FalTextToVideoModel instance for specific text-to-video model
-    const { FalTextToVideoModel } = await import('./FalTextToVideoModel');
-    
-    return new FalTextToVideoModel({
-      client: (this as any).client!,
-      modelMetadata,
-      falAiClient: (this as any).client!
-    });
-  }
-  
-  // The mixin classes handle all the other provider role implementations
+  // No need for WithMetadata methods or overrides
 }
 
 export default FalAiProvider;
+
+// Self-register with the provider registry
+import { ProviderRegistry } from '../../registry/ProviderRegistry';
+ProviderRegistry.getInstance().register('fal-ai', FalAiProvider);

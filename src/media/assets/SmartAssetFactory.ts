@@ -96,11 +96,10 @@ function createDynamicAssetClass(formatInfo: FormatInfo) {
 /**
  * Smart Asset Factory Class
  */
-export class SmartAssetFactory {
-  /**
+export class SmartAssetFactory {  /**
    * Load an asset from file with automatic format detection and role assignment
    */
-  static load<T extends BaseAsset = BaseAsset>(filePath: string): T {
+  static async load<T extends BaseAsset = BaseAsset>(filePath: string): Promise<T> {
     if (!fs.existsSync(filePath)) {
       throw new Error(`File not found: ${filePath}`);
     }
@@ -121,6 +120,26 @@ export class SmartAssetFactory {
       format: formatInfo.extension
     };
 
+    // For video files, automatically extract metadata using FFmpegService
+    if (formatInfo.category === 'video') {
+      try {
+        const { FFmpegService } = await import('../services/FFmpegService');
+        const ffmpegService = new FFmpegService();
+        const videoMetadata = await ffmpegService.getVideoMetadata(filePath);
+          // Merge FFmpeg metadata into asset metadata
+        Object.assign(metadata, {
+          duration: videoMetadata.duration,
+          width: videoMetadata.width,
+          height: videoMetadata.height,
+          frameRate: videoMetadata.frameRate,
+          codec: videoMetadata.codec,
+          hasAudio: true // Assume videos have audio unless proven otherwise
+        });
+          } catch (error) {
+        // Continue without video metadata - fallback to basic metadata
+      }
+    }
+
     // Create asset instance
     return new AssetClass(data, metadata, formatInfo.mimeType, formatInfo.extension);
   }
@@ -140,12 +159,11 @@ export class SmartAssetFactory {
     // Create asset instance
     return new AssetClass(buffer, { format, ...metadata }, formatInfo.mimeType, formatInfo.extension);
   }
-
   /**
    * Type-safe factory method for creating assets with specific role guarantees
    */
-  static fromFile<T>(filePath: string): T {
-    return SmartAssetFactory.load(filePath) as T;
+  static async fromFile<T>(filePath: string): Promise<T> {
+    return await SmartAssetFactory.load(filePath) as T;
   }
 
   /**

@@ -153,11 +153,8 @@ export class FalImageToImageModel {
       // Save the image to disk
       fs.writeFileSync(localPath, imageBuffer);
       
-      console.log(`[FalImageToImage] Image saved to: ${localPath} (${(imageBuffer.length / 1024).toFixed(2)} KB)`);
-      
-      // Use SmartAssetFactory to create Asset with automatic metadata extraction
-      console.log(`[FalImageToImage] Loading image asset with metadata extraction...`);
-      const smartAsset = SmartAssetFactory.load(localPath);
+      console.log(`[FalImageToImage] Image saved to: ${localPath} (${(imageBuffer.length / 1024).toFixed(2)} KB)`);      // Use SmartAssetFactory to create Asset with automatic metadata extraction
+      const smartAsset = await SmartAssetFactory.load(localPath);
       const image = await (smartAsset as any).asImage();
       
       // Add our custom metadata to the image

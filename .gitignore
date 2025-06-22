@@ -93,3 +93,7 @@ models/
 *key*
 *token*
 !**/types/*key*  # Allow TypeScript key type definitions
+
+# Task files
+# tasks.json
+# tasks/ 

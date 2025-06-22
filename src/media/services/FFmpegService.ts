@@ -233,16 +233,7 @@ export class FFmpegService {
         const [num, den] = videoStream.r_frame_rate.split('/').map(Number);
         if (den && den > 0) {
           frameRate = num / den;
-        }
-      }
-
-      console.log(`[FFmpegService] Raw metadata for ${filePath}:`, {
-        duration: format?.duration,
-        width: videoStream?.width,
-        height: videoStream?.height,
-        frameRate: videoStream?.r_frame_rate,
-        codec: videoStream?.codec_name
-      });
+        }      }
 
       return {
         duration: format?.duration ? parseFloat(format.duration) : undefined,

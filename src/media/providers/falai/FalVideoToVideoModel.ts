@@ -151,11 +151,8 @@ export class FalVideoToVideoModel extends VideoToVideoModel {
       // Save the video to disk
       fs.writeFileSync(localPath, videoBuffer);
       
-      console.log(`[FalVideoToVideo] Video saved to: ${localPath} (${(videoBuffer.length / 1024 / 1024).toFixed(2)} MB)`);
-      
-      // Use SmartAssetFactory to create Asset with automatic metadata extraction
-      console.log(`[FalVideoToVideo] Loading video asset with metadata extraction...`);
-      const smartAsset = SmartAssetFactory.load(localPath);
+      console.log(`[FalVideoToVideo] Video saved to: ${localPath} (${(videoBuffer.length / 1024 / 1024).toFixed(2)} MB)`);      // Use SmartAssetFactory to create Asset with automatic metadata extraction
+      const smartAsset = await SmartAssetFactory.load(localPath);
       const video = await (smartAsset as any).asVideo();
       
       // Add our custom metadata to the video

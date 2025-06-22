@@ -48,17 +48,17 @@ class BaseReplicateProvider implements MediaProvider {
     MediaCapability.IMAGE_TO_VIDEO,
     MediaCapability.VIDEO_TO_VIDEO
   ];
-
   private config?: ProviderConfig;
   private client?: ReplicateClient;
   private discoveredModels = new Map<string, ProviderModel>();
-  /**
+  private configurationPromise: Promise<void> | null = null;  /**
    * Constructor automatically configures from environment variables
    */
   constructor() {
-    // Auto-configure from environment variables (async but non-blocking)
-    this.autoConfigureFromEnv().catch(error => {
+    // Auto-configure from environment variables (store the promise)
+    this.configurationPromise = this.autoConfigureFromEnv().catch(error => {
       // Silent fail - provider will just not be available until manually configured
+      this.configurationPromise = null;
     });
   }
 
@@ -76,7 +76,10 @@ class BaseReplicateProvider implements MediaProvider {
         });
       } catch (error) {
         console.warn(`[ReplicateProvider] Auto-configuration failed: ${error.message}`);
+        throw error;
       }
+    } else {
+      throw new Error('No REPLICATE_API_TOKEN found in environment');
     }
   }
 
@@ -149,20 +152,18 @@ class BaseReplicateProvider implements MediaProvider {
   getSupportedModels(): string[] {
     return Array.from(this.discoveredModels.keys());
   }
-
   async getModel(modelId: string): Promise<any> {
+    // Ensure we're configured before proceeding
     if (!this.client) {
-      throw new Error('Provider not configured');
+      await this.ensureConfigured();
     }
 
     // Check if we've already discovered this model
     if (this.discoveredModels.has(modelId)) {
       return this.discoveredModels.get(modelId);
-    }
-
-    // Discover the model using ReplicateClient
+    }    // Discover the model using ReplicateClient
     try {
-      const metadata = await this.client.getModelMetadata(modelId);
+      const metadata = await this.client!.getModelMetadata(modelId);
         // Convert to ProviderModel format
       const providerModel: ProviderModel = {
         id: modelId,
@@ -242,14 +243,32 @@ class BaseReplicateProvider implements MediaProvider {
     // TODO: Create ReplicateVideoToVideoModel when VideoToVideoModel interface exists
     throw new Error('ReplicateVideoToVideoModel not yet implemented');
   }
-
   // Helper methods
   private async getModelMetadata(modelId: string) {
+    // Ensure we're configured before proceeding
     if (!this.client) {
-      throw new Error('Provider not configured');
+      await this.ensureConfigured();
     }
 
-    return await this.client.getModelMetadata(modelId);
+    return await this.client!.getModelMetadata(modelId);
+  }
+
+  /**
+   * Ensure the provider is configured (wait for auto-configuration to complete)
+   */
+  private async ensureConfigured(): Promise<void> {
+    if (this.client) {
+      return; // Already configured
+    }
+    
+    // Wait for the configuration promise if it exists
+    if (this.configurationPromise) {
+      await this.configurationPromise;
+    }
+    
+    if (!this.client) {
+      throw new Error('Provider auto-configuration failed - no API key found in environment');
+    }
   }
 
   private async getReplicateClient() {
@@ -289,3 +308,7 @@ export class ReplicateProvider extends ReplicateProviderWithVideoToVideo
 }
 
 export default ReplicateProvider;
+
+// Self-register with the provider registry
+import { ProviderRegistry } from '../../registry/ProviderRegistry';
+ProviderRegistry.getInstance().register('replicate', ReplicateProvider);

@@ -2,37 +2,27 @@
  * Test the elegant getProvider().getModel().transform() pattern
  */
 
-import { OpenRouterProvider } from './src/media/providers/openrouter/OpenRouterProvider';
+import { initializeProviders, getProvider } from './src/media/registry/bootstrap';
 import { Text } from './src/media/assets/roles';
 
 async function testElegantPattern() {
   console.log('🧪 Testing the elegant pattern...');
   
   try {
-    // Step 1: Create OpenRouter provider (auto-configures from env)
-    console.log('📋 Creating OpenRouter provider...');
-    const provider = new OpenRouterProvider();
+    // Initialize the provider registry
+    await initializeProviders();
     
-    // Give it a moment to auto-configure from environment variables
-    await new Promise(resolve => setTimeout(resolve, 100));
+    // Step 1: Get provider from registry (elegant pattern!)
+    console.log('📋 Getting OpenRouter provider from registry...');
+    const provider = await getProvider('openrouter');
     
-    console.log('✅ Provider created with auto-configuration');
+    console.log('✅ Provider retrieved from registry');
     console.log(`   ID: ${provider.id}`);
     console.log(`   Name: ${provider.name}`);
     console.log(`   Capabilities: ${provider.capabilities.join(', ')}`);
-    
-    // Check if auto-configuration worked
-    const isAvailable = await provider.isAvailable();
-    if (!isAvailable && process.env.OPENROUTER_API_KEY) {
-      console.log('⚠️  Auto-configuration didn\'t complete yet, manually configuring...');
-      await provider.configure({
-        apiKey: process.env.OPENROUTER_API_KEY
-      });
-    }
-    
-    // Step 2: Test the elegant pattern - getModel()
+      // Step 2: Test the elegant pattern - getModel()
     console.log('\n🎯 Testing getModel() method...');
-    const modelId = 'deepseek/deepseek-chat:free';
+    const modelId = 'deepseek/deepseek-chat-v3-0324:free'; // Correct OpenRouter format
     
     try {
       const model = await provider.getModel(modelId);
@@ -58,7 +48,7 @@ async function testElegantPattern() {
         
         // SUCCESS! The elegant pattern works!
         console.log('\n🎉 SUCCESS! The elegant pattern works perfectly:');
-        console.log('   provider.getModel(modelId).transform(input) ✅');
+        console.log('   registry.getProvider(id).getModel(modelId).transform(input) ✅');
         
       } else {
         console.log('⚠️  No API key found, skipping actual transform call');
@@ -66,7 +56,7 @@ async function testElegantPattern() {
         
         // Still a success - the pattern structure works
         console.log('\n🎉 PATTERN SUCCESS! Structure works:');
-        console.log('   provider.getModel(modelId) ✅');
+        console.log('   registry.getProvider(id).getModel(modelId) ✅');
         console.log('   model.transform() method exists ✅');
       }
       
@@ -81,61 +71,7 @@ async function testElegantPattern() {
   }
 }
 
-// Alternative: Create a simple registry for testing
-class SimpleProviderRegistry {
-  private providers = new Map<string, any>();
-  
-  register(provider: any): void {
-    this.providers.set(provider.id, provider);
-  }
-  
-  getProvider(id: string): any | undefined {
-    return this.providers.get(id);
-  }
-}
 
-async function testWithRegistry() {
-  console.log('\n🏗️ Testing with registry...');
-  
-  // Create registry and register OpenRouter (auto-configures from env)
-  const registry = new SimpleProviderRegistry();
-  const openRouterProvider = new OpenRouterProvider();
-  
-  // Give it a moment to auto-configure
-  await new Promise(resolve => setTimeout(resolve, 100));
-  
-  // Manual fallback if needed
-  const isAvailable = await openRouterProvider.isAvailable();
-  if (!isAvailable && process.env.OPENROUTER_API_KEY) {
-    await openRouterProvider.configure({
-      apiKey: process.env.OPENROUTER_API_KEY
-    });
-  }
-  
-  registry.register(openRouterProvider);
-  
-  // Test the full elegant pattern!
-  try {
-    const provider = registry.getProvider('openrouter');
-    if (!provider) {
-      throw new Error('Provider not found in registry');
-    }
-      const model = await provider.getModel('deepseek/deepseek-chat:free');
-    
-    console.log('✅ Full elegant pattern works:');
-    console.log('   registry.getProvider("openrouter").getModel("deepseek/deepseek-chat:free") ✅');
-    
-    if (process.env.OPENROUTER_API_KEY) {
-      const textInput = new Text('Write a haiku', 'en', 1.0, { content: 'Write a haiku' });
-      const result = await model.transform(textInput);
-      console.log('✅ Full transform works!');
-      console.log(`   Result preview: ${result.content.substring(0, 100)}...`);
-    }
-    
-  } catch (error) {
-    console.error('❌ Registry pattern failed:', error.message);
-  }
-}
 
 // Run the tests
 async function runTests() {
@@ -143,13 +79,13 @@ async function runTests() {
   console.log('============================================\n');
   
   await testElegantPattern();
-  await testWithRegistry();
+
   
   console.log('\n✨ Pattern testing complete!');
 }
 
 // Export for use
-export { testElegantPattern, testWithRegistry, SimpleProviderRegistry };
+export { testElegantPattern };
 
 // Run if called directly
 if (require.main === module) {

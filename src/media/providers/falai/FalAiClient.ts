@@ -531,65 +531,83 @@ Tags: ${model.tags?.join(', ') || 'None'}`
 
   /**
    * Get model metadata with hybrid caching approach
-   */
-  async getModelMetadata(modelId: string): Promise<FalModelMetadata> {
+   */  async getModelMetadata(modelId: string): Promise<FalModelMetadata> {
     // 1. Try loading from cache first
     let cached = await this.loadFromCache(modelId);
-    
     // 2. Check if cache is fresh
     const maxAge = this.config.discovery?.maxCacheAge || (24 * 60 * 60 * 1000); // 24 hours
     if (cached && (Date.now() - cached.lastUpdated) < maxAge) {
-      return cached;
-    }
-
+      return cached;    }
     // 3. Cache miss or stale - fetch and extract with AI
-    console.log(`🔍 Discovering metadata for ${modelId}...`);
-    const metadata = await this.discoverModelMetadata(modelId);
+    const timeoutMs = 60000; // 60 second timeout
+    let timeoutId: NodeJS.Timeout | undefined;
+    const metadataPromise = this.discoverModelMetadata(modelId);
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      timeoutId = setTimeout(() => reject(new Error('discoverModelMetadata timeout')), timeoutMs);
+    });
     
-    // 4. Store in cache
-    await this.saveToCache(modelId, metadata);
-    
-    return metadata;
+    try {
+      const metadata = await Promise.race([metadataPromise, timeoutPromise]);
+      if (timeoutId) clearTimeout(timeoutId); // Clear timeout when main promise resolves
+      // 4. Store in cache
+      await this.saveToCache(modelId, metadata);
+      
+      return metadata;
+    } catch (error) {
+      if (timeoutId) clearTimeout(timeoutId); // Clear timeout on error too
+      throw error;
+    }
   }
-
   /**
    * Discover model metadata by scraping and AI extraction
-   */
-  private async discoverModelMetadata(modelId: string): Promise<FalModelMetadata> {
+   */  private async discoverModelMetadata(modelId: string): Promise<FalModelMetadata> {
     try {
       // 1. Scrape the model page
       const url = `https://fal.ai/models/${modelId}`;
-      const response = await fetch(url, {
+      
+      // Add timeout to fetch
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
+        const response = await fetch(url, {
+        signal: controller.signal,
         headers: {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
         }
       });
+      
+      clearTimeout(timeoutId);
 
       if (!response.ok) {
         throw new Error(`Failed to fetch model page: ${response.status}`);
-      }
-
-      const html = await response.text();
-
+      }      let html: string | null = await response.text();
+      
       // 2. Extract with AI using OpenRouter + DeepSeek
       if (!this.config.discovery?.openRouterApiKey) {
         throw new FalAiError('OpenRouter API key required for model discovery');
       }
 
-      const aiResponse = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${this.config.discovery.openRouterApiKey}`,
-          'Content-Type': 'application/json',
-          'HTTP-Referer': 'https://automarket.ai',
-          'X-Title': 'AutoMarket Model Discovery'
-        },
-        body: JSON.stringify({
-          model: 'deepseek/deepseek-chat:free',
-          messages: [
-            {
-              role: 'system',
-              content: `Extract model information from this fal.ai model page HTML. Return valid JSON with this exact structure:
+      // Add timeout to AI call
+      const aiController = new AbortController();
+      let aiTimeoutId: NodeJS.Timeout | null = null;
+      
+      try {
+        aiTimeoutId = setTimeout(() => aiController.abort(), 30000); // 30s timeout
+
+        const aiResponse = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+          signal: aiController.signal,
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${this.config.discovery.openRouterApiKey}`,
+            'Content-Type': 'application/json',
+            'HTTP-Referer': 'https://automarket.ai',
+            'X-Title': 'AutoMarket Model Discovery'
+          },
+          body: JSON.stringify({
+            model: 'deepseek/deepseek-chat:free',
+            messages: [
+              {
+                role: 'system',
+                content: `Extract model information from this fal.ai model page HTML. Return valid JSON with this exact structure:
 {
   "id": "model-id-found",
   "name": "model-name-found",
@@ -610,38 +628,55 @@ Tags: ${model.tags?.join(', ') || 'None'}`
   "tags": ["relevant-tags"]
 }
 
-Extract ONLY what you find in the HTML - look for parameter definitions, types, defaults, constraints.`
-            },
-            {
-              role: 'user',
-              content: `Extract model information from this HTML content:\n\n${html}`
-            }
-          ],
-          response_format: { type: 'json_object' },
-          max_tokens: 1000,
-          temperature: 0.1
-        })
-      });
+Extract ONLY what you find in the HTML - look for parameter definitions, types, defaults, constraints.`              },
+              {
+                role: 'user',
+                content: `Extract model information from this HTML content:\n\n${html}`
+              }
+            ],
+            response_format: { type: 'json_object' },
+            max_tokens: 1000,
+            temperature: 0.1          })        });
 
-      if (!aiResponse.ok) {
-        throw new Error(`AI extraction failed: ${aiResponse.status}`);
+        if (aiTimeoutId) {
+          clearTimeout(aiTimeoutId);
+          aiTimeoutId = null;
+        }
+
+        if (!aiResponse.ok) {
+          throw new Error(`AI extraction failed: ${aiResponse.status}`);
+        }        let aiResult: any = await aiResponse.json() as any;
+        let extractedData: any = JSON.parse(aiResult.choices[0].message.content);
+
+        // 3. Normalize and return metadata
+        const normalizedMetadata = {
+          id: extractedData.id || modelId,
+          name: extractedData.name || modelId.split('/').pop() || modelId,
+          category: extractedData.category || 'unknown',
+          description: extractedData.description || 'No description available',
+          parameters: this.normalizeParameters(extractedData.parameters || {}),
+          capabilities: extractedData.capabilities || [],
+          tags: extractedData.tags || [],
+          pricing: extractedData.pricing,
+          lastUpdated: Date.now()
+        };
+
+        // Clear large variables to help GC
+        html = null;
+        aiResult = null;
+        extractedData = null;
+
+        return normalizedMetadata;
+        
+      } catch (aiError) {
+        // Ensure timeout is cleared even on error
+        if (aiTimeoutId) {
+          clearTimeout(aiTimeoutId);
+        }
+        // Abort any pending request
+        aiController.abort();
+        throw aiError;
       }
-
-      const aiResult = await aiResponse.json() as any;
-      const extractedData = JSON.parse(aiResult.choices[0].message.content);
-
-      // 3. Normalize and return metadata
-      return {
-        id: extractedData.id || modelId,
-        name: extractedData.name || modelId.split('/').pop() || modelId,
-        category: extractedData.category || 'unknown',
-        description: extractedData.description || 'No description available',
-        parameters: this.normalizeParameters(extractedData.parameters || {}),
-        capabilities: extractedData.capabilities || [],
-        tags: extractedData.tags || [],
-        pricing: extractedData.pricing,
-        lastUpdated: Date.now()
-      };
 
     } catch (error) {
       throw new FalAiError(
@@ -750,6 +785,26 @@ Extract ONLY what you find in the HTML - look for parameter definitions, types, 
       console.log('🗑️  Model cache cleared');
     } catch (error) {
       // Cache file doesn't exist
+    }
+  }
+
+  /**
+   * Cleanup method to properly close connections and clear timers
+   */
+  async cleanup(): Promise<void> {
+    try {
+      // Clear in-memory cache
+      this.modelCache.clear();
+      
+      // The @fal-ai/client doesn't expose a cleanup method,
+      // but we can try to clean up any Node.js agents or connections
+      if (global.gc) {
+        global.gc(); // Force garbage collection if available
+      }
+      
+      console.log('🧹 FalAiClient cleanup completed');
+    } catch (error) {
+      console.warn('Failed to cleanup FalAiClient:', error);
     }
   }
 }

@@ -13,6 +13,36 @@
 - ✅ **Type-Safe Provider System** - Consistent interfaces across all providers with comprehensive validation
 - ✅ **Role-Based Asset System** - Audio, Video, Text, Image roles with automatic format detection and mixin application
 
+## 🎯 NEW REQUIREMENT: ELEGANT PROVIDER REGISTRY SYSTEM
+
+### **Goal: Implement Production-Ready Provider Registry**
+
+Replace manual provider instantiation with an elegant registry pattern that supports:
+
+```typescript
+// TARGET ELEGANT PATTERN
+const registry = ProviderRegistry.getInstance();
+const provider = await registry.getProvider('openrouter');
+const model = await provider.getModel('deepseek/deepseek-chat:free');
+const result = await model.transform(textInput);
+```
+
+**Requirements:**
+1. **Self-Registering Providers** - Providers automatically register themselves via bootstrap system
+2. **Factory Pattern** - Lazy instantiation with automatic environment configuration  
+3. **Bootstrap Discovery** - Single bootstrap file manages provider imports for self-registration
+4. **Type Safety** - Full TypeScript support with proper interfaces
+5. **Auto-Configuration** - Providers auto-configure from environment variables
+6. **Error Handling** - Graceful fallbacks when providers are unavailable
+7. **Testing Support** - Easy mocking and testing of individual providers
+
+**Architecture Pattern:**
+- **Factory-Based Registration** - Providers register factory functions, not instances
+- **Bootstrap Initialization** - `initializeProviders()` imports all provider modules
+- **Lazy Instantiation** - Providers created only when requested via `getProvider()`
+- **Environment Auto-Config** - Each provider attempts auto-configuration from env vars
+- **Singleton Registry** - Single registry instance manages all provider factories
+
 ## 🏗️ PRODUCTION ARCHITECTURE: PROVIDER SYSTEM
 
 ### **Core Achievement: Unified Provider Interface**

@@ -2,260 +2,169 @@
   "master": {
     "tasks": [
       {
-        "id": 43,
-        "title": "Create ModelRegistry and Provider Base Classes",
-        "description": "Establish the foundational classes for the ModelRegistry and Provider pattern to enable model and provider management.",
-        "details": "Implement abstract base classes `ModelRegistry` and `Provider` with core methods for model registration and retrieval. Use TypeScript interfaces to define the contract for models and providers. Ensure the base classes support role-based model creation and provider delegation.",
-        "testStrategy": "Unit tests for base class methods, including model registration, provider retrieval, and role-based model creation. Verify interface contracts are enforced.",
+        "id": 1,
+        "title": "Design Provider Registry Architecture",
+        "description": "Create a detailed design for the Provider Registry system, including class diagrams and interaction flows.",
+        "details": "1. Define the ProviderRegistry class with a private constructor and getInstance() method for singleton pattern.\n2. Design the Provider interface with methods like configure(), isAvailable(), and getModel().\n3. Create a ProviderFactory interface for lazy instantiation.\n4. Design a bootstrap mechanism for automatic provider registration.\n5. Plan error handling and fallback strategies.\n6. Consider using TypeScript's decorators for provider registration.\n7. Use the latest TypeScript features (4.9+) for enhanced type safety.\n\nExample structure:\n```typescript\nclass ProviderRegistry {\n  private static instance: ProviderRegistry;\n  private providers: Map<string, ProviderFactory> = new Map();\n\n  private constructor() {}\n\n  public static getInstance(): ProviderRegistry {\n    if (!ProviderRegistry.instance) {\n      ProviderRegistry.instance = new ProviderRegistry();\n    }\n    return ProviderRegistry.instance;\n  }\n\n  public registerProvider(id: string, factory: ProviderFactory): void {\n    this.providers.set(id, factory);\n  }\n\n  public async getProvider(id: string): Promise<Provider> {\n    const factory = this.providers.get(id);\n    if (!factory) throw new Error(`Provider ${id} not found`);\n    return factory.create();\n  }\n}\n```",
+        "testStrategy": "1. Write unit tests for ProviderRegistry singleton behavior.\n2. Create mock providers to test registration and retrieval.\n3. Test error handling for non-existent providers.\n4. Verify thread-safety of the singleton implementation.\n5. Use TypeScript's strict mode and additional strict flags for compile-time checks.",
         "priority": "high",
         "dependencies": [],
         "status": "done",
-        "subtasks": []
-      },
-      {
-        "id": 44,
-        "title": "Extract API Clients from Monolithic Services",
-        "description": "Separate API client logic from existing monolithic services to create pure HTTP API clients.",
-        "details": "Extract API client logic from `ChatterboxTTSDockerService` and `WhisperSTTService` into standalone classes `ChatterboxAPIClient` and `WhisperAPIClient`. Ensure these clients handle only HTTP communication and are free from Docker or business logic.",
-        "testStrategy": "Unit tests for API client methods, ensuring they correctly handle HTTP requests and responses. Mock HTTP calls to verify behavior.",
-        "priority": "high",
-        "dependencies": [
-          43
-        ],
-        "status": "done",
-        "subtasks": []
-      },
-      {
-        "id": 45,
-        "title": "Extract Docker Services from Monolithic Services",
-        "description": "Separate Docker management logic from existing monolithic services to create standalone Docker services.",
-        "details": "Extract Docker management logic from `ChatterboxTTSDockerService` and `WhisperSTTService` into standalone classes `ChatterboxDockerService` and `WhisperDockerService`. These services should handle only Docker operations (start, stop, health checks).",
-        "testStrategy": "Unit tests for Docker service methods, verifying Docker operations (start, stop, health checks) work as expected. Mock Docker interactions for testing.",
-        "priority": "high",
-        "dependencies": [
-          43
-        ],
-        "status": "done",
-        "subtasks": []
-      },
-      {
-        "id": 46,
-        "title": "Create Model Implementations",
-        "description": "Implement concrete model classes that coordinate extracted API clients and Docker services.",
-        "details": "Create concrete model classes (e.g., `WhisperSTTModel`, `ChatterboxTTSModel`) that use the extracted API clients and Docker services for transformation logic. Ensure models adhere to the `Model` interface and delegate infrastructure concerns to providers.",
-        "testStrategy": "Unit tests for model transformation methods, ensuring they correctly use API clients and Docker services. Mock dependencies to isolate model logic.",
-        "priority": "high",
-        "dependencies": [
-          44,
-          45
-        ],
-        "status": "done",
-        "subtasks": []
-      },
-      {
-        "id": 47,
-        "title": "Create Provider Classes",
-        "description": "Implement provider classes that manage model creation and infrastructure.",
-        "details": "Create provider classes (e.g., `WhisperDockerProvider`, `ChatterboxDockerProvider`) that implement the `Provider` interface. These classes should manage Docker services and create model instances with pre-configured dependencies.",
-        "testStrategy": "Unit tests for provider methods, verifying model creation and infrastructure management. Mock dependencies to isolate provider logic.",
-        "priority": "high",
-        "dependencies": [
-          43,
-          46
-        ],
-        "status": "done",
-        "subtasks": []
-      },
-      {
-        "id": 48,
-        "title": "Register Models with Providers",
-        "description": "Implement model registration logic in the ModelRegistry to associate models with their providers.",
-        "details": "Extend the `ModelRegistry` to support model registration with providers. Ensure providers can register models they support, and the registry can retrieve models by provider and model ID.",
-        "testStrategy": "Unit tests for model registration and retrieval in the `ModelRegistry`. Verify models are correctly associated with providers.",
-        "priority": "medium",
-        "dependencies": [
-          43,
-          47
-        ],
-        "status": "pending",
-        "subtasks": []
-      },
-      {
-        "id": 49,
-        "title": "Update Existing Code to Use New Pattern",
-        "description": "Refactor existing code to use the new ModelRegistry and Provider pattern.",
-        "details": "Update existing code (e.g., `ChatterboxTTSDockerService`, `WhisperSTTService`) to use the new `ModelRegistry` and `Provider` pattern. Ensure backward compatibility with existing API interfaces.",
-        "testStrategy": "Integration tests to verify existing functionality works with the new pattern. Ensure all unit tests pass.",
-        "priority": "medium",
-        "dependencies": [
-          47,
-          48
-        ],
-        "status": "pending",
-        "subtasks": []
-      },
-      {
-        "id": 50,
-        "title": "Implement Asset and Role Mixins",
-        "description": "Create the base Asset class and role mixins for strong typing and role casting.",
-        "details": "Implement the base `Asset` class and role mixins (`withSpeechRole`, `withAudioRole`, etc.) to enable strong typing and automatic role casting. Ensure role mixins preserve source asset references.",
-        "testStrategy": "Unit tests for asset creation, role casting, and source asset preservation. Verify role interfaces are correctly applied.",
-        "priority": "medium",
-        "dependencies": [],
-        "status": "pending",
-        "subtasks": []
-      },
-      {
-        "id": 51,
-        "title": "Implement Core Media Types",
-        "description": "Create core media types (Speech, Audio, Video, Text) with source asset preservation.",
-        "details": "Implement the core media types (`Speech`, `Audio`, `Video`, `Text`) with constructors that preserve source asset references. Ensure these types can be created from assets and cast to other roles.",
-        "testStrategy": "Unit tests for media type creation, role casting, and source asset preservation. Verify media types correctly reference their source assets.",
-        "priority": "medium",
-        "dependencies": [
-          50
-        ],
-        "status": "pending",
-        "subtasks": []
-      },
-      {
-        "id": 52,
-        "title": "Implement Model Interfaces with Role Acceptance",
-        "description": "Define model interfaces that accept role-based inputs and outputs.",
-        "details": "Define abstract model interfaces (e.g., `SpeechToTextModel`, `TextToSpeechModel`) that accept role-based inputs (e.g., `Speech | (Asset & SpeechRole)`). Ensure these interfaces enforce type-safe role casting.",
-        "testStrategy": "Unit tests for model interfaces, verifying they correctly accept role-based inputs and outputs. Mock role casting for testing.",
-        "priority": "medium",
-        "dependencies": [
-          50,
-          51
-        ],
-        "status": "pending",
-        "subtasks": []
-      },
-      {
-        "id": 53,
-        "title": "Implement Provider Role Mixins",
-        "description": "Create role mixins for providers to enable multi-role capabilities.",
-        "details": "Implement role mixins (e.g., `withSpeechToTextProvider`, `withTextToSpeechProvider`) to enable providers to support multiple roles (e.g., STT and TTS). Ensure mixins correctly extend provider capabilities.",
-        "testStrategy": "Unit tests for provider role mixins, verifying they correctly extend provider capabilities. Mock role implementations for testing.",
-        "priority": "medium",
-        "dependencies": [
-          47,
-          52
-        ],
-        "status": "pending",
-        "subtasks": []
-      },
-      {
-        "id": 54,
-        "title": "Implement Factory Pattern for Provider Selection",
-        "description": "Create a factory class to retrieve providers by role.",
-        "details": "Implement a `ProviderFactory` class with methods to retrieve providers by role (e.g., `getSpeechToTextProvider`). Ensure the factory supports manual provider selection and role-based retrieval.",
-        "testStrategy": "Unit tests for the `ProviderFactory`, verifying it correctly retrieves providers by role. Mock provider registration for testing.",
-        "priority": "medium",
-        "dependencies": [
-          47,
-          53
-        ],
-        "status": "pending",
-        "subtasks": []
-      },
-      {
-        "id": 55,
-        "title": "Verify All Tests Pass",
-        "description": "Run all unit and integration tests to ensure the refactored code meets requirements.",
-        "details": "Execute all existing unit and integration tests to verify the refactored code maintains existing functionality. Address any test failures and ensure backward compatibility.",
-        "testStrategy": "Run all unit and integration tests. Verify no regressions and all tests pass.",
-        "priority": "high",
-        "dependencies": [
-          49,
-          54
-        ],
-        "status": "pending",
-        "subtasks": []
-      },
-      {
-        "id": 56,
-        "title": "Document Architecture and Usage",
-        "description": "Create documentation for the new architecture and usage patterns.",
-        "details": "Document the new ModelRegistry and Provider architecture, including examples of model and provider usage. Provide guidelines for extending the system with new models and providers.",
-        "testStrategy": "Review documentation for accuracy and completeness. Verify examples work as described.",
-        "priority": "low",
-        "dependencies": [
-          55
-        ],
-        "status": "pending",
-        "subtasks": []
-      },
-      {
-        "id": 57,
-        "title": "Demo Core Architecture Principle",
-        "description": "Demonstrate the core architecture principle of one model, multiple providers.",
-        "details": "Create a demo showcasing the core architecture principle: the same model interface (`whisper`) working with different providers (Docker, OpenAI, Replicate). Highlight provider abstraction and implementation flexibility.",
-        "testStrategy": "Verify the demo correctly demonstrates the architecture principle. Ensure all provider implementations work as expected.",
-        "priority": "low",
-        "dependencies": [
-          55
-        ],
-        "status": "pending",
-        "subtasks": []
-      },
-      {
-        "id": 58,
-        "title": "Update TextToSpeechModel Interface for Dual-Signature Transform Method",
-        "description": "Modify the TextToSpeechModel interface to support a dual-signature transform method for voice cloning, changing from voiceFile options to a clean interface pattern.",
-        "details": "1. Update the TextToSpeechModel interface:\n   - Modify the existing transform method signature:\n     From: transform(text: string, options?: { voiceFile: string }): Promise<Speech>\n     To: transform(text: Text): Promise<Speech>\n   - Add a new overload for voice cloning:\n     transform(text: Text, voiceAudio: Audio): Promise<Speech>\n\n2. Update the implementation in relevant classes (e.g., ChatterboxTTSModel):\n   - Implement both transform method signatures\n   - For the voice cloning method, extract the audio data from the Audio object\n\n3. Modify the Audio class to include a static method:\n   Add: static fromFile(filePath: string): Audio\n\n4. Update PRD documentation:\n   - Explain the new interface design and its benefits\n   - Provide usage examples for both basic TTS and voice cloning\n\n5. Update interface definitions in TypeScript:\n   ```typescript\n   interface TextToSpeechModel {\n     transform(text: Text): Promise<Speech>;\n     transform(text: Text, voiceAudio: Audio): Promise<Speech>;\n   }\n   ```\n\n6. Refactor existing code that uses the old interface:\n   - Search for all occurrences of `transform` method calls with `voiceFile` option\n   - Replace with new `Audio.fromFile()` method and updated transform call\n\n7. Ensure backward compatibility:\n   - If necessary, create a wrapper method that accepts the old format and calls the new method internally\n\n8. Update any relevant factory methods or dependency injection code to accommodate the new interface",
-        "testStrategy": "1. Unit Tests:\n   - Test basic TTS transform method with various text inputs\n   - Test voice cloning transform method with different text and audio inputs\n   - Verify Audio.fromFile() method correctly loads audio files\n   - Test error handling for invalid inputs (e.g., null or undefined text/audio)\n\n2. Integration Tests:\n   - Test the entire TTS pipeline using both transform methods\n   - Verify output Speech object contains correct data\n   - Test with real audio files for voice cloning\n\n3. Backward Compatibility Tests:\n   - If a compatibility wrapper is implemented, test it thoroughly\n   - Ensure existing code using the old interface still works correctly\n\n4. Performance Tests:\n   - Compare performance of new interface vs. old interface\n   - Ensure voice cloning doesn't introduce significant overhead\n\n5. Documentation Tests:\n   - Verify all code examples in updated PRD documentation are correct and functional\n\n6. Edge Case Tests:\n   - Test with very long text inputs\n   - Test with various audio file formats and qualities for voice cloning\n\n7. Mock Provider Tests:\n   - Create mock TextToSpeechModel implementations to test interface compliance\n\n8. Regression Tests:\n   - Run full test suite to ensure no unintended side effects in other parts of the system",
-        "status": "done",
-        "dependencies": [
-          52,
-          51
-        ],
-        "priority": "high",
         "subtasks": [
           {
             "id": 1,
-            "title": "Update Chatterbox Integration Test",
-            "description": "Update the chatterbox integration test to demonstrate the new dual-signature transform pattern for voice cloning",
-            "details": "Replace the current voice cloning test that uses options with a clean dual-signature interface test that matches the Whisper STT pattern. The test should show:\n- Basic TTS: model.transform(text) \n- Voice cloning: model.transform(text, voiceAudio)\n- Clear comparison between the two approaches",
-            "status": "done",
+            "title": "Implement ProviderRegistry Singleton",
+            "description": "Create the ProviderRegistry class with singleton pattern and methods for provider management",
             "dependencies": [],
-            "parentTaskId": 58
+            "details": "Implement the ProviderRegistry class with a private constructor, getInstance() method, and methods for registering and retrieving providers. Use a Map to store provider factories.",
+            "status": "done",
+            "testStrategy": "Write unit tests to ensure singleton behavior and proper provider registration/retrieval"
           },
           {
             "id": 2,
-            "title": "Update PRD Documentation",
-            "description": "Update PRD documentation to reflect the dual-signature TTS transform pattern",
-            "details": "Updated the PRD to include:\n- New TTS Dual-Signature Pattern section explaining the design\n- Updated TextToSpeechModel interface with overloaded transform methods\n- Updated usage examples showing both basic TTS and voice cloning patterns\n- Clear explanation of consistency with Whisper STT multi-input pattern",
-            "status": "done",
+            "title": "Design Provider and ProviderFactory Interfaces",
+            "description": "Create interfaces for Provider and ProviderFactory with required methods",
             "dependencies": [],
-            "parentTaskId": 58
+            "details": "Define the Provider interface with methods like configure(), isAvailable(), and getModel(). Create a ProviderFactory interface for lazy instantiation of providers.",
+            "status": "done",
+            "testStrategy": "Create mock implementations to test interface compliance"
           },
           {
             "id": 3,
-            "title": "Implement Dual-Signature Transform in TextToSpeechModel",
-            "description": "Implement the dual-signature transform method in TextToSpeechModel abstract class",
-            "details": "Update the abstract TextToSpeechModel class to support method overloading:\n- transform(input: Text | (Asset & TextRole)): Promise<Speech> - basic TTS\n- transform(text: Text | (Asset & TextRole), voiceAudio: Audio | (Asset & SpeechRole)): Promise<Speech> - voice cloning\nEnsure type safety and proper method resolution for both signatures.",
+            "title": "Implement Automatic Provider Registration",
+            "description": "Design and implement a bootstrap mechanism for automatic provider registration",
+            "dependencies": [
+              1,
+              2
+            ],
+            "details": "Create a system to automatically discover and register providers at runtime. Consider using TypeScript decorators for provider registration.",
             "status": "done",
-            "dependencies": [],
-            "parentTaskId": 58
+            "testStrategy": "Write integration tests to verify automatic discovery and registration of providers"
           },
           {
             "id": 4,
-            "title": "Update Chatterbox Implementation",
-            "description": "Update ChatterboxDockerProvider and ChatterboxTTSModel to implement dual-signature interface",
-            "details": "Modify the concrete implementation to support both transform signatures:\n- Remove voiceFile from options interface\n- Implement basic TTS: transform(text) calling existing TTS API\n- Implement voice cloning: transform(text, voiceAudio) with voice upload and cloning API calls\n- Ensure proper Audio asset handling and file upload for voice cloning",
+            "title": "Implement Error Handling and Fallback Strategies",
+            "description": "Design and implement error handling mechanisms and fallback strategies for provider failures",
+            "dependencies": [
+              1,
+              2
+            ],
+            "details": "Implement try-catch blocks, custom error classes, and fallback logic to handle scenarios where providers are unavailable or fail. Consider implementing a chain of responsibility pattern for fallbacks.",
             "status": "done",
-            "dependencies": [],
-            "parentTaskId": 58
+            "testStrategy": "Write unit and integration tests simulating various error scenarios and verifying correct fallback behavior"
+          },
+          {
+            "id": 5,
+            "title": "Create Class Diagrams and Interaction Flows",
+            "description": "Develop comprehensive class diagrams and interaction flow diagrams for the Provider Registry system",
+            "dependencies": [
+              1,
+              2,
+              3,
+              4
+            ],
+            "details": "Use a UML tool to create detailed class diagrams showing relationships between ProviderRegistry, Provider, and ProviderFactory. Create sequence diagrams to illustrate the interaction flow for provider registration, retrieval, and error handling.",
+            "status": "done",
+            "testStrategy": "Review diagrams with team members and stakeholders for completeness and accuracy"
           }
         ]
+      },
+      {
+        "id": 2,
+        "title": "Implement Core Provider Registry",
+        "description": "Develop the core ProviderRegistry class with registration and retrieval functionality.",
+        "details": "1. Implement the ProviderRegistry class as a singleton.\n2. Use a Map to store provider factories.\n3. Implement registerProvider and getProvider methods.\n4. Use TypeScript's private fields (#) for better encapsulation.\n5. Implement lazy loading of providers.\n6. Add logging for debugging and monitoring.\n7. Use ES2022 features like .at() for array access where applicable.\n\nExample implementation:\n```typescript\nclass ProviderRegistry {\n  static #instance: ProviderRegistry;\n  #providers: Map<string, ProviderFactory> = new Map();\n\n  private constructor() {\n    console.log('ProviderRegistry initialized');\n  }\n\n  static getInstance(): ProviderRegistry {\n    if (!ProviderRegistry.#instance) {\n      ProviderRegistry.#instance = new ProviderRegistry();\n    }\n    return ProviderRegistry.#instance;\n  }\n\n  registerProvider(id: string, factory: ProviderFactory): void {\n    this.#providers.set(id, factory);\n    console.log(`Provider ${id} registered`);\n  }\n\n  async getProvider(id: string): Promise<Provider> {\n    const factory = this.#providers.get(id);\n    if (!factory) throw new Error(`Provider ${id} not found`);\n    console.log(`Creating provider ${id}`);\n    return factory.create();\n  }\n}\n```",
+        "testStrategy": "1. Write unit tests to verify singleton behavior.\n2. Test provider registration and retrieval.\n3. Verify error handling for non-existent providers.\n4. Use Jest for testing and consider using ts-jest for TypeScript support.\n5. Test concurrent access to ensure thread-safety.\n6. Mock console.log and verify logging behavior.",
+        "priority": "high",
+        "dependencies": [
+          1
+        ],
+        "status": "done",
+        "subtasks": []
+      },
+      {
+        "id": 3,
+        "title": "Develop Provider Factory System",
+        "description": "Implement direct constructor-based registration system for providers with automatic environment configuration.",
+        "status": "done",
+        "dependencies": [
+          2
+        ],
+        "priority": "high",
+        "details": "1. Define Provider interface with zero-arg constructor requirement.\n2. Implement self-registration for all 7 provider types (OpenRouter, FAL.ai, Together, Replicate, FFMPEG Docker, Chatterbox, Whisper).\n3. Use environment variables for automatic configuration.\n4. Ensure all constructors are safe and handle missing configuration.\n5. Add TypeScript type guards for provider-specific configurations.\n6. Use the latest Node.js (18+) features for enhanced performance.\n\nExample implementation:\n```typescript\ninterface Provider {\n  configure(): Promise<void>;\n}\n\nclass OpenRouterProvider implements Provider {\n  private apiKey: string;\n\n  constructor() {\n    this.apiKey = process.env.OPENROUTER_API_KEY;\n    if (!this.apiKey) throw new Error('OpenRouter API key not found');\n  }\n\n  async configure(): Promise<void> {\n    // Additional configuration if needed\n  }\n}\n\n// Usage\nconst registry = ProviderRegistry.getInstance();\nregistry.registerProvider('openrouter', OpenRouterProvider);\n```",
+        "testStrategy": "1. Write unit tests for each provider's constructor.\n2. Test error handling for missing environment variables.\n3. Mock environment variables for testing.\n4. Verify self-registration behavior.\n5. Test type guard functions for configuration objects.\n6. Use dependency injection for easier testing of provider instances.",
+        "subtasks": []
+      },
+      {
+        "id": 4,
+        "title": "Implement Provider-Specific Factories",
+        "description": "Implement direct self-registration for OpenRouter, FAL.ai, Together, Replicate, FFMPEG Docker, Chatterbox, and Whisper providers.",
+        "status": "done",
+        "dependencies": [
+          3
+        ],
+        "priority": "medium",
+        "details": "1. Implement self-registration mechanism in each provider class.\n2. Use TypeScript decorators for registration metadata.\n3. Implement proper error handling and logging during registration.\n4. Use async/await for asynchronous registration if needed.\n5. Implement retry logic for API-based provider registration.\n6. Use the latest ECMAScript features like optional chaining (?.) and nullish coalescing (??) operators.\n\nExample implementation:\n```typescript\n@ProviderRegistration({\n  name: 'falai',\n  configKeys: ['FALAI_API_KEY']\n})\nclass FalAiProvider {\n  async register(): Promise<void> {\n    const apiKey = process.env.FALAI_API_KEY;\n    if (!apiKey) throw new Error('FAL.ai API key not found');\n    await this.configure({ apiKey });\n    ProviderRegistry.register(this);\n  }\n}\n\n@ProviderRegistration({\n  name: 'docker-ffmpeg',\n  configKeys: ['FFMPEG_SERVICE_URL']\n})\nclass FfmpegDockerProvider {\n  async register(): Promise<void> {\n    const serviceUrl = process.env.FFMPEG_SERVICE_URL;\n    if (!serviceUrl) throw new Error('FFMPEG service URL not found');\n    await this.configure({ serviceUrl });\n    ProviderRegistry.register(this);\n  }\n}\n```",
+        "testStrategy": "1. Create unit tests for each provider's registration.\n2. Test error handling for registration failures.\n3. Mock API responses for remote providers during registration.\n4. Test retry logic for API-based provider registration.\n5. Verify proper usage of environment variables.\n6. Use integration tests to verify actual registration and API connectivity (with proper API keys).",
+        "subtasks": []
+      },
+      {
+        "id": 5,
+        "title": "Develop Bootstrap System",
+        "description": "Create a bootstrap mechanism to automatically import and register all providers.",
+        "details": "1. Create a bootstrap.ts file to manage provider imports.\n2. Use dynamic imports for lazy loading of provider modules.\n3. Implement a decorator for provider registration.\n4. Use TypeScript's module augmentation for extending global types.\n5. Implement error handling for failed provider registrations.\n6. Use the latest Node.js features like worker threads for potential parallelization.\n\nExample implementation:\n```typescript\n// bootstrap.ts\nimport { ProviderRegistry } from './ProviderRegistry';\n\nexport async function initializeProviders(): Promise<void> {\n  const registry = ProviderRegistry.getInstance();\n  const providerModules = [\n    './providers/FalAiProvider',\n    './providers/ReplicateProvider',\n    // ... other providers\n  ];\n\n  for (const module of providerModules) {\n    try {\n      const { default: ProviderFactory } = await import(module);\n      const factory = new ProviderFactory();\n      registry.registerProvider(factory.getId(), factory);\n    } catch (error) {\n      console.error(`Failed to load provider module ${module}:`, error);\n    }\n  }\n}\n\n// Decorator for provider registration\nfunction RegisterProvider(id: string) {\n  return function (constructor: new () => ProviderFactory) {\n    ProviderRegistry.getInstance().registerProvider(id, new constructor());\n  };\n}\n\n// Usage in provider files\n@RegisterProvider('fal-ai')\nclass FalAiProviderFactory implements ProviderFactory {\n  // ... implementation\n}\n```",
+        "testStrategy": "1. Write integration tests for the bootstrap process.\n2. Test error handling for failed module imports.\n3. Verify all expected providers are registered after bootstrap.\n4. Test the decorator functionality.\n5. Use mocking to simulate various bootstrap scenarios.\n6. Measure bootstrap performance and optimize if necessary.",
+        "priority": "medium",
+        "dependencies": [
+          4
+        ],
+        "status": "done",
+        "subtasks": []
+      },
+      {
+        "id": 6,
+        "title": "Implement Error Handling and Fallbacks",
+        "description": "Develop a robust error handling system with graceful fallbacks for unavailable providers.",
+        "details": "1. Implement custom error classes for different types of provider errors.\n2. Create a fallback mechanism in the ProviderRegistry.\n3. Implement retry logic with exponential backoff for transient errors.\n4. Use TypeScript's unknown type for better type safety in catch blocks.\n5. Implement a circuit breaker pattern for failing providers.\n6. Use async/await and try/catch for cleaner error handling.\n\nExample implementation:\n```typescript\nclass ProviderNotAvailableError extends Error {\n  constructor(providerId: string) {\n    super(`Provider ${providerId} is not available`);\n    this.name = 'ProviderNotAvailableError';\n  }\n}\n\nclass ProviderRegistry {\n  // ... other methods\n\n  async getProviderWithFallback(id: string, fallbackIds: string[]): Promise<Provider> {\n    try {\n      return await this.getProvider(id);\n    } catch (error) {\n      if (error instanceof ProviderNotAvailableError && fallbackIds.length > 0) {\n        console.warn(`Provider ${id} not available, trying fallback`);\n        return this.getProviderWithFallback(fallbackIds[0], fallbackIds.slice(1));\n      }\n      throw error;\n    }\n  }\n}\n\n// Usage\ntry {\n  const provider = await registry.getProviderWithFallback('fal-ai', ['replicate', 'together']);\n  // Use provider\n} catch (error) {\n  if (error instanceof ProviderNotAvailableError) {\n    console.error('All providers unavailable');\n  } else {\n    console.error('Unexpected error:', error);\n  }\n}\n```",
+        "testStrategy": "1. Write unit tests for custom error classes.\n2. Test fallback mechanism with various scenarios.\n3. Verify retry logic and exponential backoff.\n4. Test circuit breaker functionality.\n5. Use mocking to simulate various error conditions.\n6. Perform integration tests to verify error handling across the system.",
+        "priority": "medium",
+        "dependencies": [
+          5
+        ],
+        "status": "done",
+        "subtasks": []
+      },
+      {
+        "id": 7,
+        "title": "Enhance Type Safety and Validation",
+        "description": "Implement comprehensive type checking and runtime validation for the provider system.",
+        "details": "1. Use TypeScript's strict mode and additional strict flags.\n2. Implement runtime type checking using a library like io-ts or zod.\n3. Create type guards for provider-specific configurations.\n4. Use branded types for type-safe identifiers.\n5. Implement exhaustive type checking in switch statements.\n6. Use const assertions for improved type inference.\n\nExample implementation:\n```typescript\nimport * as t from 'io-ts';\nimport { PathReporter } from 'io-ts/lib/PathReporter';\n\n// Runtime type for provider configuration\nconst ProviderConfig = t.type({\n  apiKey: t.string,\n  timeout: t.number\n});\ntype ProviderConfig = t.TypeOf<typeof ProviderConfig>;\n\n// Branded type for provider ID\ntype ProviderId = string & { readonly brand: unique symbol };\nconst ProviderId = (id: string): ProviderId => id as ProviderId;\n\nclass ProviderRegistry {\n  // ... other methods\n\n  registerProvider(id: ProviderId, factory: ProviderFactory): void {\n    // Runtime type checking\n    const result = ProviderConfig.decode(factory.getConfig());\n    if (result._tag === 'Left') {\n      throw new Error(`Invalid provider config: ${PathReporter.report(result).join(', ')}`);\n    }\n    this.providers.set(id, factory);\n  }\n}\n\n// Usage\nconst registry = ProviderRegistry.getInstance();\nregistry.registerProvider(ProviderId('fal-ai'), new FalAiProviderFactory());\n```",
+        "testStrategy": "1. Write unit tests for type guards and branded types.\n2. Test runtime type checking with valid and invalid inputs.\n3. Verify exhaustive type checking in switch statements.\n4. Use TypeScript's strict null checks and no implicit any.\n5. Test with different TypeScript compiler options to ensure type safety.\n6. Implement property-based testing for complex type validations.",
+        "priority": "medium",
+        "dependencies": [
+          6
+        ],
+        "status": "done",
+        "subtasks": []
+      },
+      {
+        "id": 8,
+        "title": "Implement Testing Infrastructure",
+        "description": "Set up a comprehensive testing infrastructure for the provider registry system.",
+        "details": "1. Set up Jest as the testing framework with TypeScript support.\n2. Implement unit tests for all core classes and functions.\n3. Create integration tests for the entire provider registry system.\n4. Set up mocking for external dependencies and API calls.\n5. Implement snapshot testing for complex objects.\n6. Use code coverage tools to ensure high test coverage.\n7. Set up continuous integration (CI) pipeline for automated testing.\n\nExample implementation:\n```typescript\n// ProviderRegistry.test.ts\nimport { ProviderRegistry } from './ProviderRegistry';\nimport { MockProvider } from './mocks/MockProvider';\n\ndescribe('ProviderRegistry', () => {\n  let registry: ProviderRegistry;\n\n  beforeEach(() => {\n    registry = ProviderRegistry.getInstance();\n    // Clear registry before each test\n    registry['providers'].clear();\n  });\n\n  test('registers and retrieves a provider', async () => {\n    const mockProvider = new MockProvider();\n    registry.registerProvider('mock', mockProvider);\n    const retrievedProvider = await registry.getProvider('mock');\n    expect(retrievedProvider).toBe(mockProvider);\n  });\n\n  test('throws error for non-existent provider', async () => {\n    await expect(registry.getProvider('non-existent')).rejects.toThrow('Provider non-existent not found');\n  });\n\n  // More tests...\n});\n\n// Integration test\ndescribe('Provider Registry Integration', () => {\n  test('bootstrap initializes all providers', async () => {\n    await initializeProviders();\n    const registry = ProviderRegistry.getInstance();\n    expect(await registry.getProvider('fal-ai')).toBeDefined();\n    expect(await registry.getProvider('replicate')).toBeDefined();\n    // Check other providers...\n  });\n});\n```",
+        "testStrategy": "1. Achieve at least 90% code coverage across the entire provider registry system.\n2. Implement both positive and negative test cases for all functions.\n3. Use mock objects to simulate various provider behaviors.\n4. Test error handling and edge cases thoroughly.\n5. Implement performance tests to ensure system efficiency.\n6. Use mutation testing to verify test quality.\n7. Set up automated test runs on each commit in the CI pipeline.",
+        "priority": "high",
+        "dependencies": [
+          7
+        ],
+        "status": "pending",
+        "subtasks": []
       }
     ],
     "metadata": {
-      "created": "2025-06-17T05:23:26.699Z",
-      "updated": "2025-06-17T23:19:33.377Z",
-      "description": "Tasks for master context"
+      "created": "2025-06-22T02:37:59.528Z",
+      "updated": "2025-06-22T02:58:24.692Z",
+      "description": "Tasks for provider-registry context"
     }
   }
 }

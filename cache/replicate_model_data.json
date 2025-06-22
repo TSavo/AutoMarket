@@ -308,5 +308,101 @@
     "capabilities": [],
     "pricing": "usage-based",
     "lastUpdated": 1750369031858
+  },
+  "stability-ai/stable-diffusion": {
+    "id": "stability-ai/stable-diffusion",
+    "owner": "stability-ai",
+    "name": "stable-diffusion",
+    "description": "A latent text-to-image diffusion model capable of generating photo-realistic images given any text input",
+    "category": "text-to-image",
+    "tags": [
+      "diffusion"
+    ],
+    "visibility": "public",
+    "run_count": 110484177,
+    "github_url": "https://github.com/replicate/cog-stable-diffusion",
+    "paper_url": "https://arxiv.org/abs/2112.10752",
+    "license_url": "https://huggingface.co/spaces/CompVis/stable-diffusion-license",
+    "cover_image_url": "https://tjzk.replicate.delivery/models_models_featured_image/710f5e9f-9561-4e4f-9d1e-614205f62597/stable-diffusion.webp",
+    "parameters": {
+      "seed": {
+        "type": "integer",
+        "description": "Random seed. Leave blank to randomize the seed",
+        "required": false,
+        "x_order": 8
+      },
+      "width": {
+        "type": "string",
+        "description": "Width of generated image in pixels. Needs to be a multiple of 64",
+        "required": false,
+        "default": 768,
+        "x_order": 2
+      },
+      "height": {
+        "type": "string",
+        "description": "Height of generated image in pixels. Needs to be a multiple of 64",
+        "required": false,
+        "default": 768,
+        "x_order": 1
+      },
+      "prompt": {
+        "type": "string",
+        "description": "Input prompt",
+        "required": false,
+        "default": "a vision of paradise. unreal engine",
+        "x_order": 0
+      },
+      "scheduler": {
+        "type": "string",
+        "description": "Choose a scheduler.",
+        "required": false,
+        "default": "DPMSolverMultistep",
+        "x_order": 7
+      },
+      "num_outputs": {
+        "type": "integer",
+        "description": "Number of images to generate.",
+        "required": false,
+        "default": 1,
+        "minimum": 1,
+        "maximum": 4,
+        "x_order": 4
+      },
+      "guidance_scale": {
+        "type": "number",
+        "description": "Scale for classifier-free guidance",
+        "required": false,
+        "default": 7.5,
+        "minimum": 1,
+        "maximum": 20,
+        "x_order": 6
+      },
+      "negative_prompt": {
+        "type": "string",
+        "description": "Specify things to not see in the output",
+        "required": false,
+        "x_order": 3
+      },
+      "num_inference_steps": {
+        "type": "integer",
+        "description": "Number of denoising steps",
+        "required": false,
+        "default": 50,
+        "minimum": 1,
+        "maximum": 500,
+        "x_order": 5
+      }
+    },
+    "output_schema": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "format": "uri"
+      },
+      "title": "Output"
+    },
+    "capabilities": [],
+    "pricing": "usage-based",
+    "lastUpdated": 1750564731761
   }
 }

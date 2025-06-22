@@ -107,12 +107,9 @@ export class TogetherTextToImageModel extends TextToImageModel {
       const localPath = path.join(tempDir, tempFileName);
       fs.writeFileSync(localPath, imageBuffer);
 
-      console.log(`[TogetherTextToImage] Image saved to: ${localPath}`);
-
-      // Use SmartAssetFactory to create Asset with automatic metadata extraction
-      console.log(`[TogetherTextToImage] Loading image asset with metadata extraction...`);
+      console.log(`[TogetherTextToImage] Image saved to: ${localPath}`);      // Use SmartAssetFactory to create Asset with automatic metadata extraction
       const { AssetLoader } = await import('../../assets/SmartAssetFactory');
-      const smartAsset = AssetLoader.load(localPath);
+      const smartAsset = await AssetLoader.load(localPath);
       const image = await (smartAsset as any).asImage();
 
       // Add our custom metadata to the image

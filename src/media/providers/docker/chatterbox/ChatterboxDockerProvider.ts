@@ -5,6 +5,13 @@
  * Manages the Docker service lifecycle and provides model implementations.
  */
 
+import { 
+  MediaProvider,
+  ProviderType,
+  MediaCapability,
+  ProviderModel,
+  ProviderConfig
+} from '../../../types/provider';
 import { ChatterboxDockerService } from '../../../services/ChatterboxDockerService';
 import { ChatterboxAPIClient } from './ChatterboxAPIClient';
 import { ChatterboxDockerModel } from './ChatterboxDockerModel';
@@ -14,9 +21,12 @@ import { TextToAudioProvider } from '../../../capabilities';
 /**
  * Provider for Chatterbox TTS models via Docker
  */
-export class ChatterboxDockerProvider implements TextToAudioProvider {
+export class ChatterboxDockerProvider implements MediaProvider, TextToAudioProvider {
   readonly id = 'chatterbox-docker';
   readonly name = 'Chatterbox Docker Provider';
+  readonly type = ProviderType.LOCAL;
+  readonly capabilities = [MediaCapability.TEXT_TO_AUDIO];
+  readonly models: ProviderModel[] = [];
 
   private dockerService?: ChatterboxDockerService;
   private apiClient?: ChatterboxAPIClient;
@@ -177,24 +187,51 @@ export class ChatterboxDockerProvider implements TextToAudioProvider {
   }
 
   /**
-   * Check if provider is available and healthy
+   * Configure the provider
+   */
+  async configure(config: ProviderConfig): Promise<void> {
+    // Docker providers typically don't need API keys, but may need service URLs
+  }
+
+  /**
+   * Check if provider is available
    */
   async isAvailable(): Promise<boolean> {
     try {
-      const dockerService: ChatterboxDockerService = await this.getDockerService();
-      const isHealthy: boolean = await dockerService.isServiceHealthy();
-
-      if (isHealthy) {
-        // Also check API client connectivity
-        const apiClient: ChatterboxAPIClient = await this.getAPIClient();
-        return await apiClient.checkHealth();
-      }
-
-      return false;
-    } catch (error) {
-      console.warn('ChatterboxDockerProvider availability check failed:', error);
+      const status = await this.getServiceStatus();
+      return status.running && status.healthy;
+    } catch {
       return false;
     }
+  }
+
+  /**
+   * Get models for specific capability
+   */
+  getModelsForCapability(capability: MediaCapability): ProviderModel[] {
+    if (capability === MediaCapability.TEXT_TO_AUDIO) {
+      return this.models;
+    }
+    return [];
+  }
+  /**
+   * Get model by ID
+   */
+  async getModel(modelId: string): Promise<any> {
+    // Return a Chatterbox model instance
+    const apiClient = await this.getAPIClient();
+    return new ChatterboxDockerModel();
+  }
+
+  /**
+   * Get provider health status
+   */
+  async getHealth(): Promise<any> {
+    const status = await this.getServiceStatus();
+    return {
+      status: status.healthy ? 'healthy' : 'unhealthy',
+      details: status
+    };
   }
 
   /**
@@ -227,3 +264,7 @@ export class ChatterboxDockerProvider implements TextToAudioProvider {
  * Default instance for easy importing
  */
 export const chatterboxDockerProvider: ChatterboxDockerProvider = new ChatterboxDockerProvider();
+
+// Self-register with the provider registry
+import { ProviderRegistry } from '../../../registry/ProviderRegistry';
+ProviderRegistry.getInstance().register('chatterbox', ChatterboxDockerProvider);

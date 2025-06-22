@@ -17,7 +17,13 @@ export type Constructor<T = {}> = new (...args: any[]) => T;
 export function withTextToImageProvider<T extends Constructor>(Base: T) {
   return class extends Base implements TextToImageProvider {
     async createTextToImageModel(modelId: string): Promise<any> {
-      // Delegate to base provider's getModel method
+      // Check if base class already has this method implemented
+      if ('createTextToImageModel' in Base.prototype && typeof Base.prototype.createTextToImageModel === 'function') {
+        // Use the base implementation if it exists
+        return await (Base.prototype.createTextToImageModel as any).call(this, modelId);
+      }
+      
+      // Fallback: delegate to base provider's getModel method
       const model = await (this as any).getModel(modelId);
       
       // TODO: Add proper type checking when TextToImageModel is defined

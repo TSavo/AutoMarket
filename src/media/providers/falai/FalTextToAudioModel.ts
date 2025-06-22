@@ -151,8 +151,7 @@ export class FalTextToAudioModel extends TextToAudioModel {
         console.log(`[FalTextToAudio] Audio saved to: ${localPath}`);
 
         // Use SmartAssetFactory to create Asset with automatic metadata extraction
-        console.log(`[FalTextToAudio] Loading audio asset with metadata extraction...`);
-        const smartAsset = SmartAssetFactory.load(localPath);
+        console.log(`[FalTextToAudio] Loading audio asset with metadata extraction...`);        const smartAsset = await SmartAssetFactory.load(localPath);
         const audio = await (smartAsset as any).asAudio();
         
         // Add our custom metadata to the audio

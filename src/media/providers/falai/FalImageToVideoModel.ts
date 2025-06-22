@@ -78,23 +78,23 @@ export class FalImageToVideoModel extends ImageToVideoModel {
         logs: true
       });
 
-      console.log(`[FalImageToVideo] Generation completed:`, result);
-
-      if (result.data) {
+      console.log(`[FalImageToVideo] Generation completed:`, result);      if (result.data) {
         // Handle different output formats from fal.ai
         let videoUrl: string;
         
-        if (Array.isArray(result.data.videos)) {
+        // Check for nested data structure first
+        const responseData = result.data.data || result.data;
+        
+        if (Array.isArray(responseData.videos)) {
           // Multiple videos - take first one
-          videoUrl = result.data.videos[0].url;
-        } else if (result.data.video) {
+          videoUrl = responseData.videos[0].url;
+        } else if (responseData.video) {
           // Single video object
-          videoUrl = typeof result.data.video === 'string' 
-            ? result.data.video 
-            : result.data.video.url;
-        } else if (typeof result.data === 'string') {
+          videoUrl = typeof responseData.video === 'string' 
+            ? responseData.video 
+            : responseData.video.url;        } else if (typeof responseData === 'string') {
           // Direct URL
-          videoUrl = result.data;
+          videoUrl = responseData;
         } else {
           throw new Error('Unexpected output format from fal.ai');
         }
@@ -139,11 +139,8 @@ export class FalImageToVideoModel extends ImageToVideoModel {
       // Save the video to disk
       fs.writeFileSync(localPath, videoBuffer);
       
-      console.log(`[FalImageToVideo] Video saved to: ${localPath} (${(videoBuffer.length / 1024 / 1024).toFixed(2)} MB)`);
-      
-      // Use SmartAssetFactory to create Asset with automatic metadata extraction
-      console.log(`[FalImageToVideo] Loading video asset with metadata extraction...`);
-      const smartAsset = SmartAssetFactory.load(localPath);
+      console.log(`[FalImageToVideo] Video saved to: ${localPath} (${(videoBuffer.length / 1024 / 1024).toFixed(2)} MB)`);      // Use SmartAssetFactory to create Asset with automatic metadata extraction
+      const smartAsset = await SmartAssetFactory.load(localPath);
       const video = await (smartAsset as any).asVideo();
       
       // Add our custom metadata to the video

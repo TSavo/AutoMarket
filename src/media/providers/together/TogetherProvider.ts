@@ -34,10 +34,10 @@ export class TogetherProvider implements MediaProvider, TextToTextProvider, Text
     MediaCapability.TEXT_TO_IMAGE,
     MediaCapability.TEXT_TO_AUDIO
   ];
-
   private config?: ProviderConfig;
   private apiClient?: TogetherAPIClient;
   private discoveredModels = new Map<string, ProviderModel>();
+  private configurationPromise: Promise<void> | null = null;
 
   // Pre-configured popular text models
   private popularTextModels = [
@@ -549,13 +549,17 @@ export class TogetherProvider implements MediaProvider, TextToTextProvider, Text
       language: { type: 'string', default: 'en' }
     };
   }
-
   /**
    * Get a model instance by ID with automatic type detection
    */
   async getModel(modelId: string): Promise<any> {
+    // Ensure we're configured before proceeding
+    if (!this.apiClient) {
+      await this.ensureConfigured();
+    }
+    
     // Determine model type based on model capabilities
-    const modelMetadata = await this.apiClient?.getModelInfo(modelId);
+    const modelMetadata = await this.apiClient!.getModelInfo(modelId);
     if (!modelMetadata) {
       throw new Error(`Model ${modelId} not found`);
     }
@@ -570,18 +574,17 @@ export class TogetherProvider implements MediaProvider, TextToTextProvider, Text
     }
     
     // Default to text-to-text
-    return this.createTextToTextModel(modelId);
-  }
+    return this.createTextToTextModel(modelId);  }
   /**
    * Constructor automatically configures from environment variables
    */
   constructor() {
-    // Auto-configure from environment variables (async but non-blocking)
-    this.autoConfigureFromEnv().catch(error => {
+    // Auto-configure from environment variables (store the promise)
+    this.configurationPromise = this.autoConfigureFromEnv().catch(error => {
       // Silent fail - provider will just not be available until manually configured
+      this.configurationPromise = null;
     });
   }
-
   /**
    * Automatically configure from environment variables
    */
@@ -596,7 +599,32 @@ export class TogetherProvider implements MediaProvider, TextToTextProvider, Text
         });
       } catch (error) {
         console.warn(`[TogetherProvider] Auto-configuration failed: ${error.message}`);
+        throw error;
       }
+    } else {
+      throw new Error('No TOGETHER_API_KEY found in environment');
+    }
+  }
+
+  /**
+   * Ensure the provider is configured (wait for auto-configuration to complete)
+   */
+  private async ensureConfigured(): Promise<void> {
+    if (this.apiClient) {
+      return; // Already configured
+    }
+    
+    // Wait for the configuration promise if it exists
+    if (this.configurationPromise) {
+      await this.configurationPromise;
+    }
+    
+    if (!this.apiClient) {
+      throw new Error('Provider auto-configuration failed - no API key found in environment');
     }
   }
 }
+
+// Self-register with the provider registry
+import { ProviderRegistry } from '../../registry/ProviderRegistry';
+ProviderRegistry.getInstance().register('together', TogetherProvider);

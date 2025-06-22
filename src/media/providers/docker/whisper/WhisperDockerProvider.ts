@@ -5,6 +5,13 @@
  * Manages the Docker service lifecycle and provides model implementations.
  */
 
+import { 
+  MediaProvider,
+  ProviderType,
+  MediaCapability,
+  ProviderModel,
+  ProviderConfig
+} from '../../../types/provider';
 import { WhisperDockerService } from '../../../services/WhisperDockerService';
 import { WhisperAPIClient } from './WhisperAPIClient';
 import { WhisperDockerModel } from './WhisperDockerModel';
@@ -14,9 +21,12 @@ import { AudioToTextModel } from '../../../models/abstracts/AudioToTextModel';
 /**
  * Provider for Whisper STT models via Docker
  */
-export class WhisperDockerProvider implements AudioToTextProvider {
+export class WhisperDockerProvider implements MediaProvider, AudioToTextProvider {
   readonly id = 'whisper-docker';
   readonly name = 'Whisper Docker Provider';
+  readonly type = ProviderType.LOCAL;
+  readonly capabilities = [MediaCapability.AUDIO_TO_TEXT];
+  readonly models: ProviderModel[] = [];
 
   private dockerService?: WhisperDockerService;
   private apiClient?: WhisperAPIClient;
@@ -200,24 +210,51 @@ export class WhisperDockerProvider implements AudioToTextProvider {
   }
 
   /**
-   * Check if provider is available and healthy
+   * Configure the provider
+   */
+  async configure(config: ProviderConfig): Promise<void> {
+    // Docker providers typically don't need API keys, but may need service URLs
+  }
+
+  /**
+   * Check if provider is available
    */
   async isAvailable(): Promise<boolean> {
     try {
-      const dockerService = await this.getDockerService();
-      const isHealthy = await dockerService.isServiceHealthy();
-      
-      if (isHealthy) {
-        // Also check API client connectivity
-        const apiClient = await this.getAPIClient();
-        return await apiClient.checkHealth();
-      }
-      
-      return false;
-    } catch (error) {
-      console.warn('WhisperDockerProvider availability check failed:', error);
+      const status = await this.getServiceStatus();
+      return status.running && status.healthy;
+    } catch {
       return false;
     }
+  }
+
+  /**
+   * Get models for specific capability
+   */
+  getModelsForCapability(capability: MediaCapability): ProviderModel[] {
+    if (capability === MediaCapability.AUDIO_TO_TEXT) {
+      return this.models;
+    }
+    return [];
+  }
+
+  /**
+   * Get model by ID
+   */
+  async getModel(modelId: string): Promise<any> {
+    // Return a Whisper model instance
+    return new WhisperDockerModel();
+  }
+
+  /**
+   * Get provider health status
+   */
+  async getHealth(): Promise<any> {
+    const status = await this.getServiceStatus();
+    return {
+      status: status.healthy ? 'healthy' : 'unhealthy',
+      details: status
+    };
   }
 
   /**
@@ -250,3 +287,7 @@ export class WhisperDockerProvider implements AudioToTextProvider {
  * Default instance for easy importing
  */
 export const whisperDockerProvider = new WhisperDockerProvider();
+
+// Self-register with the provider registry
+import { ProviderRegistry } from '../../../registry/ProviderRegistry';
+ProviderRegistry.getInstance().register('whisper', WhisperDockerProvider);
