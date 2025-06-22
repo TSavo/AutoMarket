@@ -334,7 +334,7 @@ export class TogetherTextToImageModel extends TextToImageModel {
   /**
    * Download image from URL following Replicate pattern
    */
-  private async downloadImage(url: string, timeout: number = 60000): Promise<Buffer> {
+  private async downloadImage(url: string, timeout: number = 600000): Promise<Buffer> {
     return new Promise((resolve, reject) => {
       const request = require('https').get(url, (response: any) => {
         if (response.statusCode !== 200) {

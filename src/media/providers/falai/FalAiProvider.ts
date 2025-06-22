@@ -36,19 +36,46 @@ import { TextToAudioModel } from '../../models/abstracts/TextToAudioModel';
 class BaseFalAiProvider implements MediaProvider {
   readonly id = 'fal-ai';
   readonly name = 'fal.ai';
-  readonly type = ProviderType.REMOTE;  readonly capabilities = [
+  readonly type = ProviderType.REMOTE;
+
+  readonly capabilities = [
     MediaCapability.TEXT_TO_IMAGE,
-    MediaCapability.IMAGE_TO_IMAGE,
     MediaCapability.TEXT_TO_VIDEO,
     MediaCapability.IMAGE_TO_VIDEO,
     MediaCapability.VIDEO_TO_VIDEO,
-    MediaCapability.TEXT_TO_AUDIO,
-    MediaCapability.AUDIO_TO_AUDIO
+    MediaCapability.TEXT_TO_AUDIO
   ];
 
-  private config?: ProviderConfig;
-  private client?: FalAiClient;
-  private discoveredModels = new Map<string, ProviderModel>();
+  protected config?: ProviderConfig;
+  protected client?: FalAiClient;
+  protected discoveredModels = new Map<string, ProviderModel>();
+  /**
+   * Constructor automatically configures from environment variables
+   */
+  constructor() {
+    // Auto-configure from environment variables (async but non-blocking)
+    this.autoConfigureFromEnv().catch(error => {
+      // Silent fail - provider will just not be available until manually configured
+    });
+  }
+
+  /**
+   * Automatically configure from environment variables
+   */
+  private async autoConfigureFromEnv(): Promise<void> {
+    const apiKey = process.env.FALAI_API_KEY;
+    
+    if (apiKey) {
+      try {        await this.configure({
+          apiKey,
+          timeout: 600000, // Longer timeout for AI model processing
+          retries: 2
+        });
+      } catch (error) {
+        console.warn(`[FalAiProvider] Auto-configuration failed: ${error.message}`);
+      }
+    }
+  }
 
   // MediaProvider interface requires models array, but we discover them dynamically
   get models(): ProviderModel[] {

@@ -153,7 +153,7 @@ export class DockerComposeService {
   /**
    * Wait for the service to become healthy according to Docker health checks
    */
-  async waitForHealthy(timeoutMs: number = 60000): Promise<boolean> {
+  async waitForHealthy(timeoutMs: number = 600000): Promise<boolean> {
     const startTime = Date.now();
     const checkInterval = 2000; // Check every 2 seconds
 

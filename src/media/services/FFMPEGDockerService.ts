@@ -154,7 +154,7 @@ export class FFMPEGDockerService {
   /**
    * Wait for the service to become healthy
    */
-  async waitForHealthy(timeoutMs: number = 60000): Promise<boolean> {
+  async waitForHealthy(timeoutMs: number = 600000): Promise<boolean> {
     try {
       return await this.dockerService.waitForHealthy(timeoutMs);
     } catch (error) {

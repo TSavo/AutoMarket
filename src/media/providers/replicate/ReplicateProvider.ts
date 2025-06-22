@@ -38,7 +38,9 @@ import { TextToVideoModel } from '../../models/abstracts/TextToVideoModel';
 class BaseReplicateProvider implements MediaProvider {
   readonly id = 'replicate';
   readonly name = 'Replicate';
-  readonly type = ProviderType.REMOTE;  readonly capabilities = [
+  readonly type = ProviderType.REMOTE;
+
+  readonly capabilities = [
     MediaCapability.TEXT_TO_IMAGE,
     MediaCapability.IMAGE_TO_IMAGE,
     MediaCapability.IMAGE_TO_IMAGE,
@@ -50,6 +52,33 @@ class BaseReplicateProvider implements MediaProvider {
   private config?: ProviderConfig;
   private client?: ReplicateClient;
   private discoveredModels = new Map<string, ProviderModel>();
+  /**
+   * Constructor automatically configures from environment variables
+   */
+  constructor() {
+    // Auto-configure from environment variables (async but non-blocking)
+    this.autoConfigureFromEnv().catch(error => {
+      // Silent fail - provider will just not be available until manually configured
+    });
+  }
+
+  /**
+   * Automatically configure from environment variables
+   */
+  private async autoConfigureFromEnv(): Promise<void> {
+    const apiKey = process.env.REPLICATE_API_TOKEN;
+    
+    if (apiKey) {
+      try {        await this.configure({
+          apiKey,
+          timeout: 600000, // Longer timeout for AI model processing
+          retries: 2
+        });
+      } catch (error) {
+        console.warn(`[ReplicateProvider] Auto-configuration failed: ${error.message}`);
+      }
+    }
+  }
 
   // MediaProvider interface requires models array, but we discover them dynamically
   get models(): ProviderModel[] {

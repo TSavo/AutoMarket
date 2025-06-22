@@ -166,7 +166,7 @@ export class ReplicateTextToImageModel extends TextToImageModel {
   /**
    * Download file from URL and return Buffer
    */
-  private async downloadFile(url: string, timeout: number = 60000): Promise<Buffer> {
+  private async downloadFile(url: string, timeout: number = 600000): Promise<Buffer> {
     const https = require('https');
     const http = require('http');
     

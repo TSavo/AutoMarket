@@ -220,11 +220,10 @@ export class TogetherTextToAudioModel extends TextToAudioModel {
       }
     }
   }
-
   /**
    * Download audio from URL following Replicate pattern
    */
-  private async downloadAudio(url: string, timeout: number = 60000): Promise<Buffer> {
+  private async downloadAudio(url: string, timeout: number = 600000): Promise<Buffer> {
     return new Promise((resolve, reject) => {
       const request = require('https').get(url, (response: any) => {
         if (response.statusCode !== 200) {

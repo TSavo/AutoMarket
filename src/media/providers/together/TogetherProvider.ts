@@ -26,7 +26,9 @@ import { TogetherTextToAudioModel } from './TogetherTextToAudioModel';
 export class TogetherProvider implements MediaProvider, TextToTextProvider, TextToImageProvider, TextToAudioProvider {
   readonly id = 'together';
   readonly name = 'Together AI';
-  readonly type = ProviderType.REMOTE;  readonly capabilities = [
+  readonly type = ProviderType.REMOTE;
+
+  readonly capabilities = [
     MediaCapability.TEXT_TO_TEXT,
     MediaCapability.TEXT_TO_TEXT,
     MediaCapability.TEXT_TO_IMAGE,
@@ -147,7 +149,7 @@ export class TogetherProvider implements MediaProvider, TextToTextProvider, Text
     const togetherConfig: TogetherConfig = {
       apiKey: config.apiKey,
       baseUrl: config.baseUrl || 'https://api.together.xyz/v1',
-      timeout: config.timeout || 30000
+      timeout: config.timeout || 300000
     };
 
     this.apiClient = new TogetherAPIClient(togetherConfig);
@@ -569,5 +571,32 @@ export class TogetherProvider implements MediaProvider, TextToTextProvider, Text
     
     // Default to text-to-text
     return this.createTextToTextModel(modelId);
+  }
+  /**
+   * Constructor automatically configures from environment variables
+   */
+  constructor() {
+    // Auto-configure from environment variables (async but non-blocking)
+    this.autoConfigureFromEnv().catch(error => {
+      // Silent fail - provider will just not be available until manually configured
+    });
+  }
+
+  /**
+   * Automatically configure from environment variables
+   */
+  private async autoConfigureFromEnv(): Promise<void> {
+    const apiKey = process.env.TOGETHER_API_KEY;
+    
+    if (apiKey) {
+      try {        await this.configure({
+          apiKey,
+          timeout: 300000,
+          retries: 3
+        });
+      } catch (error) {
+        console.warn(`[TogetherProvider] Auto-configuration failed: ${error.message}`);
+      }
+    }
   }
 }

@@ -38,9 +38,31 @@ export class FFMPEGDockerProvider implements MediaProvider {
 
   private config: FFMPEGDockerConfig = {};
   private dockerService: FFMPEGDockerService;
-
+  /**
+   * Constructor automatically configures from environment variables
+   */
   constructor() {
     this.dockerService = new FFMPEGDockerService();
+    // Auto-configure from environment variables (async but non-blocking)
+    this.autoConfigureFromEnv().catch(error => {
+      // Silent fail - provider will just not be available until manually configured
+    });
+  }
+
+  /**
+   * Automatically configure from environment variables
+   */
+  private async autoConfigureFromEnv(): Promise<void> {
+    const serviceUrl = process.env.FFMPEG_SERVICE_URL || 'http://localhost:8006';
+    
+    try {      await this.configure({
+        baseUrl: serviceUrl,
+        timeout: 600000, // Longer timeout for video processing
+        retries: 1
+      });
+    } catch (error) {
+      console.warn(`[FFMPEGDockerProvider] Auto-configuration failed: ${error.message}`);
+    }
   }
 
   getType(): ProviderType {

@@ -108,7 +108,7 @@ export class ChatterboxDockerService {
   /**
    * Wait for the service to become healthy
    */
-  async waitForHealthy(timeoutMs: number = 60000): Promise<boolean> {
+  async waitForHealthy(timeoutMs: number = 600000): Promise<boolean> {
     return await this.dockerService.waitForHealthy(timeoutMs);
   }
 

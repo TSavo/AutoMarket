@@ -74,10 +74,9 @@ export class OpenRouterAPIClient {
   private client: AxiosInstance;
   private config: OpenRouterConfig;
 
-  constructor(config: OpenRouterConfig) {
-    this.config = {
+  constructor(config: OpenRouterConfig) {    this.config = {
       baseUrl: 'https://openrouter.ai/api/v1',
-      timeout: 30000,
+      timeout: 300000,
       ...config
     };
 

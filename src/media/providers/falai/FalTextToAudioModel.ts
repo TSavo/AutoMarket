@@ -250,7 +250,7 @@ export class FalTextToAudioModel extends TextToAudioModel {
   /**
    * Download audio from URL
    */
-  private async downloadAudio(url: string, timeout: number = 60000): Promise<Buffer> {
+  private async downloadAudio(url: string, timeout: number = 600000): Promise<Buffer> {
     const https = require('https');
     const http = require('http');
     

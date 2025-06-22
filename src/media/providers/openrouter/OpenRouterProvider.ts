@@ -216,4 +216,31 @@ export class OpenRouterProvider implements MediaProvider, TextToTextProvider {
     }
     return modelId;
   }
+  /**
+   * Constructor automatically configures from environment variables
+   */
+  constructor() {
+    // Auto-configure from environment variables (async but non-blocking)
+    this.autoConfigureFromEnv().catch(error => {
+      // Silent fail - provider will just not be available until manually configured
+    });
+  }
+
+  /**
+   * Automatically configure from environment variables
+   */
+  private async autoConfigureFromEnv(): Promise<void> {
+    const apiKey = process.env.OPENROUTER_API_KEY;
+    
+    if (apiKey) {
+      try {        await this.configure({
+          apiKey,
+          timeout: 300000,
+          retries: 3
+        });
+      } catch (error) {
+        console.warn(`[OpenRouterProvider] Auto-configuration failed: ${error.message}`);
+      }
+    }
+  }
 }

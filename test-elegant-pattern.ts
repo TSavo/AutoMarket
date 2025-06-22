@@ -9,19 +9,26 @@ async function testElegantPattern() {
   console.log('🧪 Testing the elegant pattern...');
   
   try {
-    // Step 1: Create and configure OpenRouter provider
+    // Step 1: Create OpenRouter provider (auto-configures from env)
     console.log('📋 Creating OpenRouter provider...');
     const provider = new OpenRouterProvider();
     
-    // Configure with API key (you'll need to set OPENROUTER_API_KEY environment variable)
-    await provider.configure({
-      apiKey: process.env.OPENROUTER_API_KEY || 'test-key-for-pattern-test'
-    });
+    // Give it a moment to auto-configure from environment variables
+    await new Promise(resolve => setTimeout(resolve, 100));
     
-    console.log('✅ Provider configured');
+    console.log('✅ Provider created with auto-configuration');
     console.log(`   ID: ${provider.id}`);
     console.log(`   Name: ${provider.name}`);
     console.log(`   Capabilities: ${provider.capabilities.join(', ')}`);
+    
+    // Check if auto-configuration worked
+    const isAvailable = await provider.isAvailable();
+    if (!isAvailable && process.env.OPENROUTER_API_KEY) {
+      console.log('⚠️  Auto-configuration didn\'t complete yet, manually configuring...');
+      await provider.configure({
+        apiKey: process.env.OPENROUTER_API_KEY
+      });
+    }
     
     // Step 2: Test the elegant pattern - getModel()
     console.log('\n🎯 Testing getModel() method...');
@@ -90,13 +97,20 @@ class SimpleProviderRegistry {
 async function testWithRegistry() {
   console.log('\n🏗️ Testing with registry...');
   
-  // Create registry and register OpenRouter
+  // Create registry and register OpenRouter (auto-configures from env)
   const registry = new SimpleProviderRegistry();
   const openRouterProvider = new OpenRouterProvider();
   
-  await openRouterProvider.configure({
-    apiKey: process.env.OPENROUTER_API_KEY || 'test-key'
-  });
+  // Give it a moment to auto-configure
+  await new Promise(resolve => setTimeout(resolve, 100));
+  
+  // Manual fallback if needed
+  const isAvailable = await openRouterProvider.isAvailable();
+  if (!isAvailable && process.env.OPENROUTER_API_KEY) {
+    await openRouterProvider.configure({
+      apiKey: process.env.OPENROUTER_API_KEY
+    });
+  }
   
   registry.register(openRouterProvider);
   

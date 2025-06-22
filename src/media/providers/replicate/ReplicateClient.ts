@@ -500,7 +500,7 @@ GitHub: ${modelData.github_url || 'N/A'}`
       method,
       headers,
       body: body ? JSON.stringify(body) : undefined,
-      timeout: this.config.timeout || 30000
+      timeout: this.config.timeout || 300000
     } as any);
 
     if (!response.ok && response.status >= 400) {
