@@ -25,7 +25,7 @@ export abstract class TextToTextModel extends Model<TextRole, TextToTextOptions,
   /**
    * Transform text to text
    */
-  abstract transform(input: TextRole, options?: TextToTextOptions): Promise<Text>;
+  abstract transform(input: TextRole | TextRole[], options?: TextToTextOptions): Promise<Text>;
 
   /**
    * Check if the model is available

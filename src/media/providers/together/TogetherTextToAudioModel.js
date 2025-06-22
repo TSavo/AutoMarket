@@ -65,16 +65,16 @@ class TogetherTextToAudioModel extends TextToAudioModel_1.TextToAudioModel {
     /**
      * Implementation of transform method
      */
-    async transform(inputOrText, optionsOrVoiceAudio, voiceOptions) {
+    async transform(inputOrText, options) {
         const startTime = Date.now();
-        // Check if this is voice cloning call (second signature)
-        if (optionsOrVoiceAudio && typeof optionsOrVoiceAudio === 'object' && 'asAudio' in optionsOrVoiceAudio) {
+        // Check if voice cloning is requested (not supported by Cartesia Sonic)
+        if (options?.voiceToClone) {
             throw new Error('Voice cloning is not supported by Cartesia Sonic models. Use basic text-to-speech instead.');
         }
-        // Handle basic text-to-speech (first signature)
-        const options = optionsOrVoiceAudio;
+        // Handle array input - get first element for single audio generation
+        const inputRole = Array.isArray(inputOrText) ? inputOrText[0] : inputOrText;
         // Get text from the TextRole
-        const text = await inputOrText.asText();
+        const text = await inputRole.asText();
         if (!text.isValid()) {
             throw new Error('Invalid text data provided');
         }

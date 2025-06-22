@@ -35,7 +35,7 @@ export abstract class TextToImageModel extends Model<TextRole, TextToImageOption
   /**
    * Transform text to image
    */
-  abstract transform(input: TextRole, options?: TextToImageOptions): Promise<Image>;
+  abstract transform(input: TextRole | TextRole[], options?: TextToImageOptions): Promise<Image>;
 
   /**
    * Check if the model is available

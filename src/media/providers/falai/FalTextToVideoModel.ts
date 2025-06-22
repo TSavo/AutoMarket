@@ -13,6 +13,7 @@ import { SmartAssetFactory } from '../../assets/SmartAssetFactory';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
+import { createGenerationPrompt } from '../../utils/GenerationPromptHelper';
 
 export interface FalModelConfig {
   client: FalAiClient;
@@ -51,9 +52,12 @@ export class FalTextToVideoModel extends TextToVideoModel {
   /**
    * Transform text to video using specific fal.ai text-to-video model
    */
-  async transform(input: TextRole, options?: TextToVideoOptions): Promise<Video> {
+  async transform(input: TextRole | TextRole[], options?: TextToVideoOptions): Promise<Video> {
+    // Handle array input - get first element for single video generation
+    const inputRole = Array.isArray(input) ? input[0] : input;
+
     // Cast input to Text
-    const text = await input.asText();
+    const text = await inputRole.asText();
 
     if (!text.isValid()) {
       throw new Error('Invalid text data provided');
@@ -95,15 +99,27 @@ export class FalTextToVideoModel extends TextToVideoModel {
         }
 
         console.log(`[FalTextToVideo] Video generated:`, videoUrl);
-        
-        // Create Video from result URL - ACTUALLY DOWNLOAD THE FILE
+          // Create Video from result URL - ACTUALLY DOWNLOAD THE FILE
         const video = await this.createVideoFromUrl(
           videoUrl,
           {
             originalText: text.content,
             modelUsed: this.modelMetadata.id,
             options: options,
-            requestId: result.requestId
+            requestId: result.requestId,
+            generation_prompt: createGenerationPrompt({
+              input: input, // RAW input object to preserve generation chain
+              options: options,
+              modelId: this.modelMetadata.id,
+              modelName: this.modelMetadata.name,
+              provider: 'fal-ai',
+              transformationType: 'text-to-video',
+              modelMetadata: {
+                falModelParameters: this.modelMetadata.parameters,
+                modelVersion: this.modelMetadata.id
+              },
+              requestId: result.requestId
+            })
           }
         );
 

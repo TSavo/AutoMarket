@@ -13,6 +13,7 @@ import Replicate from 'replicate';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
+import { createGenerationPrompt } from '../../utils/GenerationPromptHelper';
 
 export interface ReplicateModelConfig {
   client: ReplicateClient;
@@ -50,9 +51,12 @@ export class ReplicateTextToVideoModel extends TextToVideoModel {
   /**
    * Transform text to video using specific Replicate text-to-video model
    */
-  async transform(input: TextRole, options?: TextToVideoOptions): Promise<Video> {
+  async transform(input: TextRole | TextRole[], options?: TextToVideoOptions): Promise<Video> {
+    // Handle array input - get first element for single video generation
+    const inputRole = Array.isArray(input) ? input[0] : input;
+
     // Get text from the TextRole
-    const text = await input.asText();
+    const text = await inputRole.asText();
 
     if (!text.isValid()) {
       throw new Error('Invalid text data provided');
@@ -75,15 +79,27 @@ export class ReplicateTextToVideoModel extends TextToVideoModel {
       console.log(`[ReplicateTextToVideo] Prediction created: ${prediction.id}`);
       const finalPrediction = await this.waitForPrediction(prediction.id);      if (finalPrediction.status === 'succeeded') {
         console.log(`[ReplicateTextToVideo] Video generated:`, finalPrediction.output);
-        
-        // Create Video from result URL - ACTUALLY DOWNLOAD THE FILE
+          // Create Video from result URL - ACTUALLY DOWNLOAD THE FILE
         const video = await this.createVideoFromUrl(
           Array.isArray(finalPrediction.output) ? finalPrediction.output[0] : finalPrediction.output,
           {
             originalText: text.content,
             modelUsed: this.modelMetadata.id,
             options: options,
-            predictionId: prediction.id
+            predictionId: prediction.id,
+            generation_prompt: createGenerationPrompt({
+              input: input, // RAW input object to preserve generation chain
+              options: options,
+              modelId: this.modelMetadata.id,
+              modelName: this.modelMetadata.name,
+              provider: 'replicate',
+              transformationType: 'text-to-video',
+              modelMetadata: {
+                replicateModelParameters: this.modelMetadata.parameters,
+                modelVersion: this.modelMetadata.id
+              },
+              predictionId: prediction.id
+            })
           }
         );
 

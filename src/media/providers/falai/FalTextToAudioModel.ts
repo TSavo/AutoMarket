@@ -13,6 +13,7 @@ import { SmartAssetFactory } from '../../assets/SmartAssetFactory';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
+import { createGenerationPrompt } from '../../utils/GenerationPromptHelper';
 
 export interface FalModelConfig {
   client: FalAiClient;
@@ -47,43 +48,26 @@ export class FalTextToAudioModel extends TextToAudioModel {
     this.modelMetadata = config.modelMetadata;
     this.falAiClient = config.falAiClient;
   }
-
   /**
-   * Transform text to audio - basic TTS
-   */
-  async transform(input: TextRole, options?: TextToAudioOptions): Promise<Audio>;
-
-  /**
-   * Transform text to audio with voice cloning
-   */
-  async transform(text: TextRole, voiceAudio: AudioRole, options?: TextToAudioOptions): Promise<Audio>;
-
-  /**
-   * Implementation of transform method
+   * Transform text to audio using fal.ai models
    */
   async transform(
-    inputOrText: TextRole,
-    optionsOrVoiceAudio?: TextToAudioOptions | AudioRole,
-    voiceOptions?: TextToAudioOptions
+    inputOrText: TextRole | TextRole[],
+    options?: TextToAudioOptions
   ): Promise<Audio> {
     const startTime = Date.now();
 
-    // Parse arguments to determine which signature was used
-    let voiceAudio: AudioRole | undefined;
-    let options: TextToAudioOptions | undefined;
+    // Handle array input - get first element for single audio generation
+    const inputRole = Array.isArray(inputOrText) ? inputOrText[0] : inputOrText;
 
-    if (optionsOrVoiceAudio && typeof optionsOrVoiceAudio === 'object' && 'asAudio' in optionsOrVoiceAudio) {
-      // Second signature: transform(text, voiceAudio, options)
-      voiceAudio = optionsOrVoiceAudio as AudioRole;
-      options = voiceOptions;
-    } else {
-      // First signature: transform(text, options)
-      voiceAudio = undefined;
-      options = optionsOrVoiceAudio as TextToAudioOptions;
+    // Extract voice cloning audio from options
+    let voiceAudio: AudioRole | undefined;
+    if (options?.voiceToClone) {
+      voiceAudio = options.voiceToClone;
     }
 
     // Get text from the TextRole
-    const text = await inputOrText.asText();
+    const text = await inputRole.asText();
     if (!text.isValid()) {
       throw new Error('Invalid text data provided');
     }
@@ -153,8 +137,7 @@ export class FalTextToAudioModel extends TextToAudioModel {
         // Use SmartAssetFactory to create Asset with automatic metadata extraction
         console.log(`[FalTextToAudio] Loading audio asset with metadata extraction...`);        const smartAsset = await SmartAssetFactory.load(localPath);
         const audio = await (smartAsset as any).asAudio();
-        
-        // Add our custom metadata to the audio
+          // Add our custom metadata to the audio
         if (audio.metadata) {
           Object.assign(audio.metadata, {
             url: audioUrl,
@@ -167,7 +150,20 @@ export class FalTextToAudioModel extends TextToAudioModel {
             voice: options?.voice,
             speed: options?.speed,
             language: options?.language,
-            voiceCloning: !!voiceAudio
+            voiceCloning: !!voiceAudio,
+            generation_prompt: createGenerationPrompt({
+              input: inputOrText, // RAW input object to preserve generation chain
+              options: options,
+              modelId: this.modelMetadata.id,
+              modelName: this.modelMetadata.name,
+              provider: 'fal-ai',
+              transformationType: 'text-to-audio',
+              modelMetadata: {
+                falModelParameters: this.modelMetadata.parameters,
+                modelVersion: this.modelMetadata.id
+              },
+              requestId: result.requestId
+            })
           });
         }
         

@@ -13,6 +13,7 @@ import { SmartAssetFactory } from '../../assets/SmartAssetFactory';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
+import { createGenerationPrompt } from '../../utils/GenerationPromptHelper';
 
 export interface FalModelConfig {
   client: FalAiClient;
@@ -111,15 +112,27 @@ export class FalVideoToVideoModel extends VideoToVideoModel {
         } else {
           throw new Error('Unexpected output format from fal.ai');
         }        console.log(`[FalVideoToVideo] Video processed:`, resultVideoUrl);
-        
-        // Create Video from result URL - ACTUALLY DOWNLOAD THE FILE
+          // Create Video from result URL - ACTUALLY DOWNLOAD THE FILE
         const resultVideo = await this.createVideoFromUrl(
           resultVideoUrl,
           {
             originalVideoSize: primaryVideo.getSize(),
             modelUsed: this.modelMetadata.id,
             options: options,
-            requestId: result.requestId
+            requestId: result.requestId,
+            generation_prompt: createGenerationPrompt({
+              input: `[Video: ${primaryVideo.getSize()} bytes]${videos.length > 1 ? ` + [Video: ${videos[1].getSize()} bytes]` : ''}`,
+              options: options,
+              modelId: this.modelMetadata.id,
+              modelName: this.modelMetadata.name,
+              provider: 'fal-ai',
+              transformationType: 'video-to-video',
+              modelMetadata: {
+                falModelParameters: this.modelMetadata.parameters,
+                modelVersion: this.modelMetadata.id
+              },
+              requestId: result.requestId
+            })
           }
         );
 

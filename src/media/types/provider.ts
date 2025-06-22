@@ -173,7 +173,9 @@ export interface ProviderRegistry {
 export const GenerationRequestSchema = z.object({
   capability: z.nativeEnum(MediaCapability),
   modelId: z.string(),
-  parameters: z.record(z.any()),
+  input: z.any(),                           // RAW Role object(s) - matches transform() signature
+  options: z.record(z.any()).optional(),    // Transform options - matches transform() signature  
+  parameters: z.record(z.any()).optional(), // Legacy - for backward compatibility
   metadata: z.record(z.any()).optional()
 });
 

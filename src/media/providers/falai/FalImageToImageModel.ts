@@ -12,6 +12,7 @@ import { SmartAssetFactory } from '../../assets/SmartAssetFactory';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
+import { createGenerationPrompt } from '../../utils/GenerationPromptHelper';
 
 export interface FalModelConfig {
   client: FalAiClient;
@@ -113,15 +114,27 @@ export class FalImageToImageModel {
         }
 
         console.log(`[FalImageToImage] Image processed:`, resultImageUrl);
-        
-        // Create Image from result URL - ACTUALLY DOWNLOAD THE FILE
+          // Create Image from result URL - ACTUALLY DOWNLOAD THE FILE
         const resultImage = await this.createImageFromUrl(
           resultImageUrl,
           {
             originalImageSize: image.getSize(),
             modelUsed: this.modelMetadata.id,
             options: options,
-            requestId: result.requestId
+            requestId: result.requestId,
+            generation_prompt: createGenerationPrompt({
+              input: `[Image: ${image.getSize()} bytes]`,
+              options: options,
+              modelId: this.modelMetadata.id,
+              modelName: this.modelMetadata.name,
+              provider: 'fal-ai',
+              transformationType: 'image-to-image',
+              modelMetadata: {
+                falModelParameters: this.modelMetadata.parameters,
+                modelVersion: this.modelMetadata.id
+              },
+              requestId: result.requestId
+            })
           }
         );
 

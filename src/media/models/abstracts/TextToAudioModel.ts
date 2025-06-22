@@ -29,8 +29,12 @@
  * 
  * ### Voice Cloning
  * ```typescript
+ * const text = Text.fromString("Hello in my voice!");
  * const voiceSample = AssetLoader.load('voice-sample.wav');
- * const clonedAudio = await model.transform(text, voiceSample, { quality: 'high' });
+ * const clonedAudio = await model.transform(text, { 
+ *   voiceToClone: voiceSample, 
+ *   quality: 'high' 
+ * });
  * ```
  * 
  * @abstract
@@ -74,6 +78,9 @@ export interface TextToAudioOptions {
   /** Sample rate in Hz (e.g., 22050, 44100, 48000) */
   sampleRate?: number;
   
+  /** Reference audio sample for voice cloning */
+  voiceToClone?: AudioRole;
+  
   /** Additional provider-specific options */
   [key: string]: any;
 }
@@ -108,51 +115,40 @@ export abstract class TextToAudioModel extends Model<TextRole, TextToAudioOption
   }
 
   /**
-   * Transform text to audio using basic text-to-speech.
-   * 
+   * Transform text to audio using text-to-speech.
+   *
    * Converts text input into natural-sounding speech audio using the model's
-   * default voice or specified options. This is the primary method for
-   * standard text-to-speech operations.
-   * 
-   * @param input - Text content to be converted to speech
-   * @param options - Optional configuration for voice, speed, quality, etc.
+   * default voice or specified options. For voice cloning, provide a voiceToClone
+   * AudioRole in the options parameter.
+   *
+   * @param input - Text content to be converted to speech (single or array)
+   * @param options - Configuration including voice cloning, speed, quality, etc.
    * @returns Promise resolving to generated audio
-   * 
+   *
    * @example
+   * Basic text-to-speech:
    * ```typescript
    * const text = Text.fromString("Hello, world!");
-   * const audio = await model.transform(text, { 
-   *   voice: 'female', 
+   * const audio = await model.transform(text, {
+   *   voice: 'female',
    *   speed: 1.2,
-   *   quality: 'high' 
+   *   quality: 'high'
    * });
    * ```
-   */
-  abstract transform(input: TextRole, options?: TextToAudioOptions): Promise<Audio>;
-
-  /**
-   * Transform text to audio with voice cloning.
-   * 
-   * Generates speech using a reference voice sample for voice cloning.
-   * The model will attempt to replicate the characteristics of the provided
-   * voice audio when speaking the input text. Not all models support this feature.
-   * 
-   * @param text - Text content to be spoken
-   * @param voiceAudio - Reference audio sample for voice cloning
-   * @param options - Additional configuration options
-   * @returns Promise resolving to generated audio with cloned voice
-   * 
+   *
    * @example
+   * Voice cloning:
    * ```typescript
    * const text = Text.fromString("Hello in my voice!");
    * const voiceSample = AssetLoader.load('my-voice.wav');
-   * const clonedAudio = await model.transform(text, voiceSample, {
+   * const clonedAudio = await model.transform(text, {
+   *   voiceToClone: voiceSample,
    *   quality: 'high',
    *   speed: 1.0
    * });
    * ```
    */
-  abstract transform(text: TextRole, voiceAudio: AudioRole, options?: TextToAudioOptions): Promise<Audio>;
+  abstract transform(input: TextRole | TextRole[], options?: TextToAudioOptions): Promise<Audio>;
 
   /**
    * Check if the model is currently available and ready for use.

@@ -4,12 +4,12 @@
     "owner": "black-forest-labs",
     "name": "flux-schnell",
     "description": "The fastest image generation model tailored for local development and personal use",
-    "category": "text-to-image",
+    "category": "image-to-image",
     "tags": [
       "image generation"
     ],
     "visibility": "public",
-    "run_count": 375876272,
+    "run_count": 378957310,
     "github_url": "https://github.com/replicate/cog-flux",
     "paper_url": null,
     "license_url": "https://github.com/black-forest-labs/flux/blob/main/model_licenses/LICENSE-FLUX1-schnell",
@@ -98,13 +98,9 @@
       },
       "title": "Output"
     },
-    "capabilities": [
-      "fast image generation",
-      "local development",
-      "personal use"
-    ],
+    "capabilities": [],
     "pricing": "usage-based",
-    "lastUpdated": 1750368685312
+    "lastUpdated": 1750632061079
   },
   "minimax/video-01": {
     "id": "minimax/video-01",

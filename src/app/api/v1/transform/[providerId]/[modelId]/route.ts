@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { v4 as uuidv4 } from 'uuid';
-import ProviderRegistry from '../../../providers/ProviderRegistry';
+import { initializeProviders, ProviderRegistry } from '../../../../../../media/registry/bootstrap';
 import JobManager from '../../../jobs/JobManager';
 import { GenerationRequestSchema, MediaCapability, JobStatus } from '../../../../../../media/types/provider';
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { providerId: string; modelId: string } }
+  { params }: { params: Promise<{ providerId: string; modelId: string }> }
 ) {
-  const { providerId, modelId } = params;
+  const { providerId, modelId } = await params;
   
   if (!providerId || !modelId || typeof providerId !== 'string' || typeof modelId !== 'string') {
     return NextResponse.json(
@@ -38,10 +38,14 @@ export async function POST(
 
     const generationRequest = validationResult.data;
 
-    // Get provider
+    // Ensure providers are initialized
     const registry = ProviderRegistry.getInstance();
-    const provider = registry.getProvider(providerId);
-    if (!provider) {
+    if (!registry.getAvailableProviders().length) {
+      await initializeProviders();
+    }
+    
+    // Get provider
+    if (!registry.hasProvider(providerId)) {
       return NextResponse.json(
         {
           success: false,
@@ -50,6 +54,8 @@ export async function POST(
         { status: 404 }
       );
     }
+    
+    const provider = await registry.getProvider(providerId);
 
     // Check if provider is available
     const isAvailable = await provider.isAvailable();
@@ -86,10 +92,17 @@ export async function POST(
       );
     }
 
-    // Create job
+    // Create job with input and options
     const jobManager = JobManager.getInstance();
     const jobId = uuidv4();
-    const job = jobManager.createJob(jobId, providerId, modelId, generationRequest.capability);
+    const job = jobManager.createJob(
+      jobId, 
+      providerId, 
+      modelId, 
+      generationRequest.capability,
+      generationRequest.input,
+      generationRequest.options
+    );
 
     // Start transformation (async)
     processTransformation(provider, model, generationRequest, jobId, jobManager)
@@ -133,17 +146,45 @@ async function processTransformation(
   jobId: string,
   jobManager: JobManager
 ) {
+  const startTime = Date.now();
+
   try {
     // Update job status to running
-    jobManager.updateJob(jobId, { status: JobStatus.RUNNING });
+    jobManager.updateJob(jobId, { 
+      status: JobStatus.RUNNING,
+      startedAt: new Date()
+    });
+
+    console.log(`[Job ${jobId}] Starting transformation with model: ${model.id}`);
+    console.log(`[Job ${jobId}] Input type: ${request.input?.constructor?.name}`);
+    console.log(`[Job ${jobId}] Options:`, request.options);
+
+    // Get the actual model instance from the provider
+    const modelInstance = await provider.getModel(model.id);
+    if (!modelInstance) {
+      throw new Error(`Failed to get model instance for ${model.id}`);
+    }
+
+    // Call the model's transform method - this is where the magic happens!
+    const output = await modelInstance.transform(request.input, request.options);
     
-    // TODO: Implement actual transformation logic here
-    throw new Error('Transformation logic not yet implemented');
+    const processingTime = Date.now() - startTime;
+    console.log(`[Job ${jobId}] Transformation completed in ${processingTime}ms`);
+    console.log(`[Job ${jobId}] Output type: ${output.constructor.name}`);
+
+    // Complete the job with automatic generation chain and URL extraction
+    jobManager.completeJobWithAsset(jobId, output, processingTime);
+
+    console.log(`[Job ${jobId}] Job completed successfully`);
 
   } catch (error) {
+    const processingTime = Date.now() - startTime;
+    console.error(`[Job ${jobId}] Transformation failed after ${processingTime}ms:`, error);
+    
     jobManager.updateJob(jobId, {
       status: JobStatus.FAILED,
-      error: error.message
+      error: error.message,
+      processingTime
     });
     throw error;
   }

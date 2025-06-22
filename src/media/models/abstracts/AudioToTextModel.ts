@@ -223,7 +223,7 @@ export abstract class AudioToTextModel extends Model<AudioRole, AudioToTextOptio
   /**
    * Transform audio to text - must be implemented by concrete classes
    */
-  abstract transform(input: AudioRole, options?: AudioToTextOptions): Promise<Text>;
+  abstract transform(input: AudioRole | AudioRole[], options?: AudioToTextOptions): Promise<Text>;
 
 
   /**

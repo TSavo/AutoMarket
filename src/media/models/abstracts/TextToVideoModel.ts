@@ -154,15 +154,15 @@ export abstract class TextToVideoModel extends Model<TextRole, TextToVideoOption
   
   /**
    * Transform text prompt into a generated video.
-   * 
+   *
    * Converts text descriptions into video content using the model's
    * generation capabilities. The quality and characteristics of the output
    * depend on the specific model and provided options.
-   * 
-   * @param input - Text prompt describing the desired video content
+   *
+   * @param input - Text prompt describing the desired video content (single or array)
    * @param options - Optional configuration for video generation parameters
    * @returns Promise resolving to generated video
-   * 
+   *
    * @example
    * ```typescript
    * const prompt = Text.fromString("A cat playing with a ball in a sunny garden");
@@ -174,7 +174,7 @@ export abstract class TextToVideoModel extends Model<TextRole, TextToVideoOption
    * });
    * ```
    */
-  abstract transform(input: TextRole, options?: TextToVideoOptions): Promise<Video>;
+  abstract transform(input: TextRole | TextRole[], options?: TextToVideoOptions): Promise<Video>;
 
   /**
    * Check if the model is currently available and ready for use.

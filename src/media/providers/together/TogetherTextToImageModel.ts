@@ -13,6 +13,7 @@ import axios from 'axios';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
+import { createGenerationPrompt } from '../../utils/GenerationPromptHelper';
 
 export interface TogetherTextToImageOptions extends TextToImageOptions {
   model?: string;
@@ -59,11 +60,14 @@ export class TogetherTextToImageModel extends TextToImageModel {
   /**
    * Transform text to image using Together AI
    */
-  async transform(input: TextRole, options?: TogetherTextToImageOptions): Promise<Image> {
+  async transform(input: TextRole | TextRole[], options?: TogetherTextToImageOptions): Promise<Image> {
     const startTime = Date.now();
 
+    // Handle array input - get first element for single image generation
+    const inputRole = Array.isArray(input) ? input[0] : input;
+
     // Get text from the TextRole
-    const text = await input.asText();
+    const text = await inputRole.asText();
 
     // Validate text data
     if (!text.isValid()) {
@@ -110,9 +114,7 @@ export class TogetherTextToImageModel extends TextToImageModel {
       console.log(`[TogetherTextToImage] Image saved to: ${localPath}`);      // Use SmartAssetFactory to create Asset with automatic metadata extraction
       const { AssetLoader } = await import('../../assets/SmartAssetFactory');
       const smartAsset = await AssetLoader.load(localPath);
-      const image = await (smartAsset as any).asImage();
-
-      // Add our custom metadata to the image
+      const image = await (smartAsset as any).asImage();      // Add our custom metadata to the image
       if (image.metadata) {
         Object.assign(image.metadata, {
           url: imageUrl,
@@ -123,7 +125,17 @@ export class TogetherTextToImageModel extends TextToImageModel {
           provider: 'together',
           prompt: text.content,
           negativePrompt: options?.negativePrompt,
-          seed: options?.seed
+          seed: options?.seed,
+          generation_prompt: createGenerationPrompt({
+            input: input, // RAW input object to preserve generation chain
+            options: options,
+            modelId: this.modelId,
+            modelName: this.modelMetadata?.display_name || this.modelId,
+            provider: 'together',
+            transformationType: 'text-to-image',
+            modelMetadata: this.modelMetadata,
+            processingTime
+          })
         });
       }
 

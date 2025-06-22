@@ -13,6 +13,7 @@ import Replicate from 'replicate';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
+import { createGenerationPrompt } from '../../utils/GenerationPromptHelper';
 
 export interface ReplicateModelConfig {
   client: ReplicateClient;
@@ -49,41 +50,33 @@ export class ReplicateTextToAudioModel extends TextToAudioModel {
     this.modelMetadata = config.modelMetadata;
     this.replicateClient = config.replicateClient;
   }
-
   /**
-   * Transform text to audio using specific Replicate TTS model  */
-  async transform(input: TextRole, options?: TextToAudioOptions): Promise<Audio>;
-  async transform(text: TextRole, voiceAudio: AudioRole, options?: TextToAudioOptions): Promise<Audio>;
-  async transform(input: TextRole, voiceAudioOrOptions?: AudioRole | TextToAudioOptions, options?: TextToAudioOptions): Promise<Audio> {
+   * Transform text to audio using specific Replicate TTS model
+   */
+  async transform(input: TextRole | TextRole[], options?: TextToAudioOptions): Promise<Audio> {
+    // Handle array input - get first element for single audio generation
+    const inputRole = Array.isArray(input) ? input[0] : input;
+
     // Get text from the TextRole
-    const text = await input.asText();
+    const text = await inputRole.asText();
 
     if (!text.isValid()) {
       throw new Error('Invalid text data provided');
     }
 
-    // Parse arguments to determine which signature was used
+    // Extract voice cloning audio from options
     let voiceAudio: AudioRole | undefined;
-    let actualOptions: TextToAudioOptions | undefined;
-
-    if (voiceAudioOrOptions && typeof voiceAudioOrOptions === 'object' && 'asAudio' in voiceAudioOrOptions) {
-      // Second signature: transform(text, voiceAudio, options)
-      voiceAudio = voiceAudioOrOptions as AudioRole;
-      actualOptions = options;
-    } else {
-      // First signature: transform(text, options)
-      voiceAudio = undefined;
-      actualOptions = voiceAudioOrOptions as TextToAudioOptions;    }
+    if (options?.voiceToClone) {
+      voiceAudio = options.voiceToClone;
+    }
 
     try {
       // Convert AudioRole to Audio if provided
       let voiceAudioData: Audio | undefined;
       if (voiceAudio) {
         voiceAudioData = await voiceAudio.asAudio();
-      }
-
-      // Prepare input for this specific Replicate TTS model
-      const replicateInput = this.prepareReplicateInput(text.content, voiceAudioData, actualOptions);
+      }      // Prepare input for this specific Replicate TTS model
+      const replicateInput = this.prepareReplicateInput(text.content, voiceAudioData, options);
 
       console.log(`[ReplicateTextToAudio] Generating speech with model: ${this.modelMetadata.id}`);
       console.log(`[ReplicateTextToAudio] Input:`, replicateInput);
@@ -113,12 +106,26 @@ export class ReplicateTextToAudioModel extends TextToAudioModel {
         : completedPrediction.output;
 
       console.log(`[ReplicateTextToAudio] Downloading audio from:`, audioUrl);
-      const audioData = await this.downloadAudio(audioUrl);
-
-      // Create Audio result
+      const audioData = await this.downloadAudio(audioUrl);      // Create Audio result
       const audio = new Audio(
         audioData,
-        text.sourceAsset // Preserve source Asset reference
+        text.sourceAsset, // Preserve source Asset reference
+        {
+          format: 'mp3' as any, // Default audio format
+          generation_prompt: createGenerationPrompt({
+            input: input, // RAW input object to preserve generation chain
+            options: options,
+            modelId: this.modelMetadata.id,
+            modelName: this.modelMetadata.name,
+            provider: 'replicate',
+            transformationType: 'text-to-audio',
+            modelMetadata: {
+              replicateModelParameters: this.modelMetadata.parameters,
+              modelVersion: this.modelMetadata.id
+            },
+            predictionId: prediction.id
+          })
+        }
       );
 
       return audio;

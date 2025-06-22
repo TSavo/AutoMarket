@@ -12,6 +12,7 @@ import { ChatterboxAPIClient } from './ChatterboxAPIClient';
 import { ChatterboxDockerService } from '../../../services/ChatterboxDockerService';
 import * as fs from 'fs';
 import * as path from 'path';
+import { createGenerationPrompt } from '../../../utils/GenerationPromptHelper';
 
 // Extended options for Chatterbox TTS
 export interface ChatterboxTTSOptions extends TextToAudioOptions {
@@ -72,39 +73,26 @@ export class ChatterboxTextToAudioModel extends TextToAudioModel {
   }
 
   /**
-   * Transform text to audio using Chatterbox - basic TTS
+   * Transform text to audio using Chatterbox TTS
    */
-  async transform(input: TextRole, options?: ChatterboxTTSOptions): Promise<Audio>;
-
-  /**
-   * Transform text to audio with voice cloning - dual-signature pattern
-   */
-  async transform(text: TextRole, voiceAudio: AudioRole, options?: ChatterboxTTSOptions): Promise<Audio>;
-
-  /**
-   * Implementation of transform method
-   */
-  async transform(input: TextRole, optionsOrVoiceAudio?: ChatterboxTTSOptions | AudioRole, options?: ChatterboxTTSOptions): Promise<Audio> {
-    // Handle dual signature pattern
-    let actualOptions: ChatterboxTTSOptions | undefined;
-    let voiceAudio: AudioRole | undefined;
-
-    if (optionsOrVoiceAudio && typeof optionsOrVoiceAudio === 'object' && 'asAudio' in optionsOrVoiceAudio) {
-      // Second parameter is AudioRole (voice cloning mode)
-      voiceAudio = optionsOrVoiceAudio as AudioRole;
-      actualOptions = options;
-    } else {
-      // Second parameter is options (basic TTS mode)
-      actualOptions = optionsOrVoiceAudio as ChatterboxTTSOptions;
-    }
+  async transform(input: TextRole | TextRole[], options?: ChatterboxTTSOptions): Promise<Audio> {
     const startTime = Date.now();
 
+    // Handle array input - get first element for single audio generation
+    const inputRole = Array.isArray(input) ? input[0] : input;
+
     // Get text from the TextRole
-    const text = await input.asText();
+    const text = await inputRole.asText();
 
     // Validate text data
     if (!text.isValid()) {
       throw new Error('Invalid text data provided');
+    }
+
+    // Extract voice cloning audio from options
+    let voiceAudio: AudioRole | undefined;
+    if (options?.voiceToClone) {
+      voiceAudio = options.voiceToClone;
     }
 
     try {
@@ -120,18 +108,32 @@ export class ChatterboxTextToAudioModel extends TextToAudioModel {
         throw new Error('Chatterbox service is not healthy');
       }
 
-      // Handle voice cloning if voice file is provided
+      // Handle voice cloning if voice audio is provided
       let referenceAudioFilename: string | undefined;
-      if (actualOptions?.voiceFile) {
-        console.log(`[ChatterboxTTS] Voice cloning requested with file: ${actualOptions.voiceFile}`);
-        console.log(`[ChatterboxTTS] Force upload option: ${actualOptions.forceUpload}`);
+      let voiceFilePath: string | undefined;
+      
+      // Handle voice cloning from voiceToClone AudioRole
+      if (voiceAudio) {
+        console.log(`[ChatterboxTTS] Voice cloning requested with AudioRole`);
+        console.log(`[ChatterboxTTS] Force upload option: ${options?.forceUpload}`);
         
         try {
-          const localFilename = path.basename(actualOptions.voiceFile);
+          // Convert AudioRole to Audio and save to temporary file
+          const voice = await voiceAudio.asAudio();
+          const timestamp = Date.now();
+          const format = voice.getFormat();
+          const tempFileName = `voice_clone_${timestamp}.${format}`;
+          voiceFilePath = path.join(this.tempDir, tempFileName);
+          
+          // Write audio data to temporary file
+          fs.writeFileSync(voiceFilePath, voice.data);
+          console.log(`[ChatterboxTTS] Wrote voice audio to temp file: ${voiceFilePath}`);
+          
+          const localFilename = path.basename(voiceFilePath);
           console.log(`[ChatterboxTTS] Local filename: ${localFilename}`);
 
           // Check if file already exists on server (unless force upload is requested)
-          if (!actualOptions.forceUpload) {
+          if (!options?.forceUpload) {
             console.log(`[ChatterboxTTS] Checking if file already exists on server...`);
             try {
               const existingFiles = await this.apiClient.getReferenceFiles();
@@ -150,9 +152,51 @@ export class ChatterboxTextToAudioModel extends TextToAudioModel {
           }
 
           // Upload if file doesn't exist or force upload is requested
-          if (!referenceAudioFilename || actualOptions.forceUpload) {
-            console.log(`[ChatterboxTTS] ${actualOptions.forceUpload ? 'Force uploading' : 'Uploading'} reference file: ${actualOptions.voiceFile}`);
-            const uploadResult = await this.apiClient.uploadReferenceAudio(actualOptions.voiceFile);
+          if (!referenceAudioFilename || options?.forceUpload) {
+            console.log(`[ChatterboxTTS] ${options?.forceUpload ? 'Force uploading' : 'Uploading'} reference file: ${voiceFilePath}`);
+            const uploadResult = await this.apiClient.uploadReferenceAudio(voiceFilePath);
+            console.log(`[ChatterboxTTS] Upload successful, filename: ${uploadResult.filename}`);
+            referenceAudioFilename = uploadResult.filename;
+          } else {
+            console.log(`[ChatterboxTTS] Skipping upload, using existing file: ${referenceAudioFilename}`);
+          }
+        } catch (error) {
+          console.error('[ChatterboxTTS] Upload error:', error);
+          throw new Error(`Failed to upload reference audio: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
+      } 
+      // Handle voice cloning from legacy voiceFile path (if still provided in options)
+      else if (options?.voiceFile) {
+        console.log(`[ChatterboxTTS] Voice cloning requested with file: ${options.voiceFile}`);
+        console.log(`[ChatterboxTTS] Force upload option: ${options.forceUpload}`);
+        
+        try {
+          const localFilename = path.basename(options.voiceFile);
+          console.log(`[ChatterboxTTS] Local filename: ${localFilename}`);
+
+          // Check if file already exists on server (unless force upload is requested)
+          if (!options.forceUpload) {
+            console.log(`[ChatterboxTTS] Checking if file already exists on server...`);
+            try {
+              const existingFiles = await this.apiClient.getReferenceFiles();
+              console.log(`[ChatterboxTTS] Existing files on server:`, existingFiles);
+              if (existingFiles.includes(localFilename)) {
+                console.log(`[ChatterboxTTS] Reference file '${localFilename}' already exists on server, skipping upload`);
+                referenceAudioFilename = localFilename;
+              } else {
+                console.log(`[ChatterboxTTS] File '${localFilename}' not found on server, will upload`);
+              }
+            } catch (error) {
+              console.warn('[ChatterboxTTS] Could not check existing files, proceeding with upload:', error);
+            }
+          } else {
+            console.log(`[ChatterboxTTS] Force upload enabled, will upload regardless of existing files`);
+          }
+
+          // Upload if file doesn't exist or force upload is requested
+          if (!referenceAudioFilename || options.forceUpload) {
+            console.log(`[ChatterboxTTS] ${options.forceUpload ? 'Force uploading' : 'Uploading'} reference file: ${options.voiceFile}`);
+            const uploadResult = await this.apiClient.uploadReferenceAudio(options.voiceFile);
             console.log(`[ChatterboxTTS] Upload successful, filename: ${uploadResult.filename}`);
             referenceAudioFilename = uploadResult.filename;
           } else {
@@ -168,17 +212,17 @@ export class ChatterboxTextToAudioModel extends TextToAudioModel {
 
       // Create TTS request
       console.log(`[ChatterboxTTS] Creating TTS request with options:`, {
-        voice: actualOptions?.voice,
-        speed: actualOptions?.speed,
-        voiceFile: actualOptions?.voiceFile,
-        outputFormat: actualOptions?.format as 'mp3' | 'wav' || 'mp3'
+        voice: options?.voice,
+        speed: options?.speed,
+        voiceFile: voiceFilePath || options?.voiceFile,
+        outputFormat: options?.format as 'mp3' | 'wav' || 'mp3'
       });
 
       const request = this.apiClient.createTTSRequest(text.content, {
-        voice: actualOptions?.voice,
-        speed: actualOptions?.speed,
-        voiceFile: actualOptions?.voiceFile, // Pass voiceFile to set correct voice_mode
-        outputFormat: actualOptions?.format as 'mp3' | 'wav' || 'mp3'
+        voice: options?.voice,
+        speed: options?.speed,
+        voiceFile: voiceFilePath || options?.voiceFile, // Pass voiceFile to set correct voice_mode
+        outputFormat: options?.format as 'mp3' | 'wav' || 'mp3'
       });
 
       // Set reference audio filename if uploaded
@@ -207,14 +251,29 @@ export class ChatterboxTextToAudioModel extends TextToAudioModel {
         // Create Audio result with clean interface
         const audio = new Audio(
           audioData,
-          text.sourceAsset // Preserve source Asset reference
+          text.sourceAsset, // Preserve source Asset reference
+          {
+            format: 'mp3' as any,
+            generation_prompt: createGenerationPrompt({
+              input: input, // RAW input object to preserve generation chain
+              options: options,
+              modelId: 'chatterbox',
+              modelName: 'Chatterbox TTS',
+              provider: 'chatterbox-docker',
+              transformationType: 'text-to-audio',
+              processingTime: Date.now() - startTime
+            })
+          }
         );
 
         return audio;
 
       } finally {
-        // Clean up temporary file
+        // Clean up temporary files
         this.cleanupTempFile(outputPath);
+        if (voiceFilePath) {
+          this.cleanupTempFile(voiceFilePath);
+        }
       }
 
     } catch (error) {

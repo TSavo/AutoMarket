@@ -7,6 +7,7 @@
 import { ModelMetadata } from '../../models/abstracts/Model';
 import { TextToImageModel, TextToImageOptions } from '../../models/abstracts/TextToImageModel';
 import { Image, ImageFormat, TextRole } from '../../assets/roles';
+import { GenerationPrompt } from '../../assets/roles/types/metadata';
 import { ReplicateClient, ReplicateModelMetadata } from './ReplicateClient';
 import Replicate from 'replicate';
 import * as fs from 'fs';
@@ -48,11 +49,21 @@ export class ReplicateTextToImageModel extends TextToImageModel {
   }
 
   /**
+   * Get the model ID
+   */
+  getId(): string {
+    return this.metadata.id;
+  }
+
+  /**
    * Transform text to image using specific Replicate text-to-image model
    */
-  async transform(input: TextRole, options?: TextToImageOptions): Promise<Image> {
+  async transform(input: TextRole | TextRole[], options?: TextToImageOptions): Promise<Image> {
+    // Handle array input - get first element for single image generation
+    const inputRole = Array.isArray(input) ? input[0] : input;
+
     // Cast input to Text
-    const text = await input.asText();
+    const text = await inputRole.asText();
 
     if (!text.isValid()) {
       throw new Error('Invalid text data provided');
@@ -69,23 +80,23 @@ export class ReplicateTextToImageModel extends TextToImageModel {
       const prediction = await this.replicateClient.predictions.create({
         version: this.modelMetadata.id,
         input: replicateInput
-      });
-
-      // Wait for completion (simplified - you'd want to poll properly)
+      });      // Wait for completion with proper polling
       console.log(`[ReplicateTextToImage] Prediction created: ${prediction.id}`);
-      const finalPrediction = await this.replicateClient.predictions.get(prediction.id);
+      console.log(`[ReplicateTextToImage] Waiting for completion...`);
+      
+      const finalPrediction = await this.pollPrediction(prediction.id);
 
       if (finalPrediction.status === 'succeeded') {
         console.log(`[ReplicateTextToImage] Image generated:`, finalPrediction.output);
-        
-        // Create Image from result URL - ACTUALLY DOWNLOAD THE FILE
+          // Create Image from result URL - ACTUALLY DOWNLOAD THE FILE
         const image = await this.createImageFromUrl(
           Array.isArray(finalPrediction.output) ? finalPrediction.output[0] : finalPrediction.output,
           {
             originalText: text.content,
             modelUsed: this.modelMetadata.id,
             options: options,
-            predictionId: prediction.id
+            predictionId: prediction.id,
+            generation_prompt: this.createGenerationPrompt(inputRole, options)
           }
         );
 
@@ -98,6 +109,31 @@ export class ReplicateTextToImageModel extends TextToImageModel {
     } catch (error) {
       throw new Error(`Replicate text-to-image failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
+  }
+
+  /**
+   * Poll prediction until completion with exponential backoff
+   */
+  private async pollPrediction(predictionId: string, maxWaitTime: number = 300000): Promise<any> {
+    const startTime = Date.now();
+    let attempt = 0;
+    
+    while (Date.now() - startTime < maxWaitTime) {
+      const prediction = await this.replicateClient.predictions.get(predictionId);
+      
+      console.log(`[ReplicateTextToImage] Poll attempt ${++attempt}: ${prediction.status}`);
+      
+      if (prediction.status === 'succeeded' || prediction.status === 'failed' || prediction.status === 'canceled') {
+        return prediction;
+      }
+      
+      // Exponential backoff: 1s, 2s, 4s, 8s, then 10s max
+      const delay = Math.min(Math.pow(2, attempt - 1) * 1000, 10000);
+      console.log(`[ReplicateTextToImage] Waiting ${delay}ms before next poll...`);
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+    
+    throw new Error(`Prediction timed out after ${maxWaitTime}ms`);
   }
 
   /**
@@ -296,6 +332,24 @@ export class ReplicateTextToImageModel extends TextToImageModel {
     } catch {
       return false;
     }
+  }
+  /**
+   * Create generation prompt metadata
+   */
+  private createGenerationPrompt(inputRole: TextRole, options?: TextToImageOptions): GenerationPrompt {
+    return {
+      input: inputRole, // RAW input object to preserve generation chain
+      options: options || {},
+      modelId: this.modelMetadata.id,
+      modelName: this.modelMetadata.name || this.modelMetadata.id,
+      provider: 'replicate',
+      transformationType: 'text-to-image',
+      timestamp: new Date(),
+      metadata: {
+        replicateModelParameters: this.modelMetadata.parameters,
+        modelVersion: this.modelMetadata.id
+      }
+    };
   }
 }
 

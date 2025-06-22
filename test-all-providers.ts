@@ -35,10 +35,17 @@ async function testAllProviders() {
           } else if (providerId === 'replicate') {
             modelId = 'stability-ai/stable-diffusion'; // Example Replicate model
           }
-          
-          const model = await provider.getModel(modelId);
+            const model = await provider.getModel(modelId);
           console.log(`   ✅ getModel('${modelId}') succeeded`);
-          console.log(`   📊 Model ID: ${model.getId ? model.getId() : 'N/A'}`);
+          
+          // Debug: Show what type of object was returned
+          if (model.getId) {
+            console.log(`   📊 Model ID: ${model.getId()}`);
+          } else if (model.id) {
+            console.log(`   📊 Model ID: ${model.id}`);
+          } else {
+            console.log(`   📊 Model object:`, Object.keys(model));
+          }
         } catch (modelError) {
           console.log(`   ⚠️  getModel() failed (expected for missing API keys): ${modelError.message}`);
         }

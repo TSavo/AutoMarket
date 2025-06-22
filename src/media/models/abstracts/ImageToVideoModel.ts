@@ -61,7 +61,7 @@ export abstract class ImageToVideoModel extends Model<ImageRole, ImageToVideoOpt
   /**
    * Transform image to video
    */
-  abstract transform(input: ImageRole, options?: ImageToVideoOptions): Promise<Video>;
+  abstract transform(input: ImageRole | ImageRole[], options?: ImageToVideoOptions): Promise<Video>;
 
   /**
    * Check if the model is available

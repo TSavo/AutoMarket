@@ -151,38 +151,33 @@ class BaseReplicateProvider implements MediaProvider {
   // Helper methods for provider role system
   getSupportedModels(): string[] {
     return Array.from(this.discoveredModels.keys());
-  }
-  async getModel(modelId: string): Promise<any> {
+  }  async getModel(modelId: string): Promise<any> {
     // Ensure we're configured before proceeding
     if (!this.client) {
       await this.ensureConfigured();
     }
 
-    // Check if we've already discovered this model
-    if (this.discoveredModels.has(modelId)) {
-      return this.discoveredModels.get(modelId);
-    }    // Discover the model using ReplicateClient
-    try {
-      const metadata = await this.client!.getModelMetadata(modelId);
-        // Convert to ProviderModel format
-      const providerModel: ProviderModel = {
-        id: modelId,
-        name: metadata.name || modelId,
-        description: metadata.description || '',
-        capabilities: this.mapCapabilities(metadata.category, metadata.capabilities),
-        parameters: metadata.parameters || {},
-        pricing: metadata.pricing ? {
-          inputCost: 0, // Default cost - would need to parse from Replicate pricing
-          outputCost: 0,
-          currency: 'USD'
-        } : undefined
-      };
-
-      this.discoveredModels.set(modelId, providerModel);
-      return providerModel;
-    } catch (error) {
-      throw new Error(`Failed to discover model '${modelId}': ${error.message}`);
+    // Get model metadata first
+    const metadata = await this.getModelMetadata(modelId);
+    
+    // Determine model type based on capabilities and create appropriate model instance
+    const capabilities = this.mapCapabilities(metadata.category, metadata.capabilities);
+    
+    if (capabilities.includes(MediaCapability.TEXT_TO_IMAGE)) {
+      return this.createTextToImageModel(modelId);
     }
+    if (capabilities.includes(MediaCapability.TEXT_TO_VIDEO)) {
+      return this.createTextToVideoModel(modelId);
+    }
+    if (capabilities.includes(MediaCapability.VIDEO_TO_VIDEO)) {
+      return this.createVideoToVideoModel(modelId);
+    }
+    if (capabilities.includes(MediaCapability.TEXT_TO_AUDIO)) {
+      return this.createTextToAudioModel(modelId);
+    }
+    
+    // Fallback: assume text-to-image for unknown models
+    return this.createTextToImageModel(modelId);
   }
 
   private mapCapabilities(category: string, capabilities: string[]): MediaCapability[] {
@@ -217,13 +212,18 @@ class BaseReplicateProvider implements MediaProvider {
       replicateClient: await this.getReplicateClient()
     });
   }
-
   // Model creation methods for provider roles
   async createTextToImageModel(modelId: string): Promise<TextToImageModel> {
     const modelMetadata = await this.getModelMetadata(modelId);
     
-    // TODO: Create ReplicateTextToImageModel when TextToImageModel interface exists
-    throw new Error('ReplicateTextToImageModel not yet implemented');
+    // Create and return ReplicateTextToImageModel instance for specific text-to-image model
+    const { ReplicateTextToImageModel } = await import('./ReplicateTextToImageModel');
+    
+    return new ReplicateTextToImageModel({
+      client: this.client!,
+      modelMetadata,
+      replicateClient: await this.getReplicateClient()
+    });
   }
   async createTextToVideoModel(modelId: string): Promise<TextToVideoModel> {
     const modelMetadata = await this.getModelMetadata(modelId);    
@@ -242,8 +242,7 @@ class BaseReplicateProvider implements MediaProvider {
     
     // TODO: Create ReplicateVideoToVideoModel when VideoToVideoModel interface exists
     throw new Error('ReplicateVideoToVideoModel not yet implemented');
-  }
-  // Helper methods
+  }  // Helper methods
   private async getModelMetadata(modelId: string) {
     // Ensure we're configured before proceeding
     if (!this.client) {
@@ -251,6 +250,40 @@ class BaseReplicateProvider implements MediaProvider {
     }
 
     return await this.client!.getModelMetadata(modelId);
+  }
+
+  /**
+   * Get model metadata as ProviderModel object (for discovery/listing purposes)
+   */
+  async getProviderModel(modelId: string): Promise<ProviderModel> {
+    // Check if we've already discovered this model
+    if (this.discoveredModels.has(modelId)) {
+      return this.discoveredModels.get(modelId)!;
+    }
+
+    // Discover the model using ReplicateClient
+    try {
+      const metadata = await this.getModelMetadata(modelId);
+      
+      // Convert to ProviderModel format
+      const providerModel: ProviderModel = {
+        id: modelId,
+        name: metadata.name || modelId,
+        description: metadata.description || '',
+        capabilities: this.mapCapabilities(metadata.category, metadata.capabilities),
+        parameters: metadata.parameters || {},
+        pricing: metadata.pricing ? {
+          inputCost: 0, // Default cost - would need to parse from Replicate pricing
+          outputCost: 0,
+          currency: 'USD'
+        } : undefined
+      };
+
+      this.discoveredModels.set(modelId, providerModel);
+      return providerModel;
+    } catch (error) {
+      throw new Error(`Failed to discover model '${modelId}': ${error.message}`);
+    }
   }
 
   /**

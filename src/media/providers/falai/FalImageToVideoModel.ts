@@ -13,6 +13,7 @@ import { SmartAssetFactory } from '../../assets/SmartAssetFactory';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
+import { createGenerationPrompt } from '../../utils/GenerationPromptHelper';
 
 export interface FalModelConfig {
   client: FalAiClient;
@@ -51,9 +52,12 @@ export class FalImageToVideoModel extends ImageToVideoModel {
   /**
    * Transform image to video using specific fal.ai image-to-video model
    */
-  async transform(input: ImageRole, options?: ImageToVideoOptions): Promise<Video> {
+  async transform(input: ImageRole | ImageRole[], options?: ImageToVideoOptions): Promise<Video> {
+    // Handle array input - get first element for single video generation
+    const inputRole = Array.isArray(input) ? input[0] : input;
+
     // Cast input to Image
-    const image = await input.asImage();
+    const image = await inputRole.asImage();
 
     if (!image.isValid()) {
       throw new Error('Invalid image data provided');
@@ -100,14 +104,26 @@ export class FalImageToVideoModel extends ImageToVideoModel {
         }
 
         console.log(`[FalImageToVideo] Video generated:`, videoUrl);
-        
-        // Create Video from result URL - ACTUALLY DOWNLOAD THE FILE
+          // Create Video from result URL - ACTUALLY DOWNLOAD THE FILE
         const video = await this.createVideoFromUrl(
           videoUrl,          {
             originalImageSize: image.getSize(),
             modelUsed: this.modelMetadata.id,
             options: options,
-            requestId: result.requestId
+            requestId: result.requestId,
+            generation_prompt: createGenerationPrompt({
+              input: `[Image: ${image.getSize()} bytes]`, // Represent image input
+              options: options,
+              modelId: this.modelMetadata.id,
+              modelName: this.modelMetadata.name,
+              provider: 'fal-ai',
+              transformationType: 'image-to-video',
+              modelMetadata: {
+                falModelParameters: this.modelMetadata.parameters,
+                modelVersion: this.modelMetadata.id
+              },
+              requestId: result.requestId
+            })
           }
         );
 

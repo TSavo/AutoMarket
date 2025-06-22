@@ -4,9 +4,9 @@ import { JobStatus } from '../../../../../media/types/provider';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { jobId: string } }
+  { params }: { params: Promise<{ jobId: string }> }
 ) {
-  const { jobId } = params;
+  const { jobId } = await params;
   
   if (!jobId || typeof jobId !== 'string') {
     return NextResponse.json(
@@ -39,11 +39,39 @@ export async function GET(
         status: job.status,
         progress: job.progress,
         createdAt: job.createdAt,
+        startedAt: job.startedAt,
+        completedAt: job.completedAt,
         updatedAt: job.updatedAt,
+        processingTime: job.processingTime,
         providerId: job.providerId,
         modelId: job.modelId,
         capability: job.capability,
-        result: job.result,
+        
+        // Input specification (for debugging/tracing)
+        input_type: job.input?.constructor?.name,
+        options: job.options,
+        
+        // Output data (inline for text, URLs for binary)
+        output: job.output?.constructor?.name === 'Text' ? {
+          type: 'text',
+          content: job.output.content,
+          metadata: job.output.metadata
+        } : job.output ? {
+          type: job.output.constructor.name.toLowerCase(),
+          format: job.output.format,
+          metadata: {
+            fileSize: job.output.metadata?.fileSize,
+            duration: job.output.metadata?.duration,
+            dimensions: job.output.metadata?.dimensions
+          }
+        } : undefined,
+        
+        // URLs for binary assets
+        urls: job.urls,
+        
+        // Flattened generation chain for easy consumption
+        generation_chain: job.generation_chain,
+        
         error: job.error
       }
     });
@@ -61,9 +89,9 @@ export async function GET(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { jobId: string } }
+  { params }: { params: Promise<{ jobId: string }> }
 ) {
-  const { jobId } = params;
+  const { jobId } = await params;
   
   if (!jobId || typeof jobId !== 'string') {
     return NextResponse.json(

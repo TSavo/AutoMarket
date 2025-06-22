@@ -9,6 +9,7 @@ import { TextToTextModel, TextToTextOptions } from '../../models/abstracts/TextT
 import { ModelMetadata } from '../../models/abstracts/Model';
 import { Text, TextRole } from '../../assets/roles';
 import { TogetherAPIClient } from './TogetherAPIClient';
+import { createGenerationPrompt } from '../../utils/GenerationPromptHelper';
 
 export interface TogetherTextToTextOptions extends TextToTextOptions {
   systemPrompt?: string;
@@ -47,11 +48,14 @@ export class TogetherTextToTextModel extends TextToTextModel {
   /**
    * Transform text to text using Together AI
    */
-  async transform(input: TextRole, options?: TogetherTextToTextOptions): Promise<Text> {
+  async transform(input: TextRole | TextRole[], options?: TogetherTextToTextOptions): Promise<Text> {
     const startTime = Date.now();
 
+    // Handle array input - get first element for single text generation
+    const inputRole = Array.isArray(input) ? input[0] : input;
+
     // Get text from the TextRole
-    const text = await input.asText();
+    const text = await inputRole.asText();
 
     // Validate text data
     if (!text.isValid()) {
@@ -75,9 +79,7 @@ export class TogetherTextToTextModel extends TextToTextModel {
       );
 
       // Calculate processing time
-      const processingTime = Date.now() - startTime;
-
-      // Create Text result
+      const processingTime = Date.now() - startTime;      // Create Text result
       const result = new Text(
         generatedText,
         text.language || 'auto', // Preserve input language
@@ -92,7 +94,15 @@ export class TogetherTextToTextModel extends TextToTextModel {
           maxTokens: options?.maxOutputTokens,
           topK: options?.topK,
           repetitionPenalty: options?.repetitionPenalty,
-          systemPrompt: options?.systemPrompt
+          systemPrompt: options?.systemPrompt,          generation_prompt: createGenerationPrompt({
+            input: input, // RAW input object to preserve generation chain
+            options: options,
+            modelId: this.modelId,
+            modelName: this.modelId,
+            provider: 'together',
+            transformationType: 'text-to-text',
+            processingTime
+          })
         },
         text.sourceAsset // Preserve source Asset reference
       );

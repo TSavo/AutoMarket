@@ -13,6 +13,7 @@ import axios from 'axios';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
+import { createGenerationPrompt } from '../../utils/GenerationPromptHelper';
 
 export interface TogetherTextToAudioOptions extends TextToAudioOptions {
   model?: string;
@@ -52,37 +53,25 @@ export class TogetherTextToAudioModel extends TextToAudioModel {
     this.apiClient = config.apiClient;
     this.modelId = config.modelId;
     this.modelMetadata = config.modelMetadata;
-  }
-  /**
-   * Transform text to audio using Together AI (Cartesia Sonic) - basic TTS
-   */
-  async transform(input: TextRole, options?: TogetherTextToAudioOptions): Promise<Audio>;
-
-  /**
-   * Transform text to audio with voice cloning (not supported by Cartesia Sonic)
-   */
-  async transform(text: TextRole, voiceAudio: AudioRole, options?: TogetherTextToAudioOptions): Promise<Audio>;
-
-  /**
-   * Implementation of transform method
+  }  /**
+   * Transform text to audio using Together AI (Cartesia Sonic)
    */
   async transform(
-    inputOrText: TextRole,
-    optionsOrVoiceAudio?: TogetherTextToAudioOptions | AudioRole,
-    voiceOptions?: TogetherTextToAudioOptions
+    inputOrText: TextRole | TextRole[],
+    options?: TogetherTextToAudioOptions
   ): Promise<Audio> {
     const startTime = Date.now();
 
-    // Check if this is voice cloning call (second signature)
-    if (optionsOrVoiceAudio && typeof optionsOrVoiceAudio === 'object' && 'asAudio' in optionsOrVoiceAudio) {
+    // Check if voice cloning is requested (not supported by Cartesia Sonic)
+    if (options?.voiceToClone) {
       throw new Error('Voice cloning is not supported by Cartesia Sonic models. Use basic text-to-speech instead.');
     }
 
-    // Handle basic text-to-speech (first signature)
-    const options = optionsOrVoiceAudio as TogetherTextToAudioOptions | undefined;
+    // Handle array input - get first element for single audio generation
+    const inputRole = Array.isArray(inputOrText) ? inputOrText[0] : inputOrText;
 
     // Get text from the TextRole
-    const text = await inputOrText.asText();
+    const text = await inputRole.asText();
     if (!text.isValid()) {
       throw new Error('Invalid text data provided');
     }
@@ -132,8 +121,7 @@ export class TogetherTextToAudioModel extends TextToAudioModel {
       const { AssetLoader } = await import('../../assets/SmartAssetFactory');
       const smartAsset = AssetLoader.load(localPath);
       const audio = await (smartAsset as any).asAudio();
-      
-      // Add our custom metadata to the audio
+        // Add our custom metadata to the audio
       if (audio.metadata) {
         Object.assign(audio.metadata, {
           url: audioUrl,
@@ -145,7 +133,16 @@ export class TogetherTextToAudioModel extends TextToAudioModel {
           text: textContent,
           voice: options?.voice,
           speed: options?.speed,
-          language: options?.language
+          language: options?.language,          generation_prompt: createGenerationPrompt({
+            input: inputOrText, // RAW input object to preserve generation chain
+            options: options,
+            modelId: this.modelId,
+            modelName: this.modelMetadata?.display_name,
+            provider: 'together',
+            transformationType: 'text-to-audio',
+            modelMetadata: this.modelMetadata,
+            processingTime
+          })
         });
       }
       

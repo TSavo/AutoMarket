@@ -34,8 +34,36 @@ export interface AssetMetadata {
   model?: string;
   provider?: string;
   
+  // Generation metadata
+  generation_prompt?: GenerationPrompt;
+  
   // Custom metadata
   [key: string]: any;
+}
+
+/**
+ * Rich data object containing the actual arguments passed to transform methods
+ */
+export interface GenerationPrompt {
+  // Original input data
+  input: any;
+  
+  // Transform options/parameters used
+  options?: any;
+  
+  // Model information
+  modelId?: string;
+  modelName?: string;
+  provider?: string;
+  
+  // Transformation context
+  transformationType?: string; // e.g., 'text-to-image', 'image-to-video', etc.
+  timestamp?: Date;
+  
+  // Additional context
+  metadata?: {
+    [key: string]: any;
+  };
 }
 
 /**

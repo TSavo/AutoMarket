@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import ProviderRegistry from '../ProviderRegistry';
+import { initializeProviders, ProviderRegistry } from '../../../../../media/registry/bootstrap';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { providerId: string } }
+  { params }: { params: Promise<{ providerId: string }> }
 ) {
-  const { providerId } = params;
+  const { providerId } = await params;
   
   if (!providerId || typeof providerId !== 'string') {
     return NextResponse.json(
@@ -18,10 +18,13 @@ export async function GET(
   }
 
   try {
+    // Ensure providers are initialized
     const registry = ProviderRegistry.getInstance();
-    const provider = registry.getProvider(providerId);
+    if (!registry.getAvailableProviders().length) {
+      await initializeProviders();
+    }
     
-    if (!provider) {
+    if (!registry.hasProvider(providerId)) {
       return NextResponse.json(
         {
           success: false,
@@ -31,6 +34,8 @@ export async function GET(
       );
     }
 
+    const provider = await registry.getProvider(providerId);
+    
     const isAvailable = await provider.isAvailable().catch(() => false);
     const health = await provider.getHealth().catch(() => ({
       status: 'unhealthy' as const,

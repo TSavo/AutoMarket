@@ -14,6 +14,7 @@ export interface AudioMetadata {
   channels?: number;
   fileSize?: number;
   sourceFile?: string;
+  generation_prompt?: GenerationPrompt;
   [key: string]: any;
 }
 
@@ -27,6 +28,7 @@ export interface VideoMetadata {
   hasAudio?: boolean;
   fileSize?: number;
   sourceFile?: string;
+  generation_prompt?: GenerationPrompt;
   [key: string]: any;
 }
 
@@ -36,6 +38,7 @@ export interface TextMetadata {
   encoding?: string;
   wordCount?: number;
   sourceFile?: string;
+  generation_prompt?: GenerationPrompt;
   [key: string]: any;
 }
 
@@ -45,5 +48,29 @@ export interface ImageMetadata {
   height?: number;
   fileSize?: number;
   sourceFile?: string;
+  generation_prompt?: GenerationPrompt;
   [key: string]: any;
+}
+
+// GenerationPrompt interface for transformation metadata
+export interface GenerationPrompt {
+  // Original input data
+  input: any;
+  
+  // Transform options/parameters used
+  options?: any;
+  
+  // Model information
+  modelId?: string;
+  modelName?: string;
+  provider?: string;
+  
+  // Transformation context
+  transformationType?: string; // e.g., 'text-to-image', 'image-to-video', etc.
+  timestamp?: Date;
+  
+  // Additional context
+  metadata?: {
+    [key: string]: any;
+  };
 }

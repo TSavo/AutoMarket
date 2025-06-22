@@ -58,11 +58,14 @@ export class WhisperDockerModel extends AudioToTextModel {
   /**
    * Transform audio to text using Docker-based Whisper
    */
-  async transform(input: AudioRole, options?: AudioToTextOptions): Promise<Text> {
+  async transform(input: AudioRole | AudioRole[], options?: AudioToTextOptions): Promise<Text> {
     const startTime = Date.now();
 
+    // Handle array input - get first element for single transcription
+    const inputRole = Array.isArray(input) ? input[0] : input;
+
     // Get audio from the AudioRole
-    const audio = await input.asAudio();
+    const audio = await inputRole.asAudio();
     
     // Validate audio data
     if (!audio.isValid()) {

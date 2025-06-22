@@ -1,13 +1,30 @@
 import { NextRequest, NextResponse } from 'next/server';
-import ProviderRegistry from './ProviderRegistry';
+import { initializeProviders, ProviderRegistry } from '../../../../media/registry/bootstrap';
 
 export async function GET(request: NextRequest) {
   try {
+    // Ensure providers are initialized
+    if (!ProviderRegistry.getInstance().getAvailableProviders().length) {
+      await initializeProviders();
+    }
+    
     const registry = ProviderRegistry.getInstance();
-    const providers = registry.getProviders();
+    const providerIds = registry.getAvailableProviders();
+     const providers = await Promise.all(
+      providerIds.map(async (id) => {
+        try {
+          return await registry.getProvider(id);
+        } catch (error) {
+          console.warn(`Failed to get provider ${id}:`, error);
+          return null;
+        }
+      })
+    );
+    
+    const validProviders = providers.filter((provider): provider is NonNullable<typeof provider> => provider !== null);
     
     const providersData = await Promise.all(
-      providers.map(async (provider) => {
+      validProviders.map(async (provider) => {
         const isAvailable = await provider.isAvailable().catch(() => false);
         const health = await provider.getHealth().catch(() => ({
           status: 'unhealthy' as const,

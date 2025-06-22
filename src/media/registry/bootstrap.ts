@@ -10,6 +10,10 @@
  */
 
 import { ProviderRegistry } from './ProviderRegistry';
+import { MediaCapability } from '../types/provider';
+
+// Re-export the registry for convenience
+export { ProviderRegistry } from './ProviderRegistry';
 
 /**
  * Initialize all providers by importing their modules
@@ -63,6 +67,34 @@ export async function initializeProviders(): Promise<void> {
 export async function getProvider(id: string) {
   const registry = ProviderRegistry.getInstance();
   return registry.getProvider(id);
+}
+
+/**
+ * Get all providers (convenience function)
+ */
+export async function getProviders() {
+  const registry = ProviderRegistry.getInstance();
+  return registry.getProviders();
+}
+
+/**
+ * Get providers by capability (convenience function)
+ */
+export async function getProvidersByCapability(capability: MediaCapability) {
+  const registry = ProviderRegistry.getInstance();
+  return registry.getProvidersByCapability(capability);
+}
+
+/**
+ * Find best provider (convenience function)
+ */
+export async function findBestProvider(capability: MediaCapability, criteria?: {
+  maxCost?: number;
+  preferLocal?: boolean;
+  excludeProviders?: string[];
+}) {
+  const registry = ProviderRegistry.getInstance();
+  return registry.findBestProvider(capability, criteria);
 }
 
 /**

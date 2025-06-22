@@ -9,6 +9,7 @@ import { TextToTextModel, TextToTextOptions } from '../../models/abstracts/TextT
 import { ModelMetadata } from '../../models/abstracts/Model';
 import { Text, TextRole } from '../../assets/roles';
 import { OpenRouterAPIClient } from './OpenRouterAPIClient';
+import { createGenerationPrompt } from '../../utils/GenerationPromptHelper';
 
 export interface OpenRouterTextToTextOptions extends TextToTextOptions {
   systemPrompt?: string;
@@ -46,9 +47,14 @@ export class OpenRouterTextToTextModel extends TextToTextModel {
   /**
    * Transform text to text using OpenRouter
    */
-  async transform(input: TextRole, options?: OpenRouterTextToTextOptions): Promise<Text> {
-    const startTime = Date.now();    // Get text from the TextRole
-    const text = await input.asText();
+  async transform(input: TextRole | TextRole[], options?: OpenRouterTextToTextOptions): Promise<Text> {
+    const startTime = Date.now();
+
+    // Handle array input - get first element for single text generation
+    const inputRole = Array.isArray(input) ? input[0] : input;
+
+    // Get text from the TextRole
+    const text = await inputRole.asText();
 
     // Validate text data
     if (!text.isValid()) {
@@ -69,9 +75,7 @@ export class OpenRouterTextToTextModel extends TextToTextModel {
       );
 
       // Calculate processing time
-      const processingTime = Date.now() - startTime;
-
-      // Create Text result
+      const processingTime = Date.now() - startTime;      // Create Text result
       const result = new Text(
         generatedText,
         text.language || 'auto', // Preserve input language
@@ -84,7 +88,16 @@ export class OpenRouterTextToTextModel extends TextToTextModel {
           outputTokens: generatedText.split(' ').length, // Rough estimate
           temperature: options?.temperature,
           maxTokens: options?.maxOutputTokens,
-          systemPrompt: options?.systemPrompt
+          systemPrompt: options?.systemPrompt,
+          generation_prompt: createGenerationPrompt({
+            input: input, // RAW input object to preserve generation chain
+            options: options,
+            modelId: this.modelId,
+            modelName: this.modelId,
+            provider: 'openrouter',
+            transformationType: 'text-to-text',
+            processingTime
+          })
         },
         text.sourceAsset // Preserve source Asset reference
       );

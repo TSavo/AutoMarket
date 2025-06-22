@@ -12,6 +12,7 @@ import { WhisperDockerService } from '../../../services/WhisperDockerService';
 import fs from 'fs';
 import path from 'path';
 import { AudioToTextModel, AudioToTextOptions } from '../../../models/abstracts/AudioToTextModel';
+import { createGenerationPrompt } from '../../../utils/GenerationPromptHelper';
 
 export interface WhisperSTTModelConfig {
   apiClient?: WhisperAPIClient;
@@ -57,11 +58,14 @@ export class WhisperSTTModel extends AudioToTextModel {
   /**
    * Transform audio to text using Whisper
    */
-  async transform(input: AudioRole, options?: AudioToTextOptions): Promise<Text> {
+  async transform(input: AudioRole | AudioRole[], options?: AudioToTextOptions): Promise<Text> {
     const startTime = Date.now();
 
+    // Handle array input - get first element for single transcription
+    const inputRole = Array.isArray(input) ? input[0] : input;
+
     // Get audio from the AudioRole
-    const audio = await input.asAudio();
+    const audio = await inputRole.asAudio();
 
     // Validate audio data
     if (!audio.isValid()) {
@@ -108,7 +112,16 @@ export class WhisperSTTModel extends AudioToTextModel {
             processingTime,
             model: 'whisper-1',
             provider: 'whisper-docker',
-            duration: response.duration
+            duration: response.duration,
+            generation_prompt: createGenerationPrompt({
+              input: `[Audio: ${audio.data.length} bytes]`,
+              options: options,
+              modelId: 'whisper-1',
+              modelName: 'Whisper Large',
+              provider: 'whisper-docker',
+              transformationType: 'audio-to-text',
+              processingTime
+            })
           },
           audio.sourceAsset // Preserve source Asset reference
         );

@@ -117,7 +117,7 @@ export abstract class VideoToAudioModel {
   /**
    * Transform video to audio - extracts audio track from video
    */
-  abstract transform(input: VideoRole, options?: VideoToAudioOptions): Promise<Audio>;
+  abstract transform(input: VideoRole | VideoRole[], options?: VideoToAudioOptions): Promise<Audio>;
 
   /**
    * Check if the model is available

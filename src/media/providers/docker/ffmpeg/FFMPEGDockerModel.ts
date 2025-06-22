@@ -53,12 +53,15 @@ export class FFMPEGDockerModel extends VideoToAudioModel {
   /**
    * Transform video to audio using FFMPEG Docker service
    */
-  async transform(input: VideoRole, options?: VideoToAudioOptions): Promise<Audio> {
+  async transform(input: VideoRole | VideoRole[], options?: VideoToAudioOptions): Promise<Audio> {
     const startTime = Date.now();
 
     try {
+      // Handle array input - get first element for single audio extraction
+      const inputRole = Array.isArray(input) ? input[0] : input;
+
       // Get video from the VideoRole
-      const video = await input.asVideo();
+      const video = await inputRole.asVideo();
 
       // Validate input
       if (!video.isValid()) {

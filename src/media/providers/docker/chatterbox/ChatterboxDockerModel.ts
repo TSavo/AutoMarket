@@ -61,45 +61,26 @@ export class ChatterboxDockerModel extends TextToAudioModel {
   }
 
   /**
-   * Transform text to audio using Docker-based Chatterbox - basic TTS
+   * Transform text to audio using Docker-based Chatterbox TTS
    */
-  async transform(input: TextRole, options?: ChatterboxDockerTTSOptions): Promise<Audio>;
-
-  /**
-   * Transform text to audio with voice cloning - dual-signature pattern
-   */
-  async transform(text: TextRole, voiceAudio: AudioRole, options?: ChatterboxDockerTTSOptions): Promise<Audio>;
-
-  /**
-   * Implementation for both transform signatures
-   */
-  async transform(
-    input: TextRole,
-    voiceAudioOrOptions?: AudioRole | ChatterboxDockerTTSOptions,
-    options?: ChatterboxDockerTTSOptions
-  ): Promise<Audio> {
+  async transform(input: TextRole | TextRole[], options?: ChatterboxDockerTTSOptions): Promise<Audio> {
     const startTime = Date.now();
 
+    // Handle array input - get first element for single audio generation
+    const inputRole = Array.isArray(input) ? input[0] : input;
+
     // Get text from the TextRole
-    const text = await input.asText();
+    const text = await inputRole.asText();
     
     // Validate text data
     if (!text.isValid()) {
       throw new Error('Invalid text data provided');
     }
 
-    // Parse arguments to determine which signature was used
+    // Extract voice cloning audio from options
     let voiceAudio: Audio | undefined;
-    let actualOptions: ChatterboxDockerTTSOptions | undefined;
-
-    if (voiceAudioOrOptions && typeof voiceAudioOrOptions === 'object' && 'asAudio' in voiceAudioOrOptions) {
-      // Second signature: transform(text, voiceAudio, options)
-      voiceAudio = await voiceAudioOrOptions.asAudio();
-      actualOptions = options;
-    } else {
-      // First signature: transform(text, options)
-      voiceAudio = undefined;
-      actualOptions = voiceAudioOrOptions as ChatterboxDockerTTSOptions;
+    if (options?.voiceToClone) {
+      voiceAudio = await options.voiceToClone.asAudio();
     }
 
     try {
@@ -119,7 +100,7 @@ export class ChatterboxDockerModel extends TextToAudioModel {
       let referenceAudioFilename: string | undefined;
       if (voiceAudio) {
         console.log(`[ChatterboxDockerModel] Voice cloning requested with Audio object`);
-        console.log(`[ChatterboxDockerModel] Force upload option: ${actualOptions?.forceUpload}`);
+        console.log(`[ChatterboxDockerModel] Force upload option: ${options?.forceUpload}`);
         
         try {
           // Generate a filename for the audio data
@@ -135,7 +116,7 @@ export class ChatterboxDockerModel extends TextToAudioModel {
           console.log(`[ChatterboxDockerModel] Local filename: ${localFilename}`);
           
           // Check if file already exists on server (unless force upload is requested)
-          if (!actualOptions?.forceUpload) {
+          if (!options?.forceUpload) {
             console.log(`[ChatterboxDockerModel] Checking if file already exists on server...`);
             try {
               const existingFiles = await this.apiClient.getReferenceFiles();
@@ -154,8 +135,8 @@ export class ChatterboxDockerModel extends TextToAudioModel {
           }
 
           // Upload if file doesn't exist or force upload is requested
-          if (!referenceAudioFilename || actualOptions?.forceUpload) {
-            console.log(`[ChatterboxDockerModel] ${actualOptions?.forceUpload ? 'Force uploading' : 'Uploading'} reference file: ${tempPath}`);
+          if (!referenceAudioFilename || options?.forceUpload) {
+            console.log(`[ChatterboxDockerModel] ${options?.forceUpload ? 'Force uploading' : 'Uploading'} reference file: ${tempPath}`);
             const uploadResult = await this.apiClient.uploadReferenceAudio(tempPath);
             console.log(`[ChatterboxDockerModel] Upload successful, filename: ${uploadResult.filename}`);
             referenceAudioFilename = uploadResult.filename;
@@ -175,15 +156,15 @@ export class ChatterboxDockerModel extends TextToAudioModel {
 
       // Create TTS request
       console.log(`[ChatterboxDockerModel] Creating TTS request with options:`, {
-        speed: actualOptions?.speed,
+        speed: options?.speed,
         voiceCloning: !!voiceAudio,
-        outputFormat: actualOptions?.format as 'mp3' | 'wav' || 'mp3'
+        outputFormat: options?.format as 'mp3' | 'wav' || 'mp3'
       });
       
       const request = this.apiClient.createTTSRequest(text.content, {
-        speed: actualOptions?.speed || 1.0,
+        speed: options?.speed || 1.0,
         voiceFile: voiceAudio ? 'voice_clone_mode' : undefined, // Indicates voice cloning mode
-        outputFormat: actualOptions?.format as 'mp3' | 'wav' || 'mp3'
+        outputFormat: options?.format as 'mp3' | 'wav' || 'mp3'
       });
 
       // For basic TTS, set default voice if not voice cloning

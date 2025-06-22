@@ -126,6 +126,47 @@ export class ProviderRegistry {
   }
 
   /**
+   * Get all providers as instances (for compatibility with old API)
+   */
+  public async getProviders(): Promise<MediaProvider[]> {
+    const providers: MediaProvider[] = [];
+    
+    for (const [id] of Array.from(this.providers)) {
+      try {
+        const provider = await this.getProvider(id);
+        providers.push(provider);
+      } catch (error) {
+        console.warn(`Failed to create provider ${id}:`, error);
+      }
+    }
+    
+    return providers;
+  }
+
+  /**
+   * Find the best provider for a capability based on availability and criteria
+   */
+  public async findBestProvider(capability: MediaCapability, criteria?: {
+    maxCost?: number;
+    preferLocal?: boolean;
+    excludeProviders?: string[];
+  }): Promise<MediaProvider | undefined> {
+    const providers = await this.getProvidersByCapability(capability);
+    
+    if (criteria?.excludeProviders) {
+      const filtered = providers.filter(p => !criteria.excludeProviders!.includes(p.id));
+      if (filtered.length > 0) return filtered[0];
+    }
+
+    if (criteria?.preferLocal) {
+      const localProvider = providers.find(p => p.type === 'local');
+      if (localProvider) return localProvider;
+    }
+
+    return providers[0]; // Return first available
+  }
+
+  /**
    * Clear the provider cache
    */
   public clearCache(): void {
