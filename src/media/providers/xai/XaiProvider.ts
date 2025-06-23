@@ -8,6 +8,7 @@ import {
 import { TextToTextProvider } from '../../capabilities';
 import { XaiTextToTextModel } from './XaiTextToTextModel';
 import { ProviderRegistry } from '../../registry/ProviderRegistry';
+import { XaiAPIClient } from './XaiAPIClient';
 
 export class XaiProvider implements MediaProvider, TextToTextProvider {
   readonly id = 'xai';
@@ -24,13 +25,19 @@ export class XaiProvider implements MediaProvider, TextToTextProvider {
   ];
 
   private config?: ProviderConfig;
+  private apiClient?: XaiAPIClient;
 
   async configure(config: ProviderConfig): Promise<void> {
     this.config = config;
+    if (!config.apiKey) {
+      throw new Error('xAI API key is required');
+    }
+    this.apiClient = new XaiAPIClient({ apiKey: config.apiKey, baseUrl: config.baseUrl });
   }
 
   async isAvailable(): Promise<boolean> {
-    return !!this.config?.apiKey;
+    if (!this.apiClient) return false;
+    return this.apiClient.testConnection();
   }
 
   getModelsForCapability(capability: MediaCapability): ProviderModel[] {
@@ -38,7 +45,10 @@ export class XaiProvider implements MediaProvider, TextToTextProvider {
   }
 
   async getModel(modelId: string): Promise<any> {
-    return new XaiTextToTextModel({ modelId });
+    if (!this.apiClient) {
+      throw new Error('Provider not configured');
+    }
+    return new XaiTextToTextModel({ apiClient: this.apiClient, modelId });
   }
 
   async getHealth(): Promise<any> {

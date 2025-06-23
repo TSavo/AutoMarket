@@ -8,6 +8,7 @@ import {
 import { TextToTextProvider } from '../../capabilities';
 import { AzureOpenAITextToTextModel } from './AzureOpenAITextToTextModel';
 import { ProviderRegistry } from '../../registry/ProviderRegistry';
+import { AzureOpenAIAPIClient } from './AzureOpenAIAPIClient';
 
 export class AzureOpenAIProvider implements MediaProvider, TextToTextProvider {
   readonly id = 'azure-openai';
@@ -24,13 +25,19 @@ export class AzureOpenAIProvider implements MediaProvider, TextToTextProvider {
   ];
 
   private config?: ProviderConfig;
+  private apiClient?: AzureOpenAIAPIClient;
 
   async configure(config: ProviderConfig): Promise<void> {
     this.config = config;
+    if (!config.apiKey || !config.baseUrl) {
+      throw new Error('Azure OpenAI apiKey and baseUrl are required');
+    }
+    this.apiClient = new AzureOpenAIAPIClient({ apiKey: config.apiKey, baseUrl: config.baseUrl });
   }
 
   async isAvailable(): Promise<boolean> {
-    return !!this.config?.apiKey;
+    if (!this.apiClient) return false;
+    return this.apiClient.testConnection();
   }
 
   getModelsForCapability(capability: MediaCapability): ProviderModel[] {
@@ -38,7 +45,10 @@ export class AzureOpenAIProvider implements MediaProvider, TextToTextProvider {
   }
 
   async getModel(modelId: string): Promise<any> {
-    return new AzureOpenAITextToTextModel({ modelId });
+    if (!this.apiClient) {
+      throw new Error('Provider not configured');
+    }
+    return new AzureOpenAITextToTextModel({ apiClient: this.apiClient, modelId });
   }
 
   async getHealth(): Promise<any> {

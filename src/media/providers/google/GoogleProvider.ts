@@ -8,6 +8,7 @@ import {
 import { TextToTextProvider } from '../../capabilities';
 import { GoogleTextToTextModel } from './GoogleTextToTextModel';
 import { ProviderRegistry } from '../../registry/ProviderRegistry';
+import { GoogleAPIClient } from './GoogleAPIClient';
 
 export class GoogleProvider implements MediaProvider, TextToTextProvider {
   readonly id = 'google';
@@ -24,13 +25,19 @@ export class GoogleProvider implements MediaProvider, TextToTextProvider {
   ];
 
   private config?: ProviderConfig;
+  private apiClient?: GoogleAPIClient;
 
   async configure(config: ProviderConfig): Promise<void> {
     this.config = config;
+    if (!config.apiKey) {
+      throw new Error('Google API key is required');
+    }
+    this.apiClient = new GoogleAPIClient({ apiKey: config.apiKey, baseUrl: config.baseUrl });
   }
 
   async isAvailable(): Promise<boolean> {
-    return !!this.config?.apiKey;
+    if (!this.apiClient) return false;
+    return this.apiClient.testConnection();
   }
 
   getModelsForCapability(capability: MediaCapability): ProviderModel[] {
@@ -38,7 +45,10 @@ export class GoogleProvider implements MediaProvider, TextToTextProvider {
   }
 
   async getModel(modelId: string): Promise<any> {
-    return new GoogleTextToTextModel({ modelId });
+    if (!this.apiClient) {
+      throw new Error('Provider not configured');
+    }
+    return new GoogleTextToTextModel({ apiClient: this.apiClient, modelId });
   }
 
   async getHealth(): Promise<any> {

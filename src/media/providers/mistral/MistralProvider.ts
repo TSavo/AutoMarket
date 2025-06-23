@@ -8,6 +8,7 @@ import {
 import { TextToTextProvider } from '../../capabilities';
 import { MistralTextToTextModel } from './MistralTextToTextModel';
 import { ProviderRegistry } from '../../registry/ProviderRegistry';
+import { MistralAPIClient } from './MistralAPIClient';
 
 export class MistralProvider implements MediaProvider, TextToTextProvider {
   readonly id = 'mistral';
@@ -24,13 +25,19 @@ export class MistralProvider implements MediaProvider, TextToTextProvider {
   ];
 
   private config?: ProviderConfig;
+  private apiClient?: MistralAPIClient;
 
   async configure(config: ProviderConfig): Promise<void> {
     this.config = config;
+    if (!config.apiKey) {
+      throw new Error('Mistral API key is required');
+    }
+    this.apiClient = new MistralAPIClient({ apiKey: config.apiKey, baseUrl: config.baseUrl });
   }
 
   async isAvailable(): Promise<boolean> {
-    return !!this.config?.apiKey;
+    if (!this.apiClient) return false;
+    return this.apiClient.testConnection();
   }
 
   getModelsForCapability(capability: MediaCapability): ProviderModel[] {
@@ -38,7 +45,10 @@ export class MistralProvider implements MediaProvider, TextToTextProvider {
   }
 
   async getModel(modelId: string): Promise<any> {
-    return new MistralTextToTextModel({ modelId });
+    if (!this.apiClient) {
+      throw new Error('Provider not configured');
+    }
+    return new MistralTextToTextModel({ apiClient: this.apiClient, modelId });
   }
 
   async getHealth(): Promise<any> {
