@@ -37,6 +37,7 @@ export async function initializeProviders(): Promise<void> {
     () => import('../providers/docker/ffmpeg/FFMPEGDockerProvider'),
     () => import('../providers/docker/chatterbox/ChatterboxDockerProvider'),
     () => import('../providers/docker/whisper/WhisperDockerProvider'),
+    () => import('../providers/docker/ollama/OllamaDockerProvider'),
   ];
   
   // Import all providers concurrently
