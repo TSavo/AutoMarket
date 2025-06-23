@@ -6,6 +6,8 @@
  */
 
 import axios, { AxiosInstance, AxiosResponse } from 'axios';
+import * as fs from 'fs';
+import FormData from 'form-data';
 
 export interface OpenAIConfig {
   apiKey: string;
@@ -79,6 +81,27 @@ export interface OpenAITTSRequest {
   voice: 'alloy' | 'echo' | 'fable' | 'onyx' | 'nova' | 'shimmer';
   response_format?: 'mp3' | 'opus' | 'aac' | 'flac' | 'wav' | 'pcm';
   speed?: number;
+}
+
+export interface OpenAITranscriptionRequest {
+  file: string | fs.ReadStream;
+  model: string;
+  language?: string;
+  prompt?: string;
+  response_format?: 'json' | 'text' | 'srt' | 'verbose_json' | 'vtt';
+  temperature?: number;
+  timestamp_granularities?: Array<'word' | 'segment'>;
+  stream?: boolean;
+}
+
+export type OpenAITranslationRequest = Omit<OpenAITranscriptionRequest, 'language' | 'timestamp_granularities' | 'stream'>;
+
+export interface OpenAITranscriptionResponse {
+  text: string;
+  language?: string;
+  duration?: number;
+  words?: Array<{ start: number; end: number; word: string }>;
+  segments?: Array<{ id: number; start: number; end: number; text: string }>;
 }
 
 export interface OpenAIModel {
@@ -206,6 +229,55 @@ export class OpenAIAPIClient {
       return Buffer.from(response.data);
     } catch (error) {
       throw new Error(`OpenAI TTS generation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  /**
+   * Transcribe audio to text
+   */
+  async createTranscription(request: OpenAITranscriptionRequest): Promise<OpenAITranscriptionResponse> {
+    const form = new FormData();
+    form.append('file', typeof request.file === 'string' ? fs.createReadStream(request.file) : request.file);
+    form.append('model', request.model);
+    if (request.language) form.append('language', request.language);
+    if (request.prompt) form.append('prompt', request.prompt);
+    if (request.response_format) form.append('response_format', request.response_format);
+    if (request.temperature !== undefined) form.append('temperature', String(request.temperature));
+    if (request.timestamp_granularities) {
+      for (const g of request.timestamp_granularities) {
+        form.append('timestamp_granularities[]', g);
+      }
+    }
+    if (request.stream) form.append('stream', 'true');
+
+    try {
+      const response = await this.client.post('/audio/transcriptions', form, {
+        headers: form.getHeaders()
+      });
+      return response.data;
+    } catch (error) {
+      throw new Error(`OpenAI transcription failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  /**
+   * Translate audio to English text
+   */
+  async createTranslation(request: OpenAITranslationRequest): Promise<OpenAITranscriptionResponse> {
+    const form = new FormData();
+    form.append('file', typeof request.file === 'string' ? fs.createReadStream(request.file) : request.file);
+    form.append('model', request.model);
+    if (request.prompt) form.append('prompt', request.prompt);
+    if (request.response_format) form.append('response_format', request.response_format);
+    if (request.temperature !== undefined) form.append('temperature', String(request.temperature));
+
+    try {
+      const response = await this.client.post('/audio/translations', form, {
+        headers: form.getHeaders()
+      });
+      return response.data;
+    } catch (error) {
+      throw new Error(`OpenAI translation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 }
