@@ -20,6 +20,14 @@ export type { OpenAITextToImageOptions, OpenAITextToImageConfig } from './OpenAI
 export { OpenAITextToAudioModel } from './OpenAITextToAudioModel';
 export type { OpenAITextToAudioOptions, OpenAITextToAudioConfig } from './OpenAITextToAudioModel';
 
+export { OpenAIAudioToTextModel } from './OpenAIAudioToTextModel';
+export type { OpenAIAudioToTextOptions, OpenAIAudioToTextConfig } from './OpenAIAudioToTextModel';
+
 // API client
 export { OpenAIAPIClient } from './OpenAIAPIClient';
-export type { OpenAIConfig } from './OpenAIAPIClient';
+export type {
+  OpenAIConfig,
+  OpenAITranscriptionRequest,
+  OpenAITranslationRequest,
+  OpenAITranscriptionResponse
+} from './OpenAIAPIClient';

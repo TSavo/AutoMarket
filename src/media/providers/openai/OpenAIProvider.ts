@@ -15,22 +15,24 @@ import {
   GenerationResult 
 } from '../../types/provider';
 import { OpenAIAPIClient, OpenAIConfig } from './OpenAIAPIClient';
-import { TextToTextProvider, TextToImageProvider, TextToAudioProvider } from '../../capabilities';
+import { TextToTextProvider, TextToImageProvider, TextToAudioProvider, AudioToTextProvider } from '../../capabilities';
 import { TextToTextModel } from '../../models/abstracts/TextToTextModel';
 import { OpenAITextToTextModel } from './OpenAITextToTextModel';
 import { TextToImageModel } from '../../models/abstracts/TextToImageModel';
 import { OpenAITextToImageModel } from './OpenAITextToImageModel';
 import { TextToAudioModel } from '../../models/abstracts/TextToAudioModel';
 import { OpenAITextToAudioModel } from './OpenAITextToAudioModel';
+import { OpenAIAudioToTextModel } from './OpenAIAudioToTextModel';
 
-export class OpenAIProvider implements MediaProvider, TextToTextProvider, TextToImageProvider, TextToAudioProvider {
+export class OpenAIProvider implements MediaProvider, TextToTextProvider, TextToImageProvider, TextToAudioProvider, AudioToTextProvider {
   readonly id = 'openai';
   readonly name = 'OpenAI';
   readonly type = ProviderType.REMOTE;
   readonly capabilities = [
     MediaCapability.TEXT_TO_TEXT,
     MediaCapability.TEXT_TO_IMAGE,
-    MediaCapability.TEXT_TO_AUDIO
+    MediaCapability.TEXT_TO_AUDIO,
+    MediaCapability.AUDIO_TO_TEXT
   ];
 
   private config?: ProviderConfig;
@@ -159,6 +161,33 @@ export class OpenAIProvider implements MediaProvider, TextToTextProvider, TextTo
     return model ? model.capabilities.includes(MediaCapability.TEXT_TO_AUDIO) : false;
   }
 
+  // AudioToTextProvider interface implementation
+  async createAudioToTextModel(modelId: string) {
+    await this.ensureConfigured();
+
+    if (!this.apiClient) {
+      throw new Error('OpenAI provider not configured');
+    }
+
+    if (!this.supportsAudioToTextModel(modelId)) {
+      throw new Error(`Model ${modelId} is not supported for audio-to-text generation`);
+    }
+
+    return new OpenAIAudioToTextModel({
+      apiClient: this.apiClient,
+      modelId
+    });
+  }
+
+  getSupportedAudioToTextModels(): string[] {
+    return this.getModelsForCapability(MediaCapability.AUDIO_TO_TEXT).map(m => m.id);
+  }
+
+  supportsAudioToTextModel(modelId: string): boolean {
+    const model = this.models.find(m => m.id === modelId);
+    return model ? model.capabilities.includes(MediaCapability.AUDIO_TO_TEXT) : false;
+  }
+
   // ServiceManagement interface implementation
   async startService(): Promise<void> {
     // Remote API - no service to start
@@ -241,6 +270,11 @@ export class OpenAIProvider implements MediaProvider, TextToTextProvider, TextTo
     if (modelId.includes('tts')) {
       capabilities.push(MediaCapability.TEXT_TO_AUDIO);
     }
+
+    // Audio-to-text models (Whisper/gpt-4o transcribe)
+    if (modelId.includes('whisper') || modelId.includes('transcribe')) {
+      capabilities.push(MediaCapability.AUDIO_TO_TEXT);
+    }
     
     return capabilities;
   }
@@ -271,6 +305,13 @@ export class OpenAIProvider implements MediaProvider, TextToTextProvider, TextTo
       params.response_format = { type: 'string', options: ['mp3', 'opus', 'aac', 'flac', 'wav', 'pcm'], default: 'mp3' };
       params.speed = { type: 'number', min: 0.25, max: 4.0, default: 1.0 };
     }
+
+    if (capabilities.includes(MediaCapability.AUDIO_TO_TEXT)) {
+      params.prompt = { type: 'string' };
+      params.language = { type: 'string' };
+      params.response_format = { type: 'string', options: ['json', 'text', 'srt', 'verbose_json', 'vtt'], default: 'json' };
+      params.temperature = { type: 'number', min: 0, max: 1, default: 0 };
+    }
     
     return params;
   }
@@ -287,7 +328,10 @@ export class OpenAIProvider implements MediaProvider, TextToTextProvider, TextTo
       'dall-e-3': { inputCost: 0.04, outputCost: 0.04 }, // per image
       'dall-e-2': { inputCost: 0.02, outputCost: 0.02 }, // per image
       'tts-1': { inputCost: 0.015, outputCost: 0.015 }, // per 1K characters
-      'tts-1-hd': { inputCost: 0.03, outputCost: 0.03 } // per 1K characters
+      'tts-1-hd': { inputCost: 0.03, outputCost: 0.03 }, // per 1K characters
+      'whisper-1': { inputCost: 0.006, outputCost: 0.006 }, // per minute approx
+      'gpt-4o-transcribe': { inputCost: 0.006, outputCost: 0.006 },
+      'gpt-4o-mini-transcribe': { inputCost: 0.003, outputCost: 0.003 }
     };
 
     const pricing = pricingMap[modelId];
@@ -338,6 +382,30 @@ export class OpenAIProvider implements MediaProvider, TextToTextProvider, TextTo
         capabilities: [MediaCapability.TEXT_TO_AUDIO],
         parameters: this.getModelParameters('tts-1', [MediaCapability.TEXT_TO_AUDIO]),
         pricing: this.getModelPricing('tts-1')
+      },
+      {
+        id: 'whisper-1',
+        name: 'Whisper-1',
+        description: 'OpenAI Whisper speech recognition model',
+        capabilities: [MediaCapability.AUDIO_TO_TEXT],
+        parameters: this.getModelParameters('whisper-1', [MediaCapability.AUDIO_TO_TEXT]),
+        pricing: this.getModelPricing('whisper-1')
+      },
+      {
+        id: 'gpt-4o-transcribe',
+        name: 'GPT-4o Transcribe',
+        description: 'GPT-4o model optimized for transcription',
+        capabilities: [MediaCapability.AUDIO_TO_TEXT],
+        parameters: this.getModelParameters('gpt-4o-transcribe', [MediaCapability.AUDIO_TO_TEXT]),
+        pricing: this.getModelPricing('gpt-4o-transcribe')
+      },
+      {
+        id: 'gpt-4o-mini-transcribe',
+        name: 'GPT-4o Mini Transcribe',
+        description: 'Smaller GPT-4o model for transcription',
+        capabilities: [MediaCapability.AUDIO_TO_TEXT],
+        parameters: this.getModelParameters('gpt-4o-mini-transcribe', [MediaCapability.AUDIO_TO_TEXT]),
+        pricing: this.getModelPricing('gpt-4o-mini-transcribe')
       }
     ];
 
