@@ -43,18 +43,17 @@ async function testGenerationChain() {
         typeof enhancedText.metadata.generation_prompt.input === 'object' ? 
         `[${enhancedText.metadata.generation_prompt.input.constructor.name} object]` : 
         enhancedText.metadata.generation_prompt.input);
-    }
-    
-    console.log('\n=== STEP 3: Enhanced Text -> Image ===');
-    const replicateProvider = await getProvider('replicate');
-    const imageModel = await replicateProvider.getModel('black-forest-labs/flux-schnell');
-    
-    console.log(`🎨 Generating image with: ${imageModel.getId()}`);
+    }    console.log('\n=== STEP 3: Enhanced Text -> Image ===');
+    // Use local HuggingFace service instead of Replicate
+    const huggingfaceProvider = await getProvider('huggingface-docker');
+    const imageModel = await huggingfaceProvider.getModel('runwayml/stable-diffusion-v1-5');
+      console.log(`🎨 Generating image with local HuggingFace service: ${imageModel.getId()}`);
     const startTime = Date.now();
     const image = await imageModel.transform(enhancedText, {
-      aspect_ratio: "16:9",
-      steps: 4,
-      megapixels: "1"
+      num_inference_steps: 20,
+      guidance_scale: 7.5,
+      width: 512,
+      height: 512
     });
     const imageTime = Date.now() - startTime;
     

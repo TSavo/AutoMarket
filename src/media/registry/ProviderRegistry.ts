@@ -106,22 +106,61 @@ export class ProviderRegistry {
     }
   }
   /**
-   * Get providers by capability
+   * Get providers by capability with priority ordering
    */  public async getProvidersByCapability(capability: MediaCapability): Promise<MediaProvider[]> {
     const providers: MediaProvider[] = [];
-    
-    for (const [id] of Array.from(this.providers)) {
-      try {
-        const provider = await this.getProvider(id);
-        if (provider.capabilities && provider.capabilities.includes(capability)) {
-          providers.push(provider);
+
+    // Define priority order for text-to-image providers
+    const textToImagePriority = [
+      'huggingface-docker', // #1 Priority - Dynamic model loading
+      'falai',
+      'together',
+      'replicate'
+    ];
+
+    // For TEXT_TO_IMAGE capability, use priority order
+    if (capability === MediaCapability.TEXT_TO_IMAGE) {
+      // First, add providers in priority order
+      for (const priorityId of textToImagePriority) {
+        if (this.providers.has(priorityId)) {
+          try {
+            const provider = await this.getProvider(priorityId);
+            if (provider.capabilities && provider.capabilities.includes(capability)) {
+              providers.push(provider);
+            }
+          } catch (error) {
+            console.warn(`Failed to create priority provider ${priorityId}:`, error);
+          }
         }
-      } catch (error) {
-        // Silently skip providers that fail to create
-        console.warn(`Failed to create provider ${id}:`, error);
+      }
+
+      // Then add any remaining providers not in priority list
+      for (const [id] of Array.from(this.providers)) {
+        if (!textToImagePriority.includes(id)) {
+          try {
+            const provider = await this.getProvider(id);
+            if (provider.capabilities && provider.capabilities.includes(capability)) {
+              providers.push(provider);
+            }
+          } catch (error) {
+            console.warn(`Failed to create provider ${id}:`, error);
+          }
+        }
+      }
+    } else {
+      // For other capabilities, use default order
+      for (const [id] of Array.from(this.providers)) {
+        try {
+          const provider = await this.getProvider(id);
+          if (provider.capabilities && provider.capabilities.includes(capability)) {
+            providers.push(provider);
+          }
+        } catch (error) {
+          console.warn(`Failed to create provider ${id}:`, error);
+        }
       }
     }
-    
+
     return providers;
   }
 
@@ -152,10 +191,18 @@ export class ProviderRegistry {
     excludeProviders?: string[];
   }): Promise<MediaProvider | undefined> {
     const providers = await this.getProvidersByCapability(capability);
-    
+
     if (criteria?.excludeProviders) {
       const filtered = providers.filter(p => !criteria.excludeProviders!.includes(p.id));
       if (filtered.length > 0) return filtered[0];
+    }
+
+    // Special handling for text-to-image: prefer HuggingFace if available
+    if (capability === MediaCapability.TEXT_TO_IMAGE) {
+      const hfProvider = providers.find(p => p.id === 'huggingface-docker');
+      if (hfProvider && await hfProvider.isAvailable()) {
+        return hfProvider;
+      }
     }
 
     if (criteria?.preferLocal) {
@@ -163,7 +210,7 @@ export class ProviderRegistry {
       if (localProvider) return localProvider;
     }
 
-    return providers[0]; // Return first available
+    return providers[0]; // Return first available (already prioritized)
   }
 
   /**

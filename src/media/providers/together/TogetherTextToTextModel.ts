@@ -16,6 +16,7 @@ export interface TogetherTextToTextOptions extends TextToTextOptions {
   topK?: number;
   repetitionPenalty?: number;
   stop?: string[];
+  responseFormat?: 'text' | 'json' | { type: 'json_object' };
 }
 
 export interface TogetherTextToTextConfig {
@@ -62,8 +63,7 @@ export class TogetherTextToTextModel extends TextToTextModel {
       throw new Error('Invalid text data provided');
     }
 
-    try {
-      // Generate text using Together AI API
+    try {      // Generate text using Together AI API
       const generatedText = await this.apiClient.generateText(
         this.modelId,
         text.content,
@@ -74,7 +74,8 @@ export class TogetherTextToTextModel extends TextToTextModel {
           topK: options?.topK,
           repetitionPenalty: options?.repetitionPenalty,
           systemPrompt: options?.systemPrompt,
-          stop: options?.stop
+          stop: options?.stop,
+          responseFormat: options?.responseFormat
         }
       );
 
@@ -144,7 +145,6 @@ export class TogetherTextToTextModel extends TextToTextModel {
     // Very rough estimation: ~4 characters per token for English text
     return Math.ceil(text.length / 4);
   }
-
   /**
    * Get supported parameters for this model
    */
@@ -156,7 +156,8 @@ export class TogetherTextToTextModel extends TextToTextModel {
       'topK',
       'repetitionPenalty',
       'systemPrompt',
-      'stop'
+      'stop',
+      'responseFormat'
     ];
   }
 

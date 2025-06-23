@@ -1,0 +1,42 @@
+services:
+  huggingface-init:
+    image: busybox
+    command: ["sh", "-c", "echo 'Initializing HuggingFace Text-to-Image Service...' && sleep 2"]
+    
+  huggingface-text-to-image:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      - huggingface-init
+    ports:
+      - "8007:8007"
+    environment:
+      - CUDA_VISIBLE_DEVICES=0
+      - PYTORCH_CUDA_ALLOC_CONF=max_split_size_mb:512
+      - HF_HOME=/app/hf_cache
+      - HF_HUB_ENABLE_HF_TRANSFER=1
+      - TRANSFORMERS_CACHE=/app/hf_cache
+      - DIFFUSERS_CACHE=/app/hf_cache
+    volumes:
+      - hf_cache:/app/hf_cache
+      - ./temp:/app/temp
+      - ./logs:/app/logs
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8007/health"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    restart: unless-stopped
+
+volumes:
+  hf_cache:
+    driver: local

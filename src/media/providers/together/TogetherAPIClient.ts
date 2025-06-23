@@ -28,6 +28,7 @@ export interface TogetherChatRequest {
   repetition_penalty?: number;
   stream?: boolean;
   stop?: string[];
+  response_format?: { type: 'json_object' };
 }
 
 export interface TogetherChoice {
@@ -189,6 +190,7 @@ export class TogetherAPIClient {
       repetitionPenalty?: number;
       systemPrompt?: string;
       stop?: string[];
+      responseFormat?: 'text' | 'json' | { type: 'json_object' };
     }
   ): Promise<string> {
     const messages: TogetherMessage[] = [];
@@ -205,6 +207,13 @@ export class TogetherAPIClient {
       content: prompt
     });
 
+    // Handle response format conversion
+    let response_format: { type: 'json_object' } | undefined;
+    if (options?.responseFormat === 'json' || 
+        (typeof options?.responseFormat === 'object' && options.responseFormat.type === 'json_object')) {
+      response_format = { type: 'json_object' };
+    }
+
     const request: TogetherChatRequest = {
       model: modelId,
       messages,
@@ -213,7 +222,8 @@ export class TogetherAPIClient {
       top_p: options?.topP,
       top_k: options?.topK,
       repetition_penalty: options?.repetitionPenalty,
-      stop: options?.stop
+      stop: options?.stop,
+      ...(response_format && { response_format })
     };
 
     const response = await this.chatCompletion(request);

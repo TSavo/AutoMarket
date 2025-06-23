@@ -14,6 +14,8 @@ export interface TextToTextOptions {
   topK?: number;
   topP?: number;
   maxOutputTokens?: number;
+  /** Response format for structured output */
+  responseFormat?: 'text' | 'json' | { type: 'json_object' };
   [key: string]: any; // Allow model-specific parameters
 }
 

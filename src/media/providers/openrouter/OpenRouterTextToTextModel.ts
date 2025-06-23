@@ -15,6 +15,7 @@ export interface OpenRouterTextToTextOptions extends TextToTextOptions {
   systemPrompt?: string;
   frequencyPenalty?: number;
   presencePenalty?: number;
+  responseFormat?: 'text' | 'json' | { type: 'json_object' };
 }
 
 export interface OpenRouterTextToTextConfig {
@@ -61,8 +62,7 @@ export class OpenRouterTextToTextModel extends TextToTextModel {
       throw new Error('Invalid text data provided');
     }
 
-    try {
-      // Generate text using OpenRouter API
+    try {      // Generate text using OpenRouter API
       const generatedText = await this.apiClient.generateText(
         this.modelId,
         text.content,
@@ -70,7 +70,8 @@ export class OpenRouterTextToTextModel extends TextToTextModel {
           temperature: options?.temperature,
           maxTokens: options?.maxOutputTokens,
           topP: options?.topP,
-          systemPrompt: options?.systemPrompt
+          systemPrompt: options?.systemPrompt,
+          responseFormat: options?.responseFormat
         }
       );
 
@@ -139,7 +140,6 @@ export class OpenRouterTextToTextModel extends TextToTextModel {
     // Very rough estimation: ~4 characters per token for English text
     return Math.ceil(text.length / 4);
   }
-
   /**
    * Get supported parameters for this model
    */
@@ -150,7 +150,8 @@ export class OpenRouterTextToTextModel extends TextToTextModel {
       'topP',
       'systemPrompt',
       'frequencyPenalty',
-      'presencePenalty'
+      'presencePenalty',
+      'responseFormat'
     ];
   }
 }

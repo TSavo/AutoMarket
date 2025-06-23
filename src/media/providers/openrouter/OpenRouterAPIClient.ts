@@ -29,6 +29,7 @@ export interface OpenRouterChatRequest {
   frequency_penalty?: number;
   presence_penalty?: number;
   stream?: boolean;
+  response_format?: { type: 'json_object' };
 }
 
 export interface OpenRouterChoice {
@@ -143,7 +144,6 @@ export class OpenRouterAPIClient {
       throw new Error(`OpenRouter chat completion failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
-
   /**
    * Generate text using a specific model
    */
@@ -155,6 +155,7 @@ export class OpenRouterAPIClient {
       maxTokens?: number;
       topP?: number;
       systemPrompt?: string;
+      responseFormat?: 'text' | 'json' | { type: 'json_object' };
     }
   ): Promise<string> {
     const messages: OpenRouterMessage[] = [];
@@ -171,12 +172,20 @@ export class OpenRouterAPIClient {
       content: prompt
     });
 
+    // Handle response format conversion
+    let response_format: { type: 'json_object' } | undefined;
+    if (options?.responseFormat === 'json' || 
+        (typeof options?.responseFormat === 'object' && options.responseFormat.type === 'json_object')) {
+      response_format = { type: 'json_object' };
+    }
+
     const request: OpenRouterChatRequest = {
       model: modelId,
       messages,
       temperature: options?.temperature,
       max_tokens: options?.maxTokens,
-      top_p: options?.topP
+      top_p: options?.topP,
+      ...(response_format && { response_format })
     };
 
     const response = await this.chatCompletion(request);

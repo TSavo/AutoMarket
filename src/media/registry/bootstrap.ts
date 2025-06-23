@@ -25,11 +25,13 @@ export async function initializeProviders(): Promise<void> {
   const registry = ProviderRegistry.getInstance();
   
   // Import all provider modules - this triggers their self-registration
+  // HuggingFace provider is #1 priority for text-to-image generation
   const providerImports = [
-    () => import('../providers/openrouter/OpenRouterProvider'),
-    () => import('../providers/falai/FalAiProvider'), 
+    () => import('../providers/docker/huggingface/HuggingFaceDockerProvider'), // #1 Priority
+    () => import('../providers/falai/FalAiProvider'),
     () => import('../providers/together/TogetherProvider'),
     () => import('../providers/replicate/ReplicateProvider'),
+    () => import('../providers/openrouter/OpenRouterProvider'),
     () => import('../providers/docker/ffmpeg/FFMPEGDockerProvider'),
     () => import('../providers/docker/chatterbox/ChatterboxDockerProvider'),
     () => import('../providers/docker/whisper/WhisperDockerProvider'),
@@ -103,4 +105,19 @@ export async function findBestProvider(capability: MediaCapability, criteria?: {
 export function isInitialized(): boolean {
   const registry = ProviderRegistry.getInstance();
   return registry.getAvailableProviders().length > 0;
+}
+
+/**
+ * Get the #1 priority text-to-image provider (HuggingFace Docker)
+ */
+export async function getBestTextToImageProvider() {
+  const registry = ProviderRegistry.getInstance();
+  return registry.findBestProvider(MediaCapability.TEXT_TO_IMAGE);
+}
+
+/**
+ * Get HuggingFace provider directly (convenience function)
+ */
+export async function getHuggingFaceProvider() {
+  return getProvider('huggingface-docker');
 }

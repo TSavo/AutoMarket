@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { v4 as uuidv4 } from 'uuid';
 import { initializeProviders, ProviderRegistry } from '../../../../../../media/registry/bootstrap';
 import JobManager from '../../../jobs/JobManager';
-import { GenerationRequestSchema, MediaCapability, JobStatus } from '../../../../../../media/types/provider';
+import { MediaCapability, JobStatus } from '../../../../../../media/types/provider';
 
 export async function POST(
   request: NextRequest,
@@ -23,20 +23,22 @@ export async function POST(
   try {
     const body = await request.json();
     
-    // Validate request body
-    const validationResult = GenerationRequestSchema.safeParse(body);
-    if (!validationResult.success) {
+    // Simple validation - we only need input, capability, and optional options
+    if (!body.input || !body.capability) {
       return NextResponse.json(
         {
           success: false,
-          error: 'Invalid request body',
-          details: validationResult.error.issues
+          error: 'Missing required fields: input and capability'
         },
         { status: 400 }
       );
     }
 
-    const generationRequest = validationResult.data;
+    const generationRequest = {
+      input: body.input,
+      capability: body.capability,
+      options: body.options || {}
+    };
 
     // Ensure providers are initialized
     const registry = ProviderRegistry.getInstance();
@@ -92,20 +94,49 @@ export async function POST(
       );
     }
 
-    // Create job with input and options
+    // Create job with deserialized input and options
     const jobManager = JobManager.getInstance();
     const jobId = uuidv4();
+    
+    // Convert input to proper Role objects
+    let deserializedInput = generationRequest.input;
+    
+    // If input has content and is a plain object, convert to Text
+    if (deserializedInput && typeof deserializedInput === 'object' && !deserializedInput.asText) {
+      try {
+        const { Text } = await import('../../../../../../media/assets/roles/classes/Text');
+        
+        // Handle text input
+        if (typeof deserializedInput.content === 'string') {
+          deserializedInput = new Text(
+            deserializedInput.content,
+            deserializedInput.language,
+            deserializedInput.confidence,
+            deserializedInput.metadata || {}
+          );
+          console.log(`Input converted to Text object: "${deserializedInput.content.substring(0, 50)}..."`);
+        }
+        // If it's just a string, wrap it in Text
+        else if (typeof deserializedInput === 'string') {
+          deserializedInput = new Text(deserializedInput);
+          console.log(`String input converted to Text object: "${deserializedInput.content.substring(0, 50)}..."`);
+        }
+      } catch (error) {
+        console.warn('Failed to deserialize input, using as-is:', error.message);
+      }
+    }
+    
     const job = jobManager.createJob(
       jobId, 
       providerId, 
       modelId, 
       generationRequest.capability,
-      generationRequest.input,
+      deserializedInput,
       generationRequest.options
     );
 
     // Start transformation (async)
-    processTransformation(provider, model, generationRequest, jobId, jobManager)
+    processTransformation(provider, model, generationRequest.capability, deserializedInput, generationRequest.options, jobId, jobManager)
       .catch(error => {
         console.error(`Transformation job ${jobId} failed:`, error);
         jobManager.updateJob(jobId, {
@@ -142,7 +173,9 @@ export async function POST(
 async function processTransformation(
   provider: any,
   model: any,
-  request: any,
+  capability: string,
+  input: any,
+  options: any,
   jobId: string,
   jobManager: JobManager
 ) {
@@ -156,8 +189,8 @@ async function processTransformation(
     });
 
     console.log(`[Job ${jobId}] Starting transformation with model: ${model.id}`);
-    console.log(`[Job ${jobId}] Input type: ${request.input?.constructor?.name}`);
-    console.log(`[Job ${jobId}] Options:`, request.options);
+    console.log(`[Job ${jobId}] Input type: ${input?.constructor?.name}`);
+    console.log(`[Job ${jobId}] Options:`, options);
 
     // Get the actual model instance from the provider
     const modelInstance = await provider.getModel(model.id);
@@ -165,8 +198,8 @@ async function processTransformation(
       throw new Error(`Failed to get model instance for ${model.id}`);
     }
 
-    // Call the model's transform method - this is where the magic happens!
-    const output = await modelInstance.transform(request.input, request.options);
+    // Call the model's transform method with deserialized input
+    const output = await modelInstance.transform(input, options);
     
     const processingTime = Date.now() - startTime;
     console.log(`[Job ${jobId}] Transformation completed in ${processingTime}ms`);

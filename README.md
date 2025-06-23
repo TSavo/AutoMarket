@@ -86,11 +86,35 @@ OPENROUTER_API_KEY=your_openrouter_key
 FFMPEG_SERVICE_URL=http://localhost:8006
 CHATTERBOX_DOCKER_URL=http://localhost:8004
 WHISPER_SERVICE_URL=http://localhost:9000
+HUGGINGFACE_SERVICE_URL=http://localhost:8007
 ```
 
 ## 📚 Usage Examples
 
-### Basic Provider Usage
+### 🥇 HuggingFace Dynamic Model Loading (#1 Priority)
+```typescript
+import { getBestTextToImageProvider, getHuggingFaceProvider } from './src/media/registry/bootstrap';
+
+// Get the best text-to-image provider (automatically returns HuggingFace)
+const provider = await getBestTextToImageProvider();
+
+// Or get HuggingFace provider directly
+const hfProvider = await getHuggingFaceProvider();
+
+// Load ANY HuggingFace diffusers model dynamically - zero configuration!
+const model = await provider.createTextToImageModel('black-forest-labs/FLUX.1-dev');
+// Works with: 'runwayml/stable-diffusion-v1-5', 'stabilityai/stable-diffusion-xl-base-1.0',
+// 'prompthero/openjourney-v4', or ANY HuggingFace diffusers model!
+
+const image = await model.transform(textInput, {
+  width: 1024,
+  height: 1024,
+  numInferenceSteps: 20,
+  guidanceScale: 7.5
+});
+```
+
+### Other Provider Usage
 ```typescript
 import { FalAiProvider } from './src/media/providers/falai';
 
@@ -177,6 +201,9 @@ cd services/ffmpeg && docker-compose up -d
 # Start Chatterbox TTS service
 cd services/chatterbox && docker-compose up -d
 
-# Start Whisper STT service  
+# Start Whisper STT service
 cd services/whisper && docker-compose up -d
+
+# Start HuggingFace Text-to-Image service
+cd services/huggingface && docker-compose up -d
 ```
