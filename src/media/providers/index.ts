@@ -8,6 +8,9 @@
 // OpenRouter Provider Package
 export * from './openrouter';
 
+// Anthropic Provider Package
+export * from './anthropic';
+
 // Replicate Provider Package  
 export * from './replicate';
 

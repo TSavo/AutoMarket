@@ -12,6 +12,11 @@ providers/
 │   ├── OpenRouterAPIClient.ts          # API communication
 │   ├── OpenRouterProvider.test.ts      # Tests
 │   └── index.ts                        # Clean exports
+├── anthropic/                 # Everything Anthropic Claude
+│   ├── AnthropicProvider.ts            # Service management & factory
+│   ├── AnthropicTextToTextModel.ts     # Model implementations
+│   ├── AnthropicAPIClient.ts           # API communication
+│   └── index.ts                        # Clean exports
 ├── replicate/                  # Everything Replicate
 │   ├── ReplicateProvider.ts
 │   ├── ReplicateTextToImageModel.ts
