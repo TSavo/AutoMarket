@@ -1,9 +1,7 @@
 """
-Dynamic Model Manager for HuggingFace Multimodal Models
+Refactored Model Manager with Pluggable Handler Architecture
 
-Handles loading, caching, and memory management of:
-- Text-to-Image models (diffusers)
-- Text-to-Audio models (TTS, music generation, etc.)
+Clean, modular ModelManager that delegates model-specific logic to handlers.
 """
 
 import asyncio
@@ -11,57 +9,47 @@ import logging
 import time
 import gc
 import numpy as np
-from typing import Dict, Any, Optional, List, Union
-from dataclasses import dataclass
+from typing import Dict, Any, Optional, List
 import torch
 import psutil
 
-# Image generation imports
-from diffusers import (
-    StableDiffusionPipeline,
-    StableDiffusionXLPipeline,
-    DiffusionPipeline,
-    DPMSolverMultistepScheduler,
-    EulerDiscreteScheduler,
-    DDIMScheduler
-)
-
-# Audio generation imports
-try:
-    from transformers import (
-        SpeechT5Processor, SpeechT5ForTextToSpeech, SpeechT5HifiGan,
-        pipeline as transformers_pipeline
-    )
-    from transformers.models.musicgen import MusicgenForConditionalGeneration, MusicgenProcessor
-    AUDIO_IMPORTS_AVAILABLE = True
-except ImportError:
-    logger.warning("Audio generation libraries not available. Only text-to-image will work.")
-    AUDIO_IMPORTS_AVAILABLE = False
-
 from huggingface_hub import model_info, HfApi
 import config
+from model_info import ModelInfo
+from handlers import (
+    ModelHandlerRegistry,
+    SpeechT5Handler, MusicGenHandler, GenericAudioHandler,
+    StableDiffusionHandler, StableDiffusionXLHandler, GenericDiffusionHandler
+)
 
 logger = logging.getLogger(__name__)
 
-@dataclass
-class ModelInfo:
-    model_id: str
-    model_type: str  # "text-to-image" or "text-to-audio"
-    pipeline: Optional[Union[DiffusionPipeline, Any]]  # DiffusionPipeline or audio model
-    load_time: float
-    last_used: float
-    memory_usage: int
-    device: str
-    precision: str
-
 class ModelManager:
-    """Manages dynamic loading and caching of HuggingFace multimodal models"""
+    """Clean, modular model manager with pluggable handlers"""
     
     def __init__(self):
         self.loaded_models: Dict[str, ModelInfo] = {}
         self.loading_locks: Dict[str, asyncio.Lock] = {}
         self.hf_api = HfApi()
         
+        # Initialize handler registry
+        self.handler_registry = ModelHandlerRegistry()
+        self._register_handlers()
+    
+    def _register_handlers(self):
+        """Register all model handlers in priority order"""
+        # Audio handlers (specific -> generic)
+        self.handler_registry.register(SpeechT5Handler())
+        self.handler_registry.register(MusicGenHandler())
+        self.handler_registry.register(GenericAudioHandler())  # fallback
+        
+        # Image handlers (specific -> generic)
+        self.handler_registry.register(StableDiffusionHandler())
+        self.handler_registry.register(StableDiffusionXLHandler())
+        self.handler_registry.register(GenericDiffusionHandler())  # fallback
+        
+        logger.info(f"Registered {len(self.handler_registry.handlers)} model handlers")
+    
     def detect_model_type(self, model_id: str) -> str:
         """Detect if a model is text-to-image or text-to-audio based on model ID patterns"""
         model_id_lower = model_id.lower()
@@ -88,7 +76,7 @@ class ModelManager:
         precision: str = config.DEFAULT_PRECISION,
         device: str = config.DEVICE
     ) -> Dict[str, Any]:
-        """Load a model dynamically from HuggingFace Hub"""
+        """Load a model dynamically from HuggingFace Hub using appropriate handler"""
         
         resolved_id = config.resolve_model_id(model_id)
         
@@ -136,26 +124,23 @@ class ModelManager:
                 # Validate model exists on HuggingFace Hub
                 await self._validate_model(resolved_id)
                 
+                # Find appropriate handler
+                handler = self.handler_registry.get_handler(resolved_id, model_type)
+                if not handler:
+                    raise ValueError(f"No handler found for model: {resolved_id} (type: {model_type})")
+                
                 start_time = time.time()
                 
                 # Get model-specific configuration
                 model_config = config.get_model_config(resolved_id)
                 
-                # Load the pipeline based on model type                logger.info(f"Downloading and loading {model_type} pipeline for {resolved_id}")
-                pipeline = await self._load_pipeline(resolved_id, model_config, device, model_type)
+                # Load pipeline using handler
+                logger.info(f"Using handler: {handler.get_handler_info()['name']}")
+                pipeline = await handler.load_pipeline(resolved_id, device, model_config)
                 
-                # Enable memory efficient attention if available (only for image models)
-                if model_type == "text-to-image" and config.ENABLE_MEMORY_EFFICIENT_ATTENTION and hasattr(pipeline, 'unet') and hasattr(pipeline.unet, 'set_use_memory_efficient_attention_xformers'):
-                    try:
-                        pipeline.unet.set_use_memory_efficient_attention_xformers(True)
-                        logger.info("Enabled memory efficient attention")
-                    except Exception as e:
-                        logger.warning(f"Could not enable memory efficient attention: {e}")
-                
-                # Enable CPU offload if configured (only for image models)
-                if model_type == "text-to-image" and config.ENABLE_CPU_OFFLOAD and hasattr(pipeline, 'enable_sequential_cpu_offload'):
-                    pipeline.enable_sequential_cpu_offload()
-                    logger.info("Enabled CPU offload")
+                # Apply model optimizations (only for image models)
+                if model_type == "text-to-image":
+                    pipeline = await self._apply_optimizations(pipeline, model_type)
                 
                 load_time = time.time() - start_time
                 memory_usage = self._get_model_memory_usage()
@@ -165,6 +150,7 @@ class ModelManager:
                     model_id=resolved_id,
                     model_type=model_type,
                     pipeline=pipeline,
+                    handler_name=handler.get_handler_info()['name'],
                     load_time=load_time,
                     last_used=time.time(),
                     memory_usage=memory_usage,
@@ -188,64 +174,129 @@ class ModelManager:
                     "success": False,
                     "modelId": resolved_id,
                     "modelType": model_type,
-                    "loadTime": 0,  # Add missing field
-                    "memoryUsage": 0,  # Add missing field
+                    "loadTime": 0,
+                    "memoryUsage": 0,
                     "error": str(e)
                 }
     
-    async def _load_pipeline(self, model_id: str, config_dict: Dict[str, Any], device: str, model_type: str) -> Union[DiffusionPipeline, Any]:
-        """Load the appropriate pipeline based on model type"""
+    async def _apply_optimizations(self, pipeline: Any, model_type: str) -> Any:
+        """Apply optimizations to image models"""
+        if model_type != "text-to-image":
+            return pipeline
         
-        # Run in thread pool to avoid blocking
-        loop = asyncio.get_event_loop()
+        # Enable memory efficient attention if available
+        if (config.ENABLE_MEMORY_EFFICIENT_ATTENTION and 
+            hasattr(pipeline, 'unet') and 
+            hasattr(pipeline.unet, 'set_use_memory_efficient_attention_xformers')):
+            try:
+                pipeline.unet.set_use_memory_efficient_attention_xformers(True)
+                logger.info("Enabled memory efficient attention")
+            except Exception as e:
+                logger.warning(f"Could not enable memory efficient attention: {e}")
         
-        def _load():
-            if model_type == "text-to-image":
-                return DiffusionPipeline.from_pretrained(
-                    model_id,
-                    **config_dict
-                ).to(device)
-            elif model_type == "text-to-audio":
-                if not AUDIO_IMPORTS_AVAILABLE:
-                    raise ImportError("Audio generation libraries not installed. Run: pip install transformers soundfile librosa")
-                  # Handle different audio model types
-                if "speecht5" in model_id.lower():
-                    # SpeechT5 TTS model
-                    processor = SpeechT5Processor.from_pretrained(model_id)
-                    model = SpeechT5ForTextToSpeech.from_pretrained(model_id).to(device)
-                    vocoder = SpeechT5HifiGan.from_pretrained("microsoft/speecht5_hifigan").to(device)
-                    return {"processor": processor, "model": model, "vocoder": vocoder, "type": "speecht5"}
-                
-                elif "musicgen" in model_id.lower():
-                    # MusicGen model
-                    processor = MusicgenProcessor.from_pretrained(model_id)
-                    model = MusicgenForConditionalGeneration.from_pretrained(model_id).to(device)
-                    return {"processor": processor, "model": model, "type": "musicgen"}
-                
-                else:
-                    # Generic audio pipeline - try different pipeline types
-                    try:
-                        # First try text-to-speech (most common for TTS models)
-                        return transformers_pipeline("text-to-speech", model=model_id, device=device)
-                    except Exception as e1:
-                        try:
-                            # Try text-to-audio (newer task type)
-                            return transformers_pipeline("text-to-audio", model=model_id, device=device)
-                        except Exception as e2:
-                            try:
-                                # Fallback to audio-generation
-                                return transformers_pipeline("audio-generation", model=model_id, device=device)
-                            except Exception as e3:
-                                # Log all attempts and raise the most relevant error
-                                logger.error(f"Failed to load {model_id} with multiple pipeline types:")
-                                logger.error(f"  text-to-speech: {str(e1)}")
-                                logger.error(f"  text-to-audio: {str(e2)}")
-                                logger.error(f"  audio-generation: {str(e3)}")
-                                raise ValueError(f"Could not load audio model {model_id} with any supported pipeline type")
-            else:
-                raise ValueError(f"Unsupported model type: {model_type}")
+        # Enable CPU offload if configured
+        if config.ENABLE_CPU_OFFLOAD and hasattr(pipeline, 'enable_sequential_cpu_offload'):
+            pipeline.enable_sequential_cpu_offload()
+            logger.info("Enabled CPU offload")
         
-        return await loop.run_in_executor(None, _load)
+        return pipeline
+    
+    async def generate_image(
+        self,
+        model_id: str,
+        prompt: str,
+        negative_prompt: Optional[str] = None,
+        **kwargs
+    ) -> Dict[str, Any]:
+        """Generate an image using appropriate handler"""
+        resolved_id = config.resolve_model_id(model_id)
+        
+        if resolved_id not in self.loaded_models:
+            raise ValueError(f"Model {resolved_id} not loaded")
+        
+        model_info = self.loaded_models[resolved_id]
+        model_info.last_used = time.time()
+        
+        # Get handler for this model
+        handler = self.handler_registry.get_handler(resolved_id, "text-to-image")
+        if not handler:
+            raise ValueError(f"No handler found for image model: {resolved_id}")
+        
+        try:
+            logger.info(f"Generating image with {resolved_id}: {prompt[:50]}...")
+            
+            start_time = time.time()
+            
+            # Use handler to generate
+            image = await handler.generate(
+                model_info.pipeline, 
+                prompt, 
+                negative_prompt=negative_prompt,
+                **kwargs
+            )
+            
+            generation_time = time.time() - start_time
+            
+            logger.info(f"Image generated in {generation_time:.2f}s")
+            
+            return {
+                "image": image,
+                "generation_time": generation_time,
+                "parameters": {"prompt": prompt, "negative_prompt": negative_prompt, **kwargs}
+            }
+        except Exception as e:
+            logger.error(f"Image generation failed: {str(e)}")
+            raise
+    
+    async def generate_audio(
+        self,
+        model_id: str,
+        prompt: str,
+        **kwargs
+    ) -> Dict[str, Any]:
+        """Generate audio using appropriate handler"""
+        resolved_id = config.resolve_model_id(model_id)
+        
+        if resolved_id not in self.loaded_models:
+            raise ValueError(f"Model {resolved_id} not loaded")
+        
+        model_info = self.loaded_models[resolved_id]
+        
+        if model_info.model_type != "text-to-audio":
+            raise ValueError(f"Model {resolved_id} is not a text-to-audio model")
+        
+        model_info.last_used = time.time()
+        
+        # Get handler for this model
+        handler = self.handler_registry.get_handler(resolved_id, "text-to-audio")
+        if not handler:
+            raise ValueError(f"No handler found for audio model: {resolved_id}")
+        
+        try:
+            logger.info(f"Generating audio with {resolved_id}: {prompt[:50]}...")
+            start_time = time.time()
+            
+            # Use handler to generate
+            audio = await handler.generate(model_info.pipeline, prompt, **kwargs)
+            
+            generation_time = time.time() - start_time
+            
+            # Calculate audio duration (assuming sample rate from kwargs or default)
+            sample_rate = kwargs.get("sample_rate", 22050)
+            duration = len(audio) / sample_rate if isinstance(audio, np.ndarray) else 0
+            
+            logger.info(f"Audio generated in {generation_time:.2f}s, duration: {duration:.2f}s")
+            
+            return {
+                "audio": audio,
+                "generation_time": generation_time,
+                "duration": duration,
+                "sample_rate": sample_rate,
+                "parameters": kwargs
+            }
+        except Exception as e:
+            logger.error(f"Audio generation failed: {str(e)}")
+            raise
     
     async def _validate_model(self, model_id: str):
         """Validate that the model exists and is compatible"""
@@ -267,7 +318,7 @@ class ModelManager:
                 audio_tags = ['text-to-speech', 'audio', 'tts', 'music', 'speech-synthesis']
                 if not any(tag in info.tags for tag in audio_tags) and not any(keyword in model_id.lower() for keyword in ['tts', 'speecht5', 'musicgen', 'bark', 'xtts']):
                     # Don't fail for now - many audio models don't have proper tags
-                    print(f"Warning: Model {model_id} might not be an audio model, but proceeding...")
+                    logger.warning(f"Model {model_id} might not be an audio model, but proceeding...")
                 
         except Exception as e:
             raise ValueError(f"Model validation failed for {model_id}: {str(e)}")
@@ -346,6 +397,7 @@ class ModelManager:
         return {
             "modelId": resolved_id,
             "modelType": model_info.model_type,
+            "handlerName": model_info.handler_name,
             "loaded": True,
             "loadTime": model_info.load_time,
             "lastUsed": model_info.last_used,
@@ -363,177 +415,9 @@ class ModelManager:
             for model_id in self.loaded_models.keys()
         ]
     
-    async def generate_image(
-        self,
-        model_id: str,
-        prompt: str,
-        negative_prompt: Optional[str] = None,
-        **kwargs
-    ) -> Dict[str, Any]:
-        """Generate an image using a loaded model"""
-        
-        resolved_id = config.resolve_model_id(model_id)
-        
-        if resolved_id not in self.loaded_models:
-            raise ValueError(f"Model {resolved_id} not loaded")
-        
-        model_info = self.loaded_models[resolved_id]
-        model_info.last_used = time.time()
-        
-        try:
-            # Prepare generation parameters
-            generation_params = {
-                "prompt": prompt,
-                "negative_prompt": negative_prompt,
-                **config.DEFAULT_GENERATION_CONFIG,
-                **kwargs
-            }
-            
-            # Remove None values
-            generation_params = {k: v for k, v in generation_params.items() if v is not None}
-            
-            logger.info(f"Generating image with {resolved_id}: {prompt[:50]}...")
-            
-            start_time = time.time()
-            
-            # Run generation in thread pool
-            loop = asyncio.get_event_loop()
-            
-            def _generate():
-                return model_info.pipeline(**generation_params).images[0]
-            
-            image = await loop.run_in_executor(None, _generate)
-            
-            generation_time = time.time() - start_time
-            
-            logger.info(f"Image generated in {generation_time:.2f}s")
-            
-            return {
-                "image": image,
-                "generation_time": generation_time,
-                "parameters": generation_params            }
-        except Exception as e:
-            logger.error(f"Image generation failed: {str(e)}")
-            raise
-    
-    async def generate_audio(
-        self,
-        model_id: str,
-        prompt: str,
-        **kwargs
-    ) -> Dict[str, Any]:
-        """Generate audio using a loaded model"""
-        resolved_id = config.resolve_model_id(model_id)
-        
-        if resolved_id not in self.loaded_models:
-            raise ValueError(f"Model {resolved_id} not loaded")
-        
-        model_info = self.loaded_models[resolved_id]
-        
-        if model_info.model_type != "text-to-audio":
-            raise ValueError(f"Model {resolved_id} is not a text-to-audio model")
-        
-        model_info.last_used = time.time()
-        
-        try:
-            logger.info(f"Generating audio with {resolved_id}: {prompt[:50]}...")
-            start_time = time.time()
-            
-            # Run generation in thread pool
-            loop = asyncio.get_event_loop()
-            
-            def _generate():
-                pipeline = model_info.pipeline
-                
-                if isinstance(pipeline, dict):
-                    # Handle specific model types
-                    if pipeline["type"] == "speecht5":                        # SpeechT5 TTS generation
-                        processor = pipeline["processor"]
-                        model = pipeline["model"]
-                        vocoder = pipeline["vocoder"]
-                        
-                        inputs = processor(text=prompt, return_tensors="pt")
-                        
-                        # Load default speaker embeddings if not provided
-                        import torch
-                        
-                        try:
-                            # Try to load speaker embeddings from the dataset
-                            from datasets import load_dataset
-                            embeddings_dataset = load_dataset("Matthijs/cmu-arctic-xvectors", split="validation")
-                            speaker_embeddings = torch.tensor(embeddings_dataset[7306]["xvector"]).unsqueeze(0)
-                        except Exception:
-                            # Fallback: create random speaker embeddings with the correct shape (512 dimensions)
-                            speaker_embeddings = torch.randn((1, 512))
-                        
-                        # Ensure all tensors are on the same device
-                        device = model.device
-                        inputs = {k: v.to(device) for k, v in inputs.items()}
-                        speaker_embeddings = speaker_embeddings.to(device)
-                          # Ensure vocoder is also on the same device
-                        if hasattr(vocoder, 'to'):
-                            vocoder = vocoder.to(device)
-                        
-                        speech = model.generate_speech(inputs["input_ids"], speaker_embeddings=speaker_embeddings, vocoder=vocoder)
-                        return speech.cpu().numpy()
-                    
-                    elif pipeline["type"] == "musicgen":
-                        # MusicGen generation
-                        processor = pipeline["processor"]
-                        model = pipeline["model"]
-                        
-                        inputs = processor(
-                            text=[prompt],
-                            padding=True,
-                            return_tensors="pt",
-                        )
-                        
-                        # Ensure all tensors are on the same device as the model
-                        device = model.device
-                        inputs = {k: v.to(device) for k, v in inputs.items() if hasattr(v, 'to')}
-                        
-                        audio_values = model.generate(**inputs, max_new_tokens=256)
-                        return audio_values[0, 0].cpu().numpy()
-                    else:
-                        raise ValueError(f"Unknown audio model type: {pipeline['type']}")
-                
-                else:
-                    # Generic transformers pipeline
-                    # Filter out unsupported parameters for generic pipelines
-                    supported_params = {}
-                    for key, value in kwargs.items():
-                        # Only include common audio generation parameters
-                        if key in ['sample_rate', 'duration', 'max_new_tokens', 'num_inference_steps', 'guidance_scale']:
-                            supported_params[key] = value
-                    
-                    result = pipeline(prompt, **supported_params)
-                    if isinstance(result, dict) and "audio" in result:
-                        return result["audio"]
-                    elif hasattr(result, 'audio'):
-                        return result.audio
-                    else:
-                        return result
-            
-            audio = await loop.run_in_executor(None, _generate)
-            
-            generation_time = time.time() - start_time
-            
-            # Calculate audio duration (assuming sample rate from kwargs or default)
-            sample_rate = kwargs.get("sample_rate", 22050)
-            duration = len(audio) / sample_rate if isinstance(audio, np.ndarray) else 0
-            
-            logger.info(f"Audio generated in {generation_time:.2f}s, duration: {duration:.2f}s")
-            
-            return {
-                "audio": audio,
-                "generation_time": generation_time,
-                "duration": duration,
-                "sample_rate": sample_rate,
-                "parameters": kwargs
-            }
-        except Exception as e:
-            logger.error(f"Audio generation failed: {str(e)}")
-            raise
+    def list_handlers(self) -> List[Dict[str, Any]]:
+        """List all registered handlers"""
+        return self.handler_registry.list_handlers()
     
     def get_memory_info(self) -> Dict[str, Any]:
         """Get current memory usage information"""

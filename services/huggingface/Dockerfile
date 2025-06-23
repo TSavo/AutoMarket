@@ -55,6 +55,12 @@ RUN mkdir -p /app/hf_cache /app/temp /app/logs
 # Copy configuration files (these change less frequently)
 COPY config.py .
 
+# Copy handlers directory (pluggable architecture)
+COPY handlers/ ./handlers/
+
+# Copy other supporting files
+COPY model_info.py .
+
 # Copy core application files (in order of change frequency - least to most)
 COPY model_manager.py .
 COPY app.py .
