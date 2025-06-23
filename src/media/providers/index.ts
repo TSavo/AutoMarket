@@ -39,3 +39,4 @@ export * from './azure';
 export * from './docker/chatterbox';
 export * from './docker/whisper';
 export * from './docker/ffmpeg';
+export * from './docker/ollama';

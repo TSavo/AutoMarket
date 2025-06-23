@@ -43,6 +43,7 @@ export { WhisperDockerModel } from '../providers/docker/whisper/WhisperDockerMod
 
 export { FFMPEGDockerModel } from '../providers/docker/ffmpeg/FFMPEGDockerModel';
 export { FFMPEGVideoFilterModel } from '../providers/docker/ffmpeg/FFMPEGVideoFilterModel';
+export { OllamaTextToTextModel } from '../providers/docker/ollama/OllamaTextToTextModel';
 
 // Core media types (now properly organized in shared/)
 export { Audio, Video, Text, Image } from '@/media/assets/roles';
