@@ -63,12 +63,13 @@ async function testProblematicModels() {
                 // Check for specific error types and extract more details
                 if (error instanceof Error && error.message.includes('text-to-audio generation failed')) {
                     console.log(`   🔍 Full error chain detected`);
-                    
-                    // Check if error message contains our specialized handler messages
+                      // Check if error message contains our specialized handler messages
                     if (errorMsg.includes('ESPnet VITS model') && errorMsg.includes('not compatible')) {
                         console.log(`   ✅ ESPnet VITS specialized handler working!`);
                     } else if (errorMsg.includes('Facebook MMS-TTS') && errorMsg.includes('parameter incompatibility')) {
                         console.log(`   ✅ Facebook MMS-TTS specialized handler working!`);
+                    } else if (errorMsg.includes('TextToAudioPipeline._sanitize_parameters') && errorMsg.includes('sample_rate')) {
+                        console.log(`   ✅ Facebook MMS-TTS parameter compatibility issue detected!`);
                     } else if (errorMsg.includes('compatibility issues') || errorMsg.includes('model format incompatibility')) {
                         console.log(`   ✅ Specialized compatibility error detected`);
                     } else {

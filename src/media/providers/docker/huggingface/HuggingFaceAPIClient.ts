@@ -108,6 +108,16 @@ export class HuggingFaceAPIClient {
       (response) => response,
       (error) => {
         console.error('[HuggingFaceAPIClient] Request failed:', error.message);
+        
+        // Extract detailed error message from response body if available
+        if (error.response?.data?.detail) {
+          // Enhance the error with detailed server message
+          const enhancedError = new Error(error.response.data.detail);
+          enhancedError.name = error.name;
+          enhancedError.stack = error.stack;
+          return Promise.reject(enhancedError);
+        }
+        
         return Promise.reject(error);
       }
     );
@@ -135,6 +145,7 @@ export class HuggingFaceAPIClient {
       console.log(`[HuggingFaceAPIClient] Model loaded successfully: ${request.modelId}`);
       return response.data;
     } catch (error) {
+      // The detailed error message is now enhanced by the interceptor
       const message = error instanceof Error ? error.message : 'Unknown error';
       console.error(`[HuggingFaceAPIClient] Failed to load model ${request.modelId}:`, message);
       throw new Error(`Failed to load model ${request.modelId}: ${message}`);
@@ -163,6 +174,7 @@ export class HuggingFaceAPIClient {
       console.log(`[HuggingFaceAPIClient] Audio generated successfully`);
       return response.data;
     } catch (error) {
+      // The detailed error message is now enhanced by the interceptor
       const message = error instanceof Error ? error.message : 'Unknown error';
       console.error(`[HuggingFaceAPIClient] Audio generation failed:`, message);
       throw new Error(`Audio generation failed: ${message}`);
