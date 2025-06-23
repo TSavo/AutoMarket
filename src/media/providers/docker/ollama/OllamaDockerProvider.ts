@@ -18,6 +18,9 @@ export class OllamaDockerProvider implements MediaProvider, TextToTextProvider {
   readonly capabilities = [MediaCapability.TEXT_TO_TEXT];
   readonly models: ProviderModel[] = [];
 
+  private discoveredModels: string[] = [];
+  private discoveryPromise: Promise<void> | null = null;
+
   private dockerService?: OllamaDockerService;
   private apiClient?: OllamaAPIClient;
 
@@ -35,11 +38,42 @@ export class OllamaDockerProvider implements MediaProvider, TextToTextProvider {
     return this.apiClient;
   }
 
+  private async ensureModelsDiscovered(): Promise<void> {
+    if (this.discoveredModels.length === 0) {
+      await this.discoverModels();
+    }
+  }
+
+  private async discoverModels(): Promise<void> {
+    if (this.discoveryPromise) {
+      return this.discoveryPromise;
+    }
+
+    this.discoveryPromise = (async () => {
+      try {
+        const client = await this.getAPIClient();
+        const models = await client.listModels();
+        if (models && models.length > 0) {
+          this.discoveredModels = models;
+        }
+      } catch (error) {
+        console.warn('[OllamaDockerProvider] Failed to discover models:', error);
+      }
+    })();
+
+    await this.discoveryPromise;
+    this.discoveryPromise = null;
+  }
+
   async startService(): Promise<boolean> {
     const svc = await this.getDockerService();
     const started = await svc.startService();
     if (started) {
-      return svc.waitForHealthy(30000);
+      const healthy = await svc.waitForHealthy(30000);
+      if (healthy) {
+        await this.discoverModels();
+      }
+      return healthy;
     }
     return false;
   }
@@ -59,11 +93,16 @@ export class OllamaDockerProvider implements MediaProvider, TextToTextProvider {
   }
 
   getAvailableModels(): string[] {
-    return ['llama2', 'llama3', 'mistral', 'phi'];
+    return this.discoveredModels.length > 0
+      ? this.discoveredModels
+      : ['llama2', 'llama3', 'mistral', 'phi'];
   }
 
   supportsTextToTextModel(modelId: string): boolean {
-    return typeof modelId === 'string' && modelId.length > 0;
+    if (this.discoveredModels.length === 0) {
+      return typeof modelId === 'string' && modelId.length > 0;
+    }
+    return this.discoveredModels.includes(modelId);
   }
 
   getSupportedTextToTextModels(): string[] {
@@ -71,7 +110,9 @@ export class OllamaDockerProvider implements MediaProvider, TextToTextProvider {
   }
 
   async createTextToTextModel(modelId: string): Promise<TextToTextModel> {
+    await this.ensureModelsDiscovered();
     const apiClient = await this.getAPIClient();
+    await apiClient.pullModel(modelId);
     return new OllamaTextToTextModel({ apiClient, modelId });
   }
 
@@ -95,6 +136,7 @@ export class OllamaDockerProvider implements MediaProvider, TextToTextProvider {
   }
 
   async getModel(modelId: string): Promise<any> {
+    await this.ensureModelsDiscovered();
     return this.createTextToTextModel(modelId);
   }
 
@@ -113,6 +155,7 @@ export class OllamaDockerProvider implements MediaProvider, TextToTextProvider {
     if (config.baseUrl) {
       this.apiClient = new OllamaAPIClient({ baseUrl: config.baseUrl });
     }
+    await this.discoverModels();
   }
 }
 
