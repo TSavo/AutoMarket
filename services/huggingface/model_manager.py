@@ -18,7 +18,7 @@ import config
 from model_info import ModelInfo
 from handlers import (
     ModelHandlerRegistry,
-    SpeechT5Handler, MusicGenHandler, GenericAudioHandler,
+    SpeechT5Handler, MusicGenHandler, FacebookMMSTTSHandler, ESPnetVITSHandler, GenericAudioHandler,
     StableDiffusionHandler, StableDiffusionXLHandler, GenericDiffusionHandler
 )
 
@@ -31,17 +31,18 @@ class ModelManager:
         self.loaded_models: Dict[str, ModelInfo] = {}
         self.loading_locks: Dict[str, asyncio.Lock] = {}
         self.hf_api = HfApi()
-        
-        # Initialize handler registry
+          # Initialize handler registry
         self.handler_registry = ModelHandlerRegistry()
         self._register_handlers()
     
     def _register_handlers(self):
         """Register all model handlers in priority order"""
-        # Audio handlers (specific -> generic)
+        # Audio handlers (specific -> generic, high priority for problematic models)
+        self.handler_registry.register(ESPnetVITSHandler())      # High priority for known incompatible models
+        self.handler_registry.register(FacebookMMSTTSHandler())  # High priority for parameter-limited models
         self.handler_registry.register(SpeechT5Handler())
         self.handler_registry.register(MusicGenHandler())
-        self.handler_registry.register(GenericAudioHandler())  # fallback
+        self.handler_registry.register(GenericAudioHandler())    # fallback
         
         # Image handlers (specific -> generic)
         self.handler_registry.register(StableDiffusionHandler())

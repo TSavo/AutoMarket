@@ -10,6 +10,8 @@ from .registry import ModelHandlerRegistry
 # Audio handlers
 from .audio.speecht5_handler import SpeechT5Handler
 from .audio.musicgen_handler import MusicGenHandler
+from .audio.facebook_mms_handler import FacebookMMSTTSHandler
+from .audio.espnet_vits_handler import ESPnetVITSHandler
 from .audio.generic_audio_handler import GenericAudioHandler
 
 # Image handlers
@@ -21,7 +23,9 @@ __all__ = [
     'ModelHandler',
     'ModelHandlerRegistry',
     'SpeechT5Handler',
-    'MusicGenHandler', 
+    'MusicGenHandler',
+    'FacebookMMSTTSHandler',
+    'ESPnetVITSHandler', 
     'GenericAudioHandler',
     'StableDiffusionHandler',
     'StableDiffusionXLHandler',

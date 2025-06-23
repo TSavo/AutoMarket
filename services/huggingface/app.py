@@ -346,9 +346,36 @@ async def generate_audio(request: AudioGenerationRequest):
 
     except HTTPException:
         raise
+    except ValueError as e:
+        # Handle specialized handler errors (these contain detailed compatibility info)
+        error_msg = str(e)
+        logger.error(f"Audio generation validation error: {error_msg}")
+        
+        # Check if this is a specialized handler error with detailed information
+        if any(keyword in error_msg.lower() for keyword in [
+            'compatibility issues', 'model format incompatibility', 
+            'parameter incompatibility', 'not compatible', 'espnet vits', 
+            'facebook mms-tts', 'missing required model files'
+        ]):
+            # This is a detailed error from a specialized handler
+            raise HTTPException(status_code=400, detail=error_msg)
+        else:
+            # Generic validation error
+            raise HTTPException(status_code=400, detail=f"Audio generation validation failed: {error_msg}")
     except Exception as e:
-        logger.error(f"Audio generation failed: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        error_msg = str(e)
+        logger.error(f"Audio generation failed: {error_msg}")
+        
+        # Check if the error message contains detailed handler information
+        if any(keyword in error_msg.lower() for keyword in [
+            'compatibility issues', 'model format incompatibility',
+            'parameter incompatibility', 'espnet vits', 'facebook mms-tts'
+        ]):
+            # Preserve detailed error messages from specialized handlers
+            raise HTTPException(status_code=500, detail=error_msg)
+        else:
+            # Generic error
+            raise HTTPException(status_code=500, detail=f"Audio generation failed: {error_msg}")
 
 @app.post("/generate/image", response_model=GenerationResponse)
 async def generate_image_explicit(request: GenerationRequest):
