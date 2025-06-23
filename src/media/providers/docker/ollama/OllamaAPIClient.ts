@@ -16,6 +16,10 @@ export interface OllamaGenerateResponse {
   model: string;
 }
 
+export interface OllamaListResponse {
+  models?: { name?: string }[];
+}
+
 export class OllamaAPIClient {
   private client: AxiosInstance;
   private config: Required<OllamaConfig>;
@@ -52,5 +56,26 @@ export class OllamaAPIClient {
       throw new Error('Invalid response from Ollama');
     }
     return { response: data.response, model: data.model || request.model };
+  }
+
+  async listModels(): Promise<string[]> {
+    try {
+      const { data } = await this.client.get<OllamaListResponse>('/api/tags');
+      if (!data || !Array.isArray(data.models)) return [];
+      return data.models
+        .map(m => m?.name)
+        .filter((name): name is string => typeof name === 'string');
+    } catch (error) {
+      console.warn('[OllamaAPIClient] Failed to fetch model list:', error);
+      return [];
+    }
+  }
+
+  async pullModel(name: string): Promise<void> {
+    try {
+      await this.client.post('/api/pull', { name });
+    } catch (error) {
+      console.warn(`[OllamaAPIClient] Failed to pull model ${name}:`, error);
+    }
   }
 }
