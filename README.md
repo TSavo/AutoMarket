@@ -40,7 +40,7 @@ npm run dev
 - **Docker Service Management**: Local service lifecycle management
 
 ### Provider Ecosystem
-- **Remote Providers**: FAL.ai, Replicate, Together.ai, OpenRouter
+- **Remote Providers**: FAL.ai, Replicate, Together.ai, OpenRouter, OpenAI, Anthropic, Google Gemini, xAI, Mistral, Azure OpenAI
 - **Local Providers**: FFMPEG, Chatterbox TTS, Whisper STT (Docker-based)
 
 ## 📁 Project Structure

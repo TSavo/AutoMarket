@@ -68,6 +68,12 @@ interface MediaProvider {
 - **Together.ai**: 150+ models including free tier, text/image/audio capabilities
 - **OpenRouter**: LLM access with free model detection and rate limiting
 - **Replicate**: Image and video processing with model metadata caching
+- **OpenAI**: ChatGPT, DALL-E and TTS models
+- **Anthropic**: Claude text generation
+- **Google Gemini**: Experimental Gemini models
+- **xAI**: Grok LLM models
+- **Mistral**: Lightweight LLMs
+- **Azure OpenAI**: Enterprise GPT service
 
 **Local Docker Providers**:
 - **FFMPEG**: Video composition, filtering, audio extraction with REST API

@@ -53,7 +53,7 @@ This document summarizes the documentation cleanup performed on the AutoMarket p
 
 The documentation now accurately reflects:
 
-1. **Provider System**: FAL.ai, Replicate, Together.ai, OpenRouter, Docker-based providers
+1. **Provider System**: FAL.ai, Replicate, Together.ai, OpenRouter, OpenAI, Anthropic, Google Gemini, xAI, Mistral, Azure OpenAI, Docker-based providers
 2. **Asset System**: Smart loading with role-based transformations
 3. **Video Composition**: N-video composition with FFMPEG
 4. **Docker Services**: FFMPEG, Chatterbox TTS, Whisper STT
