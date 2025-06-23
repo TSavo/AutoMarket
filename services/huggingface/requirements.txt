@@ -25,6 +25,10 @@ soundfile>=0.12.1
 speechbrain>=0.5.12
 datasets>=2.14.0
 
+# Modern TTS Support (2024/2025)
+# Note: ESPnet models removed due to dependency conflicts
+# Use microsoft/speecht5_tts, ResembleAI/chatterbox, or hexgrad/Kokoro-82M instead
+
 # Utilities
 numpy>=1.24.0
 requests>=2.31.0

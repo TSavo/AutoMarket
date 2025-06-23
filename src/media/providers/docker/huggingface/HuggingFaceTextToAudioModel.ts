@@ -81,20 +81,8 @@ export class HuggingFaceTextToAudioModel extends TextToAudioModel {
           modelId: this.modelId,
           force: false
         });
-      }
-
-      // Prepare request for HuggingFace text-to-audio generation
-      const requestPayload = {
-        modelId: this.modelId,
-        prompt: textContent,
-        // Audio-specific parameters
-        sampleRate: options?.sampleRate || 22050,
-        format: options?.format || 'wav',
-        voice: options?.voice || 'default',
-        speed: options?.speed || 1.0,
-        pitch: options?.pitch || 0.0,
-        volume: options?.volume || 1.0
-      };
+      }      // Prepare request for HuggingFace text-to-audio generation
+      const requestPayload = this.createModelSpecificPayload(textContent, options);
 
       console.log(`[HuggingFaceTextToAudio] Generating audio with model: ${this.modelId}`);
       console.log(`[HuggingFaceTextToAudio] Request payload:`, requestPayload);      // Make request to HuggingFace audio generation endpoint
@@ -313,5 +301,43 @@ export class HuggingFaceTextToAudioModel extends TextToAudioModel {
    */
   async unloadModel(): Promise<void> {
     await this.apiClient.unloadModel(this.modelId);
+  }
+  /**
+   * Create model-specific payload with proper parameter handling
+   */
+  private createModelSpecificPayload(textContent: string, options?: TextToAudioOptions): any {
+    const basePayload = {
+      modelId: this.modelId,
+      prompt: textContent
+    };
+
+    // Handle Facebook MMS-TTS models - they have very limited parameter support
+    if (this.modelId.includes('facebook/mms-tts')) {
+      return {
+        ...basePayload,
+        // Facebook MMS-TTS models are very sensitive to parameters
+        // Send minimal parameters to avoid compatibility issues
+        format: options?.format || 'wav'
+        // Do NOT include: voice, speed, pitch, volume, sample_rate - they cause errors
+      };
+    }
+
+    // Handle ESPnet VITS models - they are known to be incompatible
+    if (this.modelId.includes('espnet') && this.modelId.includes('vits')) {
+      // These models are handled by the backend handler which will throw a detailed error
+      return basePayload;
+    }
+
+    // Handle other models with full parameter support
+    return {
+      ...basePayload,
+      // Audio-specific parameters
+      sample_rate: options?.sampleRate || 22050,
+      format: options?.format || 'wav',
+      voice: options?.voice || 'default',
+      speed: options?.speed || 1.0,
+      pitch: options?.pitch || 0.0,
+      volume: options?.volume || 1.0
+    };
   }
 }

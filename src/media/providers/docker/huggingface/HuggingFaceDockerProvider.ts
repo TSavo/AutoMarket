@@ -152,15 +152,24 @@ export class HuggingFaceDockerProvider implements MediaProvider, TextToImageProv
    */
   getTextToAudioModels(): string[] {
     return [
-      'microsoft/speecht5_tts',
-      'facebook/mms-tts-eng',
-      'espnet/kan-bayashi_ljspeech_vits',
-      'coqui/XTTS-v2',
+      // Modern, well-supported TTS models
+      'microsoft/speecht5_tts',           // High-quality TTS, works great
+      'facebook/mms-tts-eng',             // Multilingual TTS
+      'coqui/XTTS-v2',                    // Voice cloning TTS
+      
+      // Modern trending models (2024/2025)
+      'ResembleAI/chatterbox',            // High-quality modern TTS
+      'hexgrad/Kokoro-82M',               // Efficient lightweight model
+      'fishaudio/openaudio-s1-mini',      // Modern open audio model
+      
+      // Music and creative audio
       'facebook/musicgen-small',
-      'facebook/musicgen-medium',
+      'facebook/musicgen-medium', 
       'facebook/musicgen-large',
-      'suno/bark',
-      'microsoft/DialoGPT-medium'
+      'suno/bark',                        // Expressive TTS
+      
+      // Removed: 'espnet/kan-bayashi_ljspeech_vits' - requires ESPnet dependencies
+      // Use 'microsoft/speecht5_tts' or 'ResembleAI/chatterbox' instead
     ];
   }
 
@@ -169,11 +178,27 @@ export class HuggingFaceDockerProvider implements MediaProvider, TextToImageProv
    */
   private determineModelType(modelId: string): 'text-to-image' | 'text-to-audio' {
     const textToAudioIndicators = [
-      'tts', 'speecht5', 'mms-tts', 'vits', 'xtts', 'musicgen', 'bark', 
-      'text-to-speech', 'speech', 'audio', 'voice', 'sound'
+      // Modern TTS models
+      'tts', 'speecht5', 'mms-tts', 'xtts', 'chatterbox', 'kokoro', 'openaudio',
+      
+      // Creative audio models
+      'musicgen', 'bark', 'suno',
+      
+      // General audio indicators
+      'text-to-speech', 'speech', 'audio', 'voice', 'sound',
+      
+      // Legacy models (deprecated but still recognized)
+      'vits'  // Note: ESPnet VITS models are excluded from supported list
     ];
     
     const modelIdLower = modelId.toLowerCase();
+    
+    // Explicitly block problematic ESPnet models
+    if (modelIdLower.includes('espnet') && modelIdLower.includes('vits')) {
+      // Return text-to-image to prevent loading as text-to-audio
+      // This forces users to use supported alternatives
+      return 'text-to-image';
+    }
     
     // Check if the model ID contains any text-to-audio indicators
     if (textToAudioIndicators.some(indicator => modelIdLower.includes(indicator))) {

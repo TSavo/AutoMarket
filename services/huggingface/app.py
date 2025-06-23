@@ -315,6 +315,7 @@ async def generate_audio(request: AudioGenerationRequest):
 
         # Convert audio to base64
         audio_data = result["audio"]
+        model_sample_rate = result["sample_rate"]  # Use the actual model sample rate
         
         # Handle different audio formats
         if isinstance(audio_data, np.ndarray):
@@ -322,7 +323,7 @@ async def generate_audio(request: AudioGenerationRequest):
             if not AUDIO_IMPORTS_AVAILABLE:
                 raise ImportError("soundfile library not available - cannot process audio")
             buffer = io.BytesIO()
-            sf.write(buffer, audio_data, request.sampleRate, format=request.format.upper())
+            sf.write(buffer, audio_data, model_sample_rate, format=request.format.upper())
             audio_bytes = buffer.getvalue()
         elif isinstance(audio_data, bytes):
             audio_bytes = audio_data
@@ -339,7 +340,7 @@ async def generate_audio(request: AudioGenerationRequest):
                 "generationTime": result["generation_time"],
                 "parameters": result["parameters"],
                 "format": request.format,
-                "sampleRate": request.sampleRate,
+                "sampleRate": model_sample_rate,  # Return the actual sample rate used
                 "duration": result.get("duration", 0)
             }
         )

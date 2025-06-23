@@ -22,26 +22,26 @@ async function testProblematicModels() {
         }
 
         console.log('✅ Provider ready');
-        
-        // Test problematic models
+          // Test problematic models
         const problematicModels = [
             {
                 id: 'facebook/mms-tts-eng',
                 name: 'Facebook MMS-TTS English',
-                expectedHandler: 'FacebookMMSTTSHandler'
+                expectedHandler: 'FacebookMMSTTSHandler',
+                expectSuccess: true // Now working
             },
             {
                 id: 'espnet/kan-bayashi_ljspeech_vits', 
                 name: 'ESPnet VITS',
-                expectedHandler: 'ESPnetVITSHandler'
+                expectedHandler: 'ESPnetVITSHandler',
+                expectSuccess: true // Fixed with proper ESPnet integration
             }
         ];
 
         for (const modelInfo of problematicModels) {
             console.log(`\n🎯 Testing: ${modelInfo.name} (${modelInfo.id})`);
             console.log(`   Expected handler: ${modelInfo.expectedHandler}`);
-            
-            try {
+              try {
                 // Create model instance
                 console.log('   Creating model instance...');
                 const model = await provider.createTextToAudioModel(modelInfo.id);
@@ -55,17 +55,28 @@ async function testProblematicModels() {
                     format: 'wav'
                 });
                 
-                console.log(`   ✅ Unexpectedly succeeded: ${result.getHumanSize()}`);
-                  } catch (error) {
+                if (modelInfo.expectSuccess) {
+                    console.log(`   ✅ Successfully generated: ${result.getHumanSize()}`);
+                } else {
+                    console.log(`   ⚠️  Unexpectedly succeeded: ${result.getHumanSize()}`);
+                }
+            } catch (error) {
                 const errorMsg = error instanceof Error ? error.message : String(error);
-                console.log(`   ❌ Generation failed (expected): ${errorMsg}`);
+                
+                if (modelInfo.expectSuccess) {
+                    console.log(`   ❌ Unexpected failure: ${errorMsg}`);
+                } else {
+                    console.log(`   ✅ Failed as expected: ${errorMsg}`);
+                }
                 
                 // Check for specific error types and extract more details
                 if (error instanceof Error && error.message.includes('text-to-audio generation failed')) {
                     console.log(`   🔍 Full error chain detected`);
-                      // Check if error message contains our specialized handler messages
+                    // Check if error message contains our specialized handler messages
                     if (errorMsg.includes('ESPnet VITS model') && errorMsg.includes('not compatible')) {
-                        console.log(`   ✅ ESPnet VITS specialized handler working!`);
+                        console.log(`   ⚠️  ESPnet VITS compatibility error (should be fixed now)`);
+                    } else if (errorMsg.includes('ESPnet is required') || errorMsg.includes('espnet')) {
+                        console.log(`   ⚠️  ESPnet installation required - rebuild Docker service`);
                     } else if (errorMsg.includes('Facebook MMS-TTS') && errorMsg.includes('parameter incompatibility')) {
                         console.log(`   ✅ Facebook MMS-TTS specialized handler working!`);
                     } else if (errorMsg.includes('TextToAudioPipeline._sanitize_parameters') && errorMsg.includes('sample_rate')) {

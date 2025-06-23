@@ -15,11 +15,10 @@ import psutil
 
 from huggingface_hub import model_info, HfApi
 import config
-from model_info import ModelInfo
-from handlers import (
+from .model_info import ModelInfo
+from .handlers import (
     ModelHandlerRegistry,
-    SpeechT5Handler, MusicGenHandler, FacebookMMSTTSHandler, 
-    ResembleAIHandler, KokoroHandler, GenericAudioHandler,
+    SpeechT5Handler, MusicGenHandler, GenericAudioHandler,
     StableDiffusionHandler, StableDiffusionXLHandler, GenericDiffusionHandler
 )
 
@@ -31,21 +30,18 @@ class ModelManager:
     def __init__(self):
         self.loaded_models: Dict[str, ModelInfo] = {}
         self.loading_locks: Dict[str, asyncio.Lock] = {}
-        self.hf_api = HfApi()          # Initialize handler registry
+        self.hf_api = HfApi()
+        
+        # Initialize handler registry
         self.handler_registry = ModelHandlerRegistry()
         self._register_handlers()
     
     def _register_handlers(self):
         """Register all model handlers in priority order"""
-        # Audio handlers (specific -> generic, high priority for problematic models)
-        # Removed ESPnet handler - use SpeechT5 or modern alternatives instead
-        # self.handler_registry.register(ESPnetVITSHandler())    # ESPnet requires complex dependencies
-        self.handler_registry.register(FacebookMMSTTSHandler())  # High priority for parameter-limited models
+        # Audio handlers (specific -> generic)
         self.handler_registry.register(SpeechT5Handler())
-        self.handler_registry.register(ResembleAIHandler())      # NEW: ResembleAI Chatterbox support
-        self.handler_registry.register(KokoroHandler())          # NEW: Kokoro-82M support
         self.handler_registry.register(MusicGenHandler())
-        self.handler_registry.register(GenericAudioHandler())    # fallback
+        self.handler_registry.register(GenericAudioHandler())  # fallback
         
         # Image handlers (specific -> generic)
         self.handler_registry.register(StableDiffusionHandler())
@@ -57,11 +53,12 @@ class ModelManager:
     def detect_model_type(self, model_id: str) -> str:
         """Detect if a model is text-to-image or text-to-audio based on model ID patterns"""
         model_id_lower = model_id.lower()
-          # Text-to-Audio indicators
+        
+        # Text-to-Audio indicators
         audio_indicators = [
             'tts', 'speecht5', 'mms-tts', 'vits', 'xtts', 'musicgen', 'bark',
             'text-to-speech', 'speech', 'audio', 'voice', 'sound', 'wav2vec',
-            'whisper', 'fastspeech', 'tacotron', 'chatterbox', 'resemble', 'kokoro'
+            'whisper', 'fastspeech', 'tacotron'
         ]
         
         # Check for audio indicators
@@ -278,32 +275,23 @@ class ModelManager:
         try:
             logger.info(f"Generating audio with {resolved_id}: {prompt[:50]}...")
             start_time = time.time()
-              # Use handler to generate
-            audio_result = await handler.generate(model_info.pipeline, prompt, **kwargs)
+            
+            # Use handler to generate
+            audio = await handler.generate(model_info.pipeline, prompt, **kwargs)
             
             generation_time = time.time() - start_time
             
-            # Handle different result formats from handlers
-            if isinstance(audio_result, dict) and 'audio' in audio_result and 'sampling_rate' in audio_result:
-                # Handler returned both audio and sampling rate
-                audio_data = audio_result['audio']
-                model_sample_rate = audio_result['sampling_rate']
-                logger.info(f"Handler provided sampling rate: {model_sample_rate}")
-            else:
-                # Handler returned just audio data
-                audio_data = audio_result
-                model_sample_rate = kwargs.get("sample_rate", 22050)
-            
-            # Calculate audio duration
-            duration = len(audio_data) / model_sample_rate if isinstance(audio_data, np.ndarray) else 0
+            # Calculate audio duration (assuming sample rate from kwargs or default)
+            sample_rate = kwargs.get("sample_rate", 22050)
+            duration = len(audio) / sample_rate if isinstance(audio, np.ndarray) else 0
             
             logger.info(f"Audio generated in {generation_time:.2f}s, duration: {duration:.2f}s")
             
             return {
-                "audio": audio_data,
+                "audio": audio,
                 "generation_time": generation_time,
                 "duration": duration,
-                "sample_rate": model_sample_rate,
+                "sample_rate": sample_rate,
                 "parameters": kwargs
             }
         except Exception as e:
@@ -318,33 +306,19 @@ class ModelManager:
             info = await loop.run_in_executor(None, lambda: model_info(model_id))
             
             # Determine expected model type
-            model_type = self.detect_model_type(model_id)            # Validate based on model type
+            model_type = self.detect_model_type(model_id)
+            
+            # Validate based on model type
             if model_type == "text-to-image":
                 # Check if it's a diffusers model
                 if 'diffusers' not in info.tags:
                     raise ValueError(f"Model {model_id} is not a diffusers model")
             elif model_type == "text-to-audio":
-                # For audio models, be more permissive with validation
+                # For audio models, check for common audio-related tags
                 audio_tags = ['text-to-speech', 'audio', 'tts', 'music', 'speech-synthesis']
-                audio_keywords = ['tts', 'speecht5', 'musicgen', 'bark', 'xtts', 'chatterbox', 'kokoro', 'resemble']
-                
-                # Be very permissive for known model patterns
-                known_audio_models = [
-                    'microsoft/speecht5_tts',
-                    'ResembleAI/chatterbox', 
-                    'hexgrad/Kokoro-82M'
-                ]
-                
-                if model_id in known_audio_models:
-                    logger.info(f"Skipping validation for known audio model: {model_id}")
-                elif not any(tag in info.tags for tag in audio_tags) and not any(keyword in model_id.lower() for keyword in audio_keywords):
-                    # Be more permissive - allow models even without proper tags
-                    logger.warning(f"Model {model_id} might not be an audio model, but proceeding anyway...")
-                  # Special handling for known models
-                if 'resemble' in model_id.lower() or 'chatterbox' in model_id.lower():
-                    logger.info(f"Detected ResembleAI model: {model_id}")
-                elif 'kokoro' in model_id.lower() or 'hexgrad' in model_id.lower():
-                    logger.info(f"Detected Kokoro model: {model_id}")
+                if not any(tag in info.tags for tag in audio_tags) and not any(keyword in model_id.lower() for keyword in ['tts', 'speecht5', 'musicgen', 'bark', 'xtts']):
+                    # Don't fail for now - many audio models don't have proper tags
+                    logger.warning(f"Model {model_id} might not be an audio model, but proceeding...")
                 
         except Exception as e:
             raise ValueError(f"Model validation failed for {model_id}: {str(e)}")
