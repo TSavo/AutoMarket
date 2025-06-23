@@ -11,11 +11,29 @@ export * from './openrouter';
 // Anthropic Provider Package
 export * from './anthropic';
 
-// Replicate Provider Package  
+// OpenAI Provider Package
+export * from './openai';
+
+// fal.ai Provider Package
+export * from './falai';
+
+// Replicate Provider Package
 export * from './replicate';
 
 // Together AI Provider Package
 export * from './together';
+
+// Google Gemini Provider Package
+export * from './google';
+
+// xAI Provider Package
+export * from './xai';
+
+// Mistral AI Provider Package
+export * from './mistral';
+
+// Azure OpenAI Provider Package
+export * from './azure';
 
 // Docker Provider Packages
 export * from './docker/chatterbox';

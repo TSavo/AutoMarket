@@ -2,7 +2,7 @@
 
 ## 🎯 Overview
 
-AutoMarket is a comprehensive media processing platform featuring a unified multi-provider architecture, smart asset management, and advanced video composition capabilities. The system integrates multiple AI providers (FAL.ai, Together.ai, OpenRouter, Replicate) with local Docker services to provide a complete media transformation ecosystem.
+AutoMarket is a comprehensive media processing platform featuring a unified multi-provider architecture, smart asset management, and advanced video composition capabilities. The system integrates multiple AI providers (FAL.ai, Together.ai, OpenRouter, Replicate, OpenAI, Anthropic, Google Gemini, xAI, Mistral, Azure OpenAI) with local Docker services to provide a complete media transformation ecosystem.
 
 ## 🏗️ Architecture Highlights
 
@@ -55,6 +55,12 @@ AutoMarket is a comprehensive media processing platform featuring a unified mult
 - **FAL.ai Integration**: 100+ models for image, video, and audio generation
 - **Together.ai Integration**: 150+ models with free tier support
 - **OpenRouter Integration**: LLM access with free model detection
+- **OpenAI Integration**: ChatGPT, DALL-E, TTS and more
+- **Anthropic Integration**: Claude models for text generation
+- **Google Gemini Integration**: Experimental Gemini models
+- **xAI Integration**: Grok model access
+- **Mistral Integration**: Lightweight LLMs
+- **Azure OpenAI Integration**: Enterprise-ready GPT models
 - **Docker Services**: Local FFMPEG, Chatterbox TTS, Whisper STT
 
 ### ✅ Smart Asset System
