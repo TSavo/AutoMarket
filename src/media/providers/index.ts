@@ -17,6 +17,9 @@ export * from './openai';
 // fal.ai Provider Package
 export * from './falai';
 
+// ElevenLabs Provider Package
+export * from './elevenlabs';
+
 // Replicate Provider Package
 export * from './replicate';
 
