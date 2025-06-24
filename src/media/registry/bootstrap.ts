@@ -33,6 +33,7 @@ export async function initializeProviders(): Promise<void> {
     () => import('../providers/replicate/ReplicateProvider'),
     () => import('../providers/openrouter/OpenRouterProvider'),
     () => import('../providers/openai/OpenAIProvider'),
+    () => import('../providers/elevenlabs/ElevenLabsProvider'),
     () => import('../providers/anthropic/AnthropicProvider'),
     () => import('../providers/docker/ffmpeg/FFMPEGDockerProvider'),
     () => import('../providers/docker/chatterbox/ChatterboxDockerProvider'),
