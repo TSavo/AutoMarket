@@ -35,6 +35,9 @@ export * from './xai';
 // Mistral AI Provider Package
 export * from './mistral';
 
+// Creatify Provider Package
+export * from './creatify';
+
 // Azure OpenAI Provider Package
 export * from './azure';
 
