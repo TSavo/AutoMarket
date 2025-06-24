@@ -38,7 +38,7 @@
     "@fontsource/inter": "^5.2.5",
     "@fontsource/rajdhani": "^5.2.5",
     "@fontsource/share-tech-mono": "^5.2.5",
-    "@gradio/client": "^1.15.2",
+    "@gradio/client": "^1.15.3",
     "@tsavo/creatify-api-ts": "^1.4.0",
     "@types/js-cookie": "^3.0.6",
     "@types/node-fetch": "^2.6.12",
