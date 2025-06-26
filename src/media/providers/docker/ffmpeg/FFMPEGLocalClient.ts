@@ -11,16 +11,18 @@ import * as path from 'path';
 import * as os from 'os';
 import { Readable } from 'stream';
 import { v4 as uuidv4 } from 'uuid';
-import { 
+import {
   FFMPEGClientConfig,
   AudioExtractionOptions,
   AudioConversionOptions,
   AudioExtractionResult,
-  ServiceHealth,
+  ServiceHealth
+} from './FFMPEGAPIClient';
+import {
   VideoCompositionOptions,
   VideoCompositionResult,
   IFFMPEGClient
-} from './FFMPEGAPIClient';
+} from '../../ffmpeg/IFFMPEGClient';
 
 export interface FFMPEGLocalConfig {
   ffmpegPath?: string;
@@ -390,6 +392,7 @@ export class FFMPEGLocalClient implements IFFMPEGClient {
 
       const result: VideoCompositionResult = {
         success: true,
+        format: 'mp4',
         videoBuffer,
         metadata: {
           duration: metadata.duration,
@@ -477,6 +480,7 @@ export class FFMPEGLocalClient implements IFFMPEGClient {
 
       const result: VideoCompositionResult = {
         success: true,
+        format: 'mp4',
         videoBuffer,
         metadata: {
           duration: metadata.duration,
@@ -586,6 +590,7 @@ export class FFMPEGLocalClient implements IFFMPEGClient {
 
       const result: VideoCompositionResult = {
         success: true,
+        format: 'mp4',
         videoBuffer,
         metadata: {
           duration: metadata.duration,

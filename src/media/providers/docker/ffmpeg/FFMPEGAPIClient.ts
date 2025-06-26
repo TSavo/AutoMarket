@@ -10,6 +10,7 @@ const FormData = require('form-data');
 import * as fs from 'fs';
 import * as path from 'path';
 import { Readable } from 'stream';
+import { IFFMPEGClient, HealthCheckResult, VideoCompositionOptions, VideoCompositionResult } from '../../ffmpeg/IFFMPEGClient';
 
 export interface FFMPEGClientConfig {
   baseUrl: string;
@@ -68,62 +69,12 @@ export interface ApiResponse<T = any> {
   timestamp: Date;
 }
 
-export interface VideoCompositionOptions {
-  layout?: 'side-by-side' | 'overlay' | 'picture-in-picture';
-  outputFormat?: 'mp4' | 'mov' | 'avi' | 'mkv' | 'webm';
-  codec?: 'libx264' | 'libx265' | 'libvpx' | 'h264_nvenc' | 'h265_nvenc' | 'av1_nvenc';
-  bitrate?: string;
-  resolution?: string;
-  fps?: number;
-  gap?: number;
-  overlayPosition?: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'center';
-  overlayScale?: number;
-  overlayOpacity?: number;
-  overlayStart?: number; // Start time for overlay in seconds
-  overlayEnd?: number;   // End time for overlay in seconds
-  pipPosition?: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'center';
-  pipScale?: number;
-  pipMargin?: number;
-  // Custom filter complex string (takes precedence over layout-based options)
-  filterComplex?: string;
-  // Custom output mapping options
-  videoOutputLabel?: string; // Label for video output (default: 'v')
-  audioOutputLabel?: string; // Label for audio output (default: use input audio)
-  customAudioMapping?: boolean; // Whether to use custom audio mapping instead of input audio
-}
-
-export interface VideoCompositionResult {
-  success: boolean;
-  outputPath?: string;
-  filename?: string;
-  videoBuffer?: Buffer;
-  metadata: {
-    duration: number;
-    width: number;
-    height: number;
-    framerate: number;
-    size: number;
-    videoCount?: number; // Number of videos processed
-  };
-  processingTime: number;
-  error?: string;
-}
+// Local interfaces moved to generic IFFMPEGClient interface
 
 /**
  * Common interface for FFMPEG clients (API and Local)
  */
-export interface IFFMPEGClient {
-  checkHealth(): Promise<ServiceHealth>;
-  extractAudio(videoData: Buffer | Readable | string, options?: AudioExtractionOptions): Promise<AudioExtractionResult>;
-  convertAudio(audioData: Buffer | Readable | string, options?: AudioConversionOptions): Promise<AudioExtractionResult>;
-  downloadFile(outputPath: string): Promise<Buffer>;
-  getServiceInfo(): Promise<any>;
-  testConnection(): Promise<boolean>;
-  composeVideo(videoBuffers: Buffer[], options?: VideoCompositionOptions): Promise<VideoCompositionResult>;
-  filterVideo(videoData: Buffer | Readable | string, options?: VideoCompositionOptions): Promise<VideoCompositionResult>;
-  filterMultipleVideos(videoBuffers: Buffer[], options?: VideoCompositionOptions): Promise<VideoCompositionResult>;
-  getVideoMetadata(videoData: Buffer | Readable | string): Promise<{ width: number; height: number; duration: number; framerate: number }>;
-}
+// Local interface removed - using imported IFFMPEGClient interface
 
 /**
  * FFMPEG API Client for Docker service communication
@@ -394,6 +345,7 @@ export class FFMPEGAPIClient implements IFFMPEGClient {
 
       return {
         success: true,
+        format: options?.outputFormat || 'mp4',
         videoBuffer,
         metadata: {
           duration,
@@ -470,6 +422,7 @@ export class FFMPEGAPIClient implements IFFMPEGClient {
 
       return {
         success: true,
+        format: options?.outputFormat || 'mp4',
         videoBuffer,
         metadata: {
           duration,
@@ -539,6 +492,7 @@ export class FFMPEGAPIClient implements IFFMPEGClient {
 
       return {
         success: true,
+        format: options?.outputFormat || 'mp4',
         videoBuffer,
         metadata: {
           duration,

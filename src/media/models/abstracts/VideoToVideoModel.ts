@@ -64,6 +64,7 @@ export interface VideoCompositionOptions {
     // Advanced options
   customFilterComplex?: string; // Custom filter complex string for advanced users
   customParameters?: Record<string, any>; // Model-specific custom parameters
+  customAudioMapping?: boolean; // Whether to use custom audio mapping instead of input audio
   
   // Smart positioning (handles different aspect ratios)
   smartPositioning?: boolean; // Enable smart aspect ratio handling

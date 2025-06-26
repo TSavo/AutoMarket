@@ -41,3 +41,6 @@ export * from './docker/whisper';
 export * from './docker/ffmpeg';
 export * from './docker/ollama';
 export * from './docker/zonos';
+
+// Local Provider Packages
+export * from './ffmpeg';

@@ -22,15 +22,20 @@ async function testGenerationPromptMetadata() {
     const mockReplicateClientWrapper = {
       testConnection: async () => true,
       getTextToImageModels: async () => []
-    } as any;
-
-    // Create a mock model
+    } as any;    // Create a mock model
     const model = new ReplicateTextToImageModel({
       client: mockReplicateClientWrapper,
       modelMetadata: {
         id: 'stability-ai/stable-diffusion-xl-base-1.0:626561e1e6c6f03e8583c0b92b5e84b3d45b50dd6c1bcd6b5bb3b6e5e8b8b8b8',
+        owner: 'stability-ai',
         name: 'Stable Diffusion XL',
-        description: 'A text-to-image model',        parameters: {
+        description: 'A text-to-image model',
+        category: 'image-generation',        tags: ['text-to-image', 'stable-diffusion'],
+        visibility: 'public' as const,
+        run_count: 1000,
+        capabilities: ['text-to-image'],
+        lastUpdated: Date.now(),
+        parameters: {
           prompt: { type: 'string', description: 'Input prompt' },
           width: { type: 'integer', description: 'Image width', default: 1024 },
           height: { type: 'integer', description: 'Image height', default: 1024 },

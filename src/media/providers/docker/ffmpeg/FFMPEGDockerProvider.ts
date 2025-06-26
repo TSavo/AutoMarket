@@ -12,6 +12,8 @@ import {
   ProviderModel, 
   ProviderConfig 
 } from '../../../types/provider';
+import { AudioToAudioProvider } from '../../../capabilities/interfaces/AudioToAudioProvider';
+import { VideoToAudioProvider } from '../../../capabilities/interfaces/VideoToAudioProvider';
 import { FFMPEGDockerService } from '../../../services/FFMPEGDockerService';
 
 export interface FFMPEGDockerConfig extends ProviderConfig {
@@ -24,7 +26,7 @@ export interface FFMPEGDockerConfig extends ProviderConfig {
 /**
  * Provider for FFMPEG Docker-based media processing
  */
-export class FFMPEGDockerProvider implements MediaProvider {
+export class FFMPEGDockerProvider implements MediaProvider, AudioToAudioProvider, VideoToAudioProvider {
   readonly id = 'ffmpeg-docker';
   readonly name = 'FFMPEG Docker Provider';
   readonly type = ProviderType.LOCAL;  readonly capabilities = [
@@ -32,6 +34,7 @@ export class FFMPEGDockerProvider implements MediaProvider {
     MediaCapability.IMAGE_TO_VIDEO,
     MediaCapability.VIDEO_TO_VIDEO,
     MediaCapability.VIDEO_TO_IMAGE,
+    MediaCapability.VIDEO_TO_AUDIO,
     MediaCapability.AUDIO_TO_AUDIO,
     MediaCapability.AUDIO_TO_TEXT // Music generation is similar to audio synthesis
   ];
@@ -127,11 +130,19 @@ export class FFMPEGDockerProvider implements MediaProvider {
         pricing: { inputCost: 0, outputCost: 0, currency: 'USD' },
         limits: { maxInputSize: 1000000000, maxOutputSize: 1000000000, rateLimit: 10 },
         parameters: {}
-      },
-      {
+      },      {
         id: 'ffmpeg-video-to-audio',
         name: 'FFMPEG Video to Audio',
         description: 'Extract audio from video using FFMPEG',
+        capabilities: [MediaCapability.VIDEO_TO_AUDIO],
+        pricing: { inputCost: 0, outputCost: 0, currency: 'USD' },
+        limits: { maxInputSize: 1000000000, maxOutputSize: 1000000000, rateLimit: 10 },
+        parameters: {}
+      },
+      {
+        id: 'ffmpeg-audio-to-audio',
+        name: 'FFMPEG Audio Converter',
+        description: 'Convert audio formats and apply audio processing using FFMPEG',
         capabilities: [MediaCapability.AUDIO_TO_AUDIO],
         pricing: { inputCost: 0, outputCost: 0, currency: 'USD' },
         limits: { maxInputSize: 1000000000, maxOutputSize: 1000000000, rateLimit: 10 },
@@ -257,14 +268,120 @@ export class FFMPEGDockerProvider implements MediaProvider {
         }
       };
     }
-  }
-  /**
+  }  /**
    * Get a model instance by ID with automatic type detection
    */
   async getModel(modelId: string): Promise<any> {
-    // For Docker providers, we typically return a wrapper that handles the Docker execution
-    // This is a simplified implementation - in practice you might return a proper Model class
-    throw new Error('FFMPEGDockerProvider.getModel() not yet implemented - use direct generation methods');
+    if (!await this.isAvailable()) {
+      throw new Error('FFMPEG provider is not available');
+    }
+
+    // Check if the model exists
+    const model = this.models.find(m => m.id === modelId);
+    if (!model) {
+      throw new Error(`Model '${modelId}' not found in FFMPEG provider`);
+    }    // Create the appropriate model based on capabilities
+    if (model.capabilities.includes(MediaCapability.AUDIO_TO_AUDIO)) {
+      const { FFMPEGAudioToAudioModel } = await import('./FFMPEGAudioToAudioModel');
+      const { FFMPEGAPIClient } = await import('./FFMPEGAPIClient');
+      
+      const apiClient = new FFMPEGAPIClient({
+        baseUrl: this.config?.baseUrl || 'http://localhost:8006',
+        timeout: this.config?.timeout || 300000
+      });
+
+      return new FFMPEGAudioToAudioModel({
+        apiClient,
+        dockerService: this.dockerService,
+        baseUrl: this.config?.baseUrl || 'http://localhost:8006',
+        timeout: this.config?.timeout || 300000
+      });
+    }
+
+    if (model.capabilities.includes(MediaCapability.VIDEO_TO_AUDIO)) {
+      const { FFMPEGDockerModel } = await import('./FFMPEGDockerModel');
+      const { FFMPEGAPIClient } = await import('./FFMPEGAPIClient');
+      
+      const apiClient = new FFMPEGAPIClient({
+        baseUrl: this.config?.baseUrl || 'http://localhost:8006',
+        timeout: this.config?.timeout || 300000
+      });
+
+      return new FFMPEGDockerModel({
+        dockerService: this.dockerService,
+        apiClient
+      });
+    }    throw new Error(`Model type not implemented for '${modelId}' in FFMPEG provider`);
+  }
+
+  // AudioToAudioProvider interface implementation
+  async createAudioToAudioModel(modelId: string) {
+    return this.getModel(modelId);
+  }
+
+  getSupportedAudioToAudioModels(): string[] {
+    return this.getModelsForCapability(MediaCapability.AUDIO_TO_AUDIO).map(m => m.id);
+  }
+
+  supportsAudioToAudioModel(modelId: string): boolean {
+    const model = this.models.find(m => m.id === modelId);
+    return model ? model.capabilities.includes(MediaCapability.AUDIO_TO_AUDIO) : false;
+  }
+
+  // VideoToAudioProvider interface implementation
+  async createVideoToAudioModel(modelId: string) {
+    return this.getModel(modelId);
+  }
+
+  getSupportedVideoToAudioModels(): string[] {
+    return this.getModelsForCapability(MediaCapability.VIDEO_TO_AUDIO).map(m => m.id);
+  }
+
+  supportsVideoToAudioModel(modelId: string): boolean {
+    const model = this.models.find(m => m.id === modelId);
+    return model ? model.capabilities.includes(MediaCapability.VIDEO_TO_AUDIO) : false;
+  }
+
+  // ServiceManagement interface implementation (inherited from both provider interfaces)
+  async startService(): Promise<boolean> {
+    try {
+      // Start the docker service
+      await this.start();
+      return true;
+    } catch (error) {
+      console.error('Failed to start FFMPEG service:', error);
+      return false;
+    }
+  }
+
+  async stopService(): Promise<boolean> {
+    try {
+      // Stop the docker service
+      await this.stop();
+      return true;
+    } catch (error) {
+      console.error('Failed to stop FFMPEG service:', error);
+      return false;
+    }
+  }
+
+  async getServiceStatus(): Promise<{ running: boolean; healthy: boolean; error?: string }> {
+    try {
+      const isAvailable = await this.isAvailable();
+      const health = await this.getHealth();
+      
+      return {
+        running: isAvailable,
+        healthy: health.status === 'healthy',
+        error: health.lastError
+      };
+    } catch (error) {
+      return {
+        running: false,
+        healthy: false,
+        error: error.message
+      };
+    }
   }
 }
 

@@ -9,7 +9,7 @@ import { Model, ModelMetadata } from './Model';
 import { Text, TextRole } from '../../assets/roles';
 
 export interface TextToTextOptions {
-  seed?: string;
+  seed?: string | number;
   temperature?: number;
   topK?: number;
   topP?: number;

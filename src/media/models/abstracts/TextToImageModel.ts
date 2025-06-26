@@ -12,7 +12,7 @@ export interface TextToImageOptions {
   width?: number;
   height?: number;
   aspectRatio?: string;
-  quality?: number;
+  quality?: number | string; // Allow both numeric and string quality values
   format?: 'jpg' | 'png' | 'webp';
   seed?: number;
   negativePrompt?: string;

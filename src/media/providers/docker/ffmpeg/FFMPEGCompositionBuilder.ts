@@ -7,7 +7,7 @@
 
 import { Video } from '../../../assets/roles';
 import { FFMPEGVideoFilterModel } from './FFMPEGVideoFilterModel';
-import { IFFMPEGClient } from './FFMPEGAPIClient';
+import { IFFMPEGClient } from '../../ffmpeg/IFFMPEGClient';
 import { VideoToVideoModel } from '../../../models/abstracts/VideoToVideoModel';
 
 export interface OverlayOptions {

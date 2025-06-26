@@ -109,18 +109,17 @@ export class OpenAITextToAudioModel extends TextToAudioModel {
 
       console.log(`[OpenAITextToAudio] Audio generated successfully: ${tempFilePath}`);
 
-      // Create Audio result
+      // Create Audio result using the existing audioBuffer
       const result = new Audio(
-        tempFilePath,
-        fileExtension as any,
-        1.0, // High confidence for successful generation
+        audioBuffer,
+        text.sourceAsset, // Preserve source Asset reference
         {
+          format: fileExtension as any,
           processingTime,
           model: this.modelId,
           provider: 'openai',
           voice: options?.voice || 'alloy',
           speed: options?.speed || 1.0,
-          format: options?.response_format || 'mp3',
           textLength: textContent.length,
           estimatedDuration: this.estimateAudioDuration(textContent, options?.speed || 1.0),
           generation_prompt: createGenerationPrompt({
@@ -132,8 +131,7 @@ export class OpenAITextToAudioModel extends TextToAudioModel {
             transformationType: 'text-to-audio',
             processingTime
           })
-        },
-        text.sourceAsset // Preserve source Asset reference
+        }
       );
 
       return result;

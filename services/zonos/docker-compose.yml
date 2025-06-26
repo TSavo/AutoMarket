@@ -1,0 +1,37 @@
+# Docker Compose configuration for Zonos TTS application
+# Models will persist across container restarts using Docker volumes
+version: '3.8'
+
+services:
+  zonos:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: zonos_container
+    runtime: nvidia
+    ports:
+      - "7860:7860"  # Gradio web interface
+    stdin_open: true
+    tty: true
+    command: ["python3", "gradio_interface.py"]
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:7860/ || curl -f http://localhost:7860/api/predict || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+    volumes:
+      # Persist Hugging Face model cache across container restarts
+      - huggingface_cache:/root/.cache/huggingface
+      # Alternative volume mount if you want to use host directory
+      # - ./models_cache:/root/.cache/huggingface
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=0
+      - GRADIO_SHARE=True
+      # Set HF cache directory (optional, uses default location)
+      - HF_HOME=/root/.cache/huggingface
+
+volumes:
+  # Named volume for Hugging Face model cache
+  huggingface_cache:
+    driver: local

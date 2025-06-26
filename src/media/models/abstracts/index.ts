@@ -24,6 +24,9 @@ export type { TextToTextOptions } from './TextToTextModel';
 export { AudioToTextModel } from './AudioToTextModel';
 export type { AudioToTextOptions } from './AudioToTextModel';
 
+export { AudioToAudioModel } from './AudioToAudioModel';
+export type { AudioToAudioOptions } from './AudioToAudioModel';
+
 export { ImageToVideoModel } from './ImageToVideoModel';
 export type { ImageToVideoOptions } from './ImageToVideoModel';
 

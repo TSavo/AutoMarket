@@ -216,6 +216,35 @@ export class AnthropicProvider implements MediaProvider, TextToTextProvider {
 
     await this.discoverModels();
   }
+
+  // Missing TextToTextProvider methods
+  getSupportedTextToTextModels(): string[] {
+    return Array.from(this.discoveredModels.keys()).filter(id => 
+      this.discoveredModels.get(id)?.capabilities.includes(MediaCapability.TEXT_TO_TEXT)
+    );
+  }
+
+  async startService(): Promise<boolean> {
+    try {
+      await this.ensureConfigured();
+      return true;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  async stopService(): Promise<boolean> {
+    // Remote API - no service to stop
+    return true;
+  }
+
+  async getServiceStatus(): Promise<{ running: boolean; healthy: boolean; error?: string }> {
+    const isAvailable = await this.isAvailable();
+    return {
+      running: true, // Remote APIs are always "running"
+      healthy: isAvailable,
+    };
+  }
 }
 
 import { ProviderRegistry } from '../../registry/ProviderRegistry';

@@ -39,6 +39,7 @@ export class OpenAIProvider implements MediaProvider, TextToTextProvider, TextTo
   private apiClient?: OpenAIAPIClient;
   private discoveredModels = new Map<string, ProviderModel>();
   private configurationPromise: Promise<void> | null = null;
+  private initTime: number = Date.now();
 
   get models(): ProviderModel[] {
     return Array.from(this.discoveredModels.values());
@@ -189,12 +190,14 @@ export class OpenAIProvider implements MediaProvider, TextToTextProvider, TextTo
   }
 
   // ServiceManagement interface implementation
-  async startService(): Promise<void> {
+  async startService(): Promise<boolean> {
     // Remote API - no service to start
+    return true;
   }
 
-  async stopService(): Promise<void> {
+  async stopService(): Promise<boolean> {
     // Remote API - no service to stop
+    return true;
   }
 
   async getServiceStatus(): Promise<{ running: boolean; healthy: boolean; error?: string }> {
@@ -411,6 +414,83 @@ export class OpenAIProvider implements MediaProvider, TextToTextProvider, TextTo
 
     for (const model of fallbackModels) {
       this.discoveredModels.set(model.id, model);
+    }
+  }
+
+  /**
+   * Get a model instance by ID with automatic type detection
+   */
+  async getModel(modelId: string): Promise<any> {
+    await this.ensureConfigured();
+    
+    const providerModel = this.discoveredModels.get(modelId);
+    if (!providerModel) {
+      throw new Error(`Model ${modelId} not found in OpenAI provider`);
+    }
+
+    // Return appropriate model instance based on capabilities
+    if (providerModel.capabilities.includes(MediaCapability.TEXT_TO_TEXT)) {
+      return this.createTextToTextModel(modelId);
+    } else if (providerModel.capabilities.includes(MediaCapability.TEXT_TO_IMAGE)) {
+      return this.createTextToImageModel(modelId);
+    } else if (providerModel.capabilities.includes(MediaCapability.TEXT_TO_AUDIO)) {
+      return this.createTextToAudioModel(modelId);
+    } else if (providerModel.capabilities.includes(MediaCapability.AUDIO_TO_TEXT)) {
+      return this.createAudioToTextModel(modelId);
+    }
+    
+    throw new Error(`Unsupported model capabilities for ${modelId}`);
+  }
+
+  /**
+   * Get provider health and usage statistics
+   */
+  async getHealth(): Promise<{
+    status: 'healthy' | 'degraded' | 'unhealthy';
+    uptime: number;
+    activeJobs: number;
+    queuedJobs: number;
+    lastError?: string;
+  }> {
+    try {
+      await this.ensureConfigured();
+      
+      // Simple health check - try to test connection
+      if (this.apiClient) {
+        const connected = await this.apiClient.testConnection();
+        if (connected) {
+          return {
+            status: 'healthy',
+            uptime: Date.now() - this.initTime,
+            activeJobs: 0, // OpenAI doesn't provide this info
+            queuedJobs: 0,  // OpenAI doesn't provide this info
+          };
+        } else {
+          return {
+            status: 'degraded',
+            uptime: Date.now() - this.initTime,
+            activeJobs: 0,
+            queuedJobs: 0,
+            lastError: 'Connection test failed'
+          };
+        }
+      } else {
+        return {
+          status: 'unhealthy',
+          uptime: 0,
+          activeJobs: 0,
+          queuedJobs: 0,
+          lastError: 'Provider not configured'
+        };
+      }
+    } catch (error) {
+      return {
+        status: 'unhealthy',
+        uptime: Date.now() - this.initTime,
+        activeJobs: 0,
+        queuedJobs: 0,
+        lastError: error instanceof Error ? error.message : 'Unknown error'
+      };
     }
   }
 

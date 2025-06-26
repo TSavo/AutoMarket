@@ -1,0 +1,32 @@
+{
+  "name": "zonos-api-client",
+  "version": "1.0.0",
+  "description": "TypeScript API client for Zonos TTS Gradio interface",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",  "scripts": {
+    "build": "tsc",
+    "dev": "node --loader ts-node/esm src/zonos-client.ts",
+    "test": "node --loader ts-node/esm src/working-example.ts",
+    "test-basic": "node --loader ts-node/esm src/test-basic.ts",
+    "test-simple": "node --loader ts-node/esm src/simple-test.ts",
+    "test-emotional": "node --loader ts-node/esm src/emotional-test.ts",    "demo": "node --loader ts-node/esm src/comprehensive-demo.ts",    "continuation": "node --loader ts-node/esm src/continuation-demo.ts",
+    "clear-continuation": "node --loader ts-node/esm src/clear-continuation-demo.ts",
+    "working-sequence": "node --loader ts-node/esm src/working-sequence-demo.ts",
+    "long-form": "node --loader ts-node/esm src/long-form-demo.ts",
+    "sequence-demo": "node --loader ts-node/esm src/sequence-builder-demo.ts",
+    "quick-sequence": "node --loader ts-node/esm src/quick-sequence-example.ts",
+    "confusion": "node --loader ts-node/esm src/working-confusion-demo.ts",
+    "setup": "node setup.js"
+  },
+  "keywords": ["tts", "text-to-speech", "zonos", "gradio", "api"],
+  "author": "",
+  "license": "MIT",  "dependencies": {
+    "@gradio/client": "^1.15.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "ts-node": "^10.9.0",
+    "typescript": "^5.0.0"
+  }
+}

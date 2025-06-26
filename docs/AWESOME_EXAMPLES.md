@@ -271,14 +271,14 @@ const finalVideo = await builder.transform(ffmpegModel);
 ### ⚡ Performance-Optimized Setup
 ```typescript
 import { FalAiProvider, ReplicateProvider, TogetherProvider } from './src/media/providers';
-import { FFMPEGDockerProvider } from './src/media/providers/docker';
+import { FFMPEGProvider } from './src/media/providers/ffmpeg';
 
 // Configure providers with optimization
 const providers = [
   new FalAiProvider(),
   new ReplicateProvider(),
   new TogetherProvider(),
-  new FFMPEGDockerProvider()
+  new FFMPEGProvider()
 ];
 
 // Parallel configuration for speed
@@ -293,9 +293,9 @@ await Promise.all(providers.map(provider =>
 ));
 
 // Enable hardware acceleration for FFMPEG
-const ffmpegProvider = new FFMPEGDockerProvider();
+const ffmpegProvider = new FFMPEGProvider();
 await ffmpegProvider.configure({
-  dockerServiceUrl: 'http://localhost:8006',
+  baseUrl: 'http://localhost:8006',
   hardwareAcceleration: 'nvidia',  // Use GPU acceleration
   codecPreference: 'h264_nvenc'    // Hardware encoding
 });

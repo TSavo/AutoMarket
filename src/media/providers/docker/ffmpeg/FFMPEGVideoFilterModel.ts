@@ -5,7 +5,8 @@
  * Focuses purely on transforming input videos to output videos without composition concerns.
  */
 
-import { FFMPEGAPIClient, IFFMPEGClient } from './FFMPEGAPIClient';
+import { FFMPEGAPIClient } from './FFMPEGAPIClient';
+import { IFFMPEGClient } from '../../ffmpeg/IFFMPEGClient';
 import { FFMPEGDockerService } from '../../../services/FFMPEGDockerService';
 import { Video, VideoRole } from '../../../assets/roles';
 import { VideoToVideoModel, VideoCompositionOptions } from '../../../models/abstracts/VideoToVideoModel';
@@ -53,14 +54,16 @@ export class FFMPEGVideoFilterModel extends VideoToVideoModel {
   
     // Convert VideoRoles to Video objects
     const videoObjects = await Promise.all(videos.map(v => v.asVideo()));
-    const videoBuffers = videoObjects.map(video => video.data);
-
-    if (!this.apiClient) {
+    const videoBuffers = videoObjects.map(video => video.data);    if (!this.apiClient) {
       throw new Error('FFMPEGAPIClient is required for transform operation');
     }
 
-    // Use the same logic as filterMultipleVideos
-    const result = await this.apiClient.filterMultipleVideos(videoBuffers, {
+    if (!this.apiClient.filterMultipleVideos) {
+      throw new Error('filterMultipleVideos method is not available on this FFMPEG client');
+    }
+
+    const apiClient = this.apiClient; // TypeScript narrowing    // Use the same logic as filterMultipleVideos
+    const result = await apiClient.filterMultipleVideos!(videoBuffers, {
       filterComplex: options.customFilterComplex!,
       videoOutputLabel: options.videoOutputLabel || 'final_video',
       audioOutputLabel: options.audioOutputLabel || 'mixed_audio', 

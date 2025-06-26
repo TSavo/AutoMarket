@@ -133,7 +133,7 @@ async function testHuggingFaceProvider() {
         console.log(`   Image size: ${image.getSize()} bytes (${image.getHumanSize()})`);
         
         // Get file path from metadata if available
-        const filePath = image.metadata.filePath || image.metadata.sourceUrl;
+        const filePath = image.metadata?.filePath || image.metadata?.sourceUrl;
         if (filePath) {
           console.log(`   Image location: ${filePath}`);
         }

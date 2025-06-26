@@ -7,6 +7,7 @@
 
 import { TextToImageModel, TextToImageOptions } from '../../models/abstracts/TextToImageModel';
 import { Image, TextRole } from '../../assets/roles';
+import { ImageFormat } from '../../assets/roles/types';
 import { ModelMetadata } from '../../models/abstracts/Model';
 import { OpenAIAPIClient } from './OpenAIAPIClient';
 import axios from 'axios';
@@ -107,15 +108,18 @@ export class OpenAITextToImageModel extends TextToImageModel {
 
       await this.downloadImage(imageData.url, tempFilePath);
 
+      // Read the image file into a Buffer
+      const imageBuffer = fs.readFileSync(tempFilePath);
+
       // Calculate processing time
       const processingTime = Date.now() - startTime;
 
       // Create Image result
       const result = new Image(
-        tempFilePath,
+        imageBuffer,
         'png',
-        1.0, // High confidence for successful generation
         {
+          format: 'png' as ImageFormat,
           processingTime,
           model: this.modelId,
           provider: 'openai',
