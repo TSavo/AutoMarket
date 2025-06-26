@@ -17,6 +17,9 @@ export * from './openai';
 // fal.ai Provider Package
 export * from './falai';
 
+// ElevenLabs Provider Package
+export * from './elevenlabs';
+
 // Replicate Provider Package
 export * from './replicate';
 
@@ -31,6 +34,9 @@ export * from './xai';
 
 // Mistral AI Provider Package
 export * from './mistral';
+
+// Creatify Provider Package
+export * from './creatify';
 
 // Azure OpenAI Provider Package
 export * from './azure';
