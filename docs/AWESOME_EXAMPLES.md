@@ -1,48 +1,47 @@
-# 🚀 AutoMarket - Awesome Examples & One-Liners
+# 🚀 Prizm - Awesome Examples & One-Liners
 
-Welcome to the coolest media processing platform ever built! AutoMarket makes AI-powered media generation as simple as one line of code, while supporting incredibly complex multi-provider pipelines.
+Welcome to the most elegant media transformation SDK ever built! Prizm makes AI-powered media generation as simple as one line of code, while supporting incredibly complex multi-provider pipelines.
 
 ## 🎯 One-Liner Magic
 
-### 🖼️ Generate Images (Any Provider, Auto-Selected)
+### 🖼️ Generate Images (Fluent API - Zero Config)
 ```typescript
-import { getBestTextToImageProvider } from './src/media/registry/bootstrap';
+import { $ } from 'prizm';
 
-// One line to rule them all - automatically picks the best available provider
-const image = await (await (await getBestTextToImageProvider()).createTextToImageModel('fal-ai/flux-pro')).transform('A futuristic city at sunset');
+// One line to rule them all - works immediately!
+const image = await $("replicate")("flux-schnell")("A futuristic city at sunset");
+const epicImage = await $("falai")("flux-pro")("A dragon soaring through clouds", { steps: 4 });
 ```
 
 ### 🎬 Generate Videos from Text
 ```typescript
-import { FalAiProvider } from './src/media/providers/falai';
-
-// One line video generation
-const video = await (await (await new FalAiProvider().configure({apiKey: process.env.FALAI_API_KEY})).createTextToVideoModel('fal-ai/runway-gen3')).transform('A cat riding a skateboard in slow motion');
+// One line video generation with any provider
+const video = await $("runway")("gen-3")("A cat riding a skateboard in slow motion");
+const animation = await $("replicate")("animate-image")(heroImage, { duration: 5 });
 ```
 
 ### 🎵 Text to Speech in One Line
 ```typescript
-import { getHuggingFaceProvider } from './src/media/registry/bootstrap';
-
-// One line TTS with any HuggingFace model
-const audio = await (await (await getHuggingFaceProvider()).createTextToAudioModel('facebook/mms-tts-eng')).transform('Hello world!');
+// One line TTS with local or remote providers
+const audio = await $("chatterbox")("voice-clone")("Hello world!");
+const speech = await $("huggingface")("mms-tts-eng")("Professional voiceover text");
 ```
 
 ### 🗣️ Speech to Text from Video
 ```typescript
-import { AssetLoader } from './src/media/assets/SmartAssetFactory';
+import { AssetLoader } from 'prizm';
 
 // One line: load video + extract audio + transcribe
-const transcript = await (await (await AssetLoader.load('video.mp4')).asSpeech()).transcribe();
+const transcript = await (await AssetLoader.load('video.mp4').asSpeech()).transcribe();
 ```
 
 ### 🎨 Smart Asset Loading (Any Format)
 ```typescript
-import { AssetLoader } from './src/media/assets/SmartAssetFactory';
+import { AssetLoader } from 'prizm';
 
 // Smart loading - auto-detects format and applies roles
 const videoAsset = AssetLoader.load('input.mp4');    // Auto-detects: Video + Audio + Speech
-const audioAsset = AssetLoader.load('music.mp3');    // Auto-detects: Audio + Speech  
+const audioAsset = AssetLoader.load('music.mp3');    // Auto-detects: Audio + Speech
 const imageAsset = AssetLoader.load('photo.jpg');    // Auto-detects: Image
 const textAsset = AssetLoader.load('document.txt');  // Auto-detects: Text
 ```
@@ -476,7 +475,7 @@ const result = await pipeline.processJob({
 
 ## 🎯 Ready to Build Something Amazing?
 
-These examples showcase just a fraction of what's possible with AutoMarket. The platform's unified architecture means you can:
+These examples showcase just a fraction of what's possible with Prizm. The platform's unified architecture means you can:
 
 - **Mix and match providers** seamlessly
 - **Chain complex operations** with simple, readable code  

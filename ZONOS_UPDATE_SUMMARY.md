@@ -200,4 +200,4 @@ The changes maintain backward compatibility with the existing `ZonosDockerProvid
 4. **Better Configuration**: Structured options instead of flat parameters
 5. **Production Ready**: Proper error handling, retries, and connection management
 
-The updated implementation now matches the quality and functionality of the working `zonos-client.ts` example while integrating seamlessly with the existing AutoMarket media pipeline.
+The updated implementation now matches the quality and functionality of the working `zonos-client.ts` example while integrating seamlessly with the existing Prizm media pipeline.

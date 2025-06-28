@@ -31,8 +31,8 @@ async function checkFreeModels() {
     const response = await axios.get('https://openrouter.ai/api/v1/models', {
       headers: {
         'Authorization': `Bearer ${apiKey}`,
-        'HTTP-Referer': 'https://automarket.ai',
-        'X-Title': 'AutoMarket AI Model Discovery'
+        'HTTP-Referer': 'https://prizm.ai',
+        'X-Title': 'Prizm AI Model Discovery'
       }
     });
 
@@ -77,8 +77,8 @@ async function checkFreeModels() {
         headers: {
           'Authorization': `Bearer ${apiKey}`,
           'Content-Type': 'application/json',
-          'HTTP-Referer': 'https://automarket.ai',
-          'X-Title': 'AutoMarket AI Test'
+          'HTTP-Referer': 'https://prizm.ai',
+          'X-Title': 'Prizm AI Test'
         }
       });
 

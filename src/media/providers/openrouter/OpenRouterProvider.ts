@@ -50,8 +50,8 @@ export class OpenRouterProvider implements MediaProvider, TextToTextProvider {
 
     const openRouterConfig: OpenRouterConfig = {
       apiKey: config.apiKey,
-      httpReferer: 'https://automarket.ai',
-      xTitle: 'AutoMarket AI'
+      httpReferer: 'https://prizm.ai',
+      xTitle: 'Prizm AI'
     };
 
     this.apiClient = new OpenRouterAPIClient(openRouterConfig);

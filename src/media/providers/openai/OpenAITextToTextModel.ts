@@ -9,7 +9,7 @@ import { TextToTextModel, TextToTextOptions } from '../../models/abstracts/TextT
 import { ModelMetadata } from '../../models/abstracts/Model';
 import { Text, TextRole } from '../../assets/roles';
 import { OpenAIAPIClient } from './OpenAIAPIClient';
-import { createGenerationPrompt } from '../../utils/GenerationPromptHelper';
+import { createGenerationPrompt, extractInputContent } from '../../utils/GenerationPromptHelper';
 
 export interface OpenAITextToTextOptions extends TextToTextOptions {
   systemPrompt?: string;
@@ -51,14 +51,19 @@ export class OpenAITextToTextModel extends TextToTextModel {
   /**
    * Transform text to text using OpenAI GPT models
    */
-  async transform(input: TextRole | TextRole[], options?: OpenAITextToTextOptions): Promise<Text> {
+  async transform(input: TextRole | TextRole[] | string | string[], options?: OpenAITextToTextOptions): Promise<Text> {
     const startTime = Date.now();
 
-    // Handle array input - get first element for single text generation
+    // Handle both array and single input
     const inputRole = Array.isArray(input) ? input[0] : input;
-
-    // Get text from the TextRole
-    const text = await inputRole.asText();
+    
+    // Handle both TextRole and string inputs
+    let text: Text;
+    if (typeof inputRole === 'string') {
+      text = Text.fromString(inputRole);
+    } else {
+      text = await inputRole.asText();
+    }
 
     // Validate text data
     if (!text.isValid()) {

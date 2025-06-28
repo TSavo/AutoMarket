@@ -194,8 +194,35 @@ export const ProviderConfigSchema = z.object({
 // ============================================================================
 
 /**
+ * Options for transformation methods.
+ */
+export interface FluentTransformOptions {
+  [key: string]: any;
+}
+
+/**
+ * Result of a transformation, potentially including job information.
+ */
+export interface FluentTransformResult {
+  jobId?: string;           // If async via job system
+  result?: any;             // If synchronous
+  promise?: Promise<any>;   // If async direct
+}
+
+/**
  * Request for media generation
  */
+// Types for the fluent API wrappers
+export type CallableModelType = ((input: any, options?: FluentTransformOptions, useJobSystem?: boolean) => Promise<any>) & {
+  transform: (input: any, options?: FluentTransformOptions, useJobSystem?: boolean) => Promise<any>;
+  getModelInfo: () => { providerId: string; modelId: string; capabilities: MediaCapability[] };
+};
+
+export type CallableProviderType = ((modelId: string) => Promise<CallableModelType>) & {
+  model: (modelId: string) => Promise<CallableModelType>;
+  getProviderInfo: () => { id: string; type: ProviderType; isAvailable: Promise<boolean>; models: ProviderModel[] };
+};
+
 export interface GenerationRequest {
   capability: MediaCapability;
   modelId: string;

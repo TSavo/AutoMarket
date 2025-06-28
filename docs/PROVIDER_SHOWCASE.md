@@ -1,43 +1,39 @@
-# 🌟 AutoMarket - Multi-Provider AI Pipeline Showcase
+# 🌟 Prizm - Multi-Provider AI Pipeline Showcase
 
-Welcome to the most advanced multi-provider AI media processing platform! This showcase demonstrates the incredible power of unified AI provider orchestration, complex multi-step pipelines, and seamless integration across dozens of AI services.
+Welcome to the most advanced multi-provider AI media transformation SDK! This showcase demonstrates the incredible power of unified AI provider orchestration, complex multi-step pipelines, and seamless integration across dozens of AI services.
 
-## 🎯 What Makes AutoMarket Special?
+## 🎯 What Makes Prizm Special?
 
 ### 🚀 **15+ AI Providers, One Interface**
 ```typescript
-// Access 100+ AI models through a single, unified interface
-const providers = [
-  new FalAiProvider(),          // 100+ models (image, video, audio)
-  new ReplicateProvider(),      // Dynamic model discovery
-  new TogetherProvider(),       // 150+ models with free tier
-  new OpenRouterProvider(),     // Free LLM access
-  new HuggingFaceProvider(),    // ANY HuggingFace model
-  new OpenAIProvider(),         // GPT, DALL-E, TTS
-  new AnthropicProvider(),      // Claude AI
-  new GoogleGeminiProvider(),   // Gemini models
-  new xAIProvider(),            // Grok LLM
-  new MistralProvider(),        // Lightweight LLMs
-  new AzureOpenAIProvider(),    // Enterprise GPT
-  new FFMPEGDockerProvider(),   // Local video processing
-  new ChatterboxProvider(),     // Local TTS with voice cloning
-  new WhisperProvider()         // Local STT multi-language
-];
+// Access 500+ AI models through Prizm's layered architecture
+
+// Core SDK - Maximum Control
+import { ProviderRegistry } from 'prizm';
+const registry = ProviderRegistry.getInstance();
+const providers = await registry.getAvailableProviders();
+
+// Fluent API - Zero Config
+import { $ } from 'prizm';
+const result = await $("replicate")("flux-schnell")("Amazing content");
+
+// REST API - Language Agnostic
+POST /api/v1/transform/replicate/flux-schnell
+{ capability: 'text-to-image', input: 'Amazing content' }
 ```
 
-### 🎬 **Advanced Video Composition Engine**
+### � **Smart Asset System**
 ```typescript
-// Hollywood-level video composition in a few lines
-const epic = await new FFMPEGCompositionBuilder()
-  .prepend(brandIntro)                    // Professional intro
-  .compose(aiGeneratedContent)            // AI-generated main content  
-  .append(callToAction)                   // Compelling outro
-  .addOverlay(floatingLogo, {             // Brand overlay
-    position: 'top-right',
-    colorKey: '#000000',                  // Green screen removal
-    opacity: 0.8,
-    animation: 'fadeIn'
-  })
+// Format-agnostic loading with automatic role detection
+const asset = AssetLoader.load('unknown-file.???');  // Works with ANY format!
+
+// Automatically gets the right capabilities:
+if (asset.hasVideoRole()) {
+  const video = await asset.asVideo();     // Direct video access
+  const audio = await asset.asAudio();     // Auto-extract with FFmpeg
+  const speech = await asset.asSpeech();   // Auto-transcribe
+}
+```
   .addOverlay(socialMediaBug, {           // Social media branding
     position: 'bottom-left',
     startTime: 5,
@@ -856,7 +852,7 @@ const report = await factory.generateDailyReport();
 console.log(`📊 Processed ${report.totalJobs} jobs with ${report.successRate}% success rate`);
 ```
 
-## 🌟 Why AutoMarket is Revolutionary
+## 🌟 Why Prizm is Revolutionary
 
 ### 🎯 **Unified Interface, Unlimited Possibilities**
 - **15+ AI providers** accessible through identical APIs
@@ -881,7 +877,7 @@ console.log(`📊 Processed ${report.totalJobs} jobs with ${report.successRate}%
 
 ## 🎬 Ready to Create Something Epic?
 
-AutoMarket isn't just a media processing platform - it's a creative powerhouse that makes the impossible possible. From simple one-liners to complex multi-provider pipelines, you can build anything you imagine.
+Prizm isn't just a media processing platform - it's a creative powerhouse that makes the impossible possible. From simple one-liners to complex multi-provider pipelines, you can build anything you imagine.
 
 **Start with a single provider, scale to the entire AI ecosystem! 🚀**
 

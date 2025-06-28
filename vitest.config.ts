@@ -71,10 +71,11 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
-      '@automarket/core': path.resolve(__dirname, './packages/core/src'),
-      '@automarket/providers': path.resolve(__dirname, './packages/providers/src'),
-      '@automarket/workflows': path.resolve(__dirname, './packages/workflows/src'),
-      '@automarket/assets': path.resolve(__dirname, './packages/assets/src')
+      '@prizm/core': path.resolve(__dirname, './packages/core/src'),
+      '@prizm/providers': path.resolve(__dirname, './packages/providers/src'),
+      '@prizm/workflows': path.resolve(__dirname, './packages/workflows/src'),
+      '@prizm/assets': path.resolve(__dirname, './packages/assets/src'),
+      'prizm': path.resolve(__dirname, './src/media')
     }
   },
   

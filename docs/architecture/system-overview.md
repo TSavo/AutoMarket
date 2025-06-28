@@ -1,22 +1,28 @@
-# AutoMarket System Architecture Overview
+# Prizm SDK Architecture Overview
 
 ## 🏗️ High-Level Architecture
 
-AutoMarket is built on a sophisticated multi-provider architecture that unifies both remote AI services and local Docker-based services under a common interface. The system emphasizes:
+Prizm is built on a sophisticated layered architecture that provides unified access to 15+ AI providers through multiple interface layers. The system emphasizes:
 
-- **Provider-Centric Organization**: Each provider contains all related components (Provider, Models, Client, Services)
+- **Layered Interface Design**: From zero-config one-liners to maximum-control APIs
+- **Provider-Centric Organization**: Each provider contains all related components
 - **Capability-Driven Discovery**: Providers declare capabilities, models are discovered dynamically
-- **Smart Asset Management**: Format-agnostic loading with automatic role detection and transformations
-- **Unified Interface**: All providers implement the same MediaProvider interface regardless of type
+- **Smart Asset Management**: Format-agnostic loading with automatic role detection
 - **Type-Safe Operations**: Comprehensive TypeScript support with validation
 
 ## 📊 Architecture Diagram
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                          AutoMarket Application                             │
+│                          Prizm SDK Layers                                   │
 ├─────────────────────────────────────────────────────────────────────────────┤
-│                       MediaProvider Interface                               │
+│ Layer 10: Format Registry | Layer 9: Job Management | Layer 8: Provider Utils│
+├─────────────────────────────────────────────────────────────────────────────┤
+│ Layer 7: Type Guards | Layer 6: Asset Utilities | Layer 5: Smart Assets    │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ Layer 4: Job System | Layer 3: REST API | Layer 2: Fluent API             │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                       Layer 1: Core SDK                                     │
 ├─────────────┬─────────────┬─────────────┬─────────────┬─────────────────────┤
 │   FAL.ai    │ Together.ai │ OpenRouter  │  Replicate  │   Docker Providers  │
 │  Provider   │  Provider   │  Provider   │  Provider   │                     │
@@ -24,20 +30,14 @@ AutoMarket is built on a sophisticated multi-provider architecture that unifies 
 │ 100+ Models │ 150+ Models │ LLM Models  │ Image/Video │  Local Processing   │
 │ Image/Video │ Text/Image/ │ Text Gen    │ Models      │                     │
 │ Audio Gen   │ Audio       │             │             │                     │
-├─────────────┴─────────────┴─────────────┴─────────────┼─────────────────────┤
-│                  Smart Asset System                   │  FFMPEG │ TTS │ STT │
-├───────────────────────────────────────────────────────┼─────────┼─────┼─────┤
-│              AssetLoader & Role System                │ Docker  │ Docker │Docker│
-├───────────────────────────────────────────────────────┼─────────┼─────┼─────┤
-│     Audio │ Video │ Text │ Image │ Role Mixins        │Container│Container│Container│
-└───────────┴───────┴──────┴───────┴────────────────────┴─────────┴─────┴─────┘
+└─────────────┴─────────────┴─────────────┴─────────────┴─────────────────────┘
 ```
 
 ## 🔧 Core Components
 
-### 1. MediaProvider Interface
+### 1. Core SDK (Layer 1)
 
-**Purpose**: Unified interface for all media providers (remote APIs and local services)
+**Purpose**: Provider→model→transform foundation with maximum control
 
 **Key Features**:
 - Capability declaration (IMAGE_GENERATION, VIDEO_ANIMATION, etc.)

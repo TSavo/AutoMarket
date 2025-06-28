@@ -9,7 +9,7 @@ import { TextToTextModel, TextToTextOptions } from '../../models/abstracts/TextT
 import { ModelMetadata } from '../../models/abstracts/Model';
 import { Text, TextRole } from '../../assets/roles';
 import { OpenRouterAPIClient } from './OpenRouterAPIClient';
-import { createGenerationPrompt } from '../../utils/GenerationPromptHelper';
+import { createGenerationPrompt, extractInputContent } from '../../utils/GenerationPromptHelper';
 
 export interface OpenRouterTextToTextOptions extends TextToTextOptions {
   systemPrompt?: string;
@@ -48,14 +48,17 @@ export class OpenRouterTextToTextModel extends TextToTextModel {
   /**
    * Transform text to text using OpenRouter
    */
-  async transform(input: TextRole | TextRole[], options?: OpenRouterTextToTextOptions): Promise<Text> {
-    const startTime = Date.now();
+  async transform(input: TextRole | TextRole[] | string | string[], options?: OpenRouterTextToTextOptions): Promise<Text> {    const startTime = Date.now();
 
-    // Handle array input - get first element for single text generation
-    const inputRole = Array.isArray(input) ? input[0] : input;
+    let textRole: TextRole;
+    if (Array.isArray(input)) {
+      textRole = typeof input[0] === 'string' ? new Text(input[0]) : input[0];
+    } else {
+      textRole = typeof input === 'string' ? new Text(input) : input;
+    }
 
     // Get text from the TextRole
-    const text = await inputRole.asText();
+    const text = await textRole.asText();
 
     // Validate text data
     if (!text.isValid()) {

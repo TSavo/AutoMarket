@@ -2,7 +2,7 @@ import { TextToTextModel, TextToTextOptions } from '../../models/abstracts/TextT
 import { ModelMetadata } from '../../models/abstracts/Model';
 import { Text, TextRole } from '../../assets/roles';
 import { GoogleAPIClient } from './GoogleAPIClient';
-import { createGenerationPrompt } from '../../utils/GenerationPromptHelper';
+import { createGenerationPrompt, extractInputContent } from '../../utils/GenerationPromptHelper';
 
 export interface GoogleTextToTextConfig {
   apiClient: GoogleAPIClient;
@@ -35,10 +35,17 @@ export class GoogleTextToTextModel extends TextToTextModel {
     this.modelId = config.modelId;
   }
 
-  async transform(input: TextRole | TextRole[], options?: GoogleTextToTextOptions): Promise<Text> {
+  async transform(input: TextRole | TextRole[] | string | string[], options?: GoogleTextToTextOptions): Promise<Text> {
     const startTime = Date.now();
-    const inputRole = Array.isArray(input) ? input[0] : input;
-    const text = await inputRole.asText();
+    
+    let textRole: TextRole;
+    if (Array.isArray(input)) {
+      textRole = typeof input[0] === 'string' ? new Text(input[0]) : input[0];
+    } else {
+      textRole = typeof input === 'string' ? new Text(input) : input;
+    }
+
+    const text = await textRole.asText();
 
     if (!text.isValid()) {
       throw new Error('Invalid text data provided');

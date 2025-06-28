@@ -267,8 +267,8 @@ export class ReplicateClient {
         headers: {
           'Authorization': `Bearer ${this.config.discovery!.openRouterApiKey}`,
           'Content-Type': 'application/json',
-          'HTTP-Referer': 'https://automarket.ai',
-          'X-Title': 'AutoMarket Model Discovery'
+          'HTTP-Referer': 'https://prizm.ai',
+          'X-Title': 'Prizm Model Discovery'
         },
         body: JSON.stringify({
           model: 'deepseek/deepseek-chat:free',
@@ -489,7 +489,7 @@ GitHub: ${modelData.github_url || 'N/A'}`
 
     const headers: Record<string, string> = {
       'Authorization': `Bearer ${this.config.apiKey}`,
-      'User-Agent': 'AutoMarket-ReplicateClient/1.0'
+      'User-Agent': 'Prizm-ReplicateClient/1.0'
     };
 
     if (body) {

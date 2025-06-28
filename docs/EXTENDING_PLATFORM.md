@@ -1,32 +1,38 @@
-# 🛠️ AutoMarket - Adding New Providers, Models & Services
+# 🛠️ Prizm - Extending the SDK
 
-This guide shows you how to extend AutoMarket with new AI providers, models, and services. The platform is designed for easy extensibility using consistent interfaces and patterns.
+This guide shows you how to extend Prizm with new AI providers, models, and services. The SDK is designed for easy extensibility using consistent interfaces and patterns.
 
 ## 🎯 Quick Overview
 
-AutoMarket's extensible architecture follows these patterns:
-- **Providers**: Service integrations (FAL.ai, OpenAI, local Docker services)
-- **Models**: Specific AI model implementations (text-to-image, text-to-video, etc.)
-- **Clients**: API communication layers
-- **Services**: Docker-based local services
+Prizm's extensible architecture follows these patterns:
+- **Providers**: Integrations with external AI services (e.g., FAL.ai, OpenAI) or local Docker services.
+- **Models**: Specific AI model implementations (e.g., text-to-image, text-to-video, audio-to-text).
+- **Clients**: API communication layers for interacting with external services or local Docker services.
+- **Services**: Docker-based local services (e.g., FFMPEG, Chatterbox, Whisper).
 
 ## 🔌 Adding a New Remote API Provider
 
-Let's add a hypothetical "AmazingAI" provider that supports text-to-image generation.
+This section outlines the process of integrating a new remote AI API provider into Prizm, using a hypothetical "AmazingAI" provider as an example.
 
 ### Step 1: Create Provider Package Structure
+
+Organize the new provider's files within `src/media/providers/`:
+
 ```
 src/media/providers/amazingai/
-├── AmazingAiProvider.ts          # Main provider class
-├── AmazingAiClient.ts            # API client
-├── models/                       # Model implementations
-│   ├── AmazingAiTextToImageModel.ts
-│   └── AmazingAiTextToVideoModel.ts
-├── AmazingAiProvider.test.ts     # Tests
-└── index.ts                      # Package exports
+├── AmazingAiProvider.ts          # Main provider class, implements MediaProvider
+├── AmazingAiClient.ts            # API client for AmazingAI's external API
+├── models/                       # Directory for specific model implementations
+│   ├── AmazingAiTextToImageModel.ts # Example: Text-to-Image model
+│   └── AmazingAiTextToVideoModel.ts # Example: Text-to-Video model
+├── AmazingAiProvider.test.ts     # Unit tests for the provider
+└── index.ts                      # Exports for the AmazingAI provider package
 ```
 
-### Step 2: Implement the API Client
+### Step 2: Implement the API Client (`src/media/providers/amazingai/AmazingAiClient.ts`)
+
+Create a client to handle communication with the external API. This client should encapsulate API key handling, request formatting, and error handling.
+
 ```typescript
 // src/media/providers/amazingai/AmazingAiClient.ts
 import axios, { AxiosInstance } from 'axios';
@@ -63,7 +69,7 @@ export class AmazingAiClient {
       headers: {
         'Authorization': `Bearer ${this.config.apiKey}`,
         'Content-Type': 'application/json',
-        'User-Agent': 'AutoMarket/1.0'
+        'User-Agent': 'Prizm/1.0'
       }
     });
   }
@@ -97,7 +103,10 @@ export class AmazingAiClient {
 }
 ```
 
-### Step 3: Create Model Implementation
+### Step 3: Implement the Model (`src/media/providers/amazingai/models/AmazingAiTextToImageModel.ts`)
+
+Create concrete implementations for each AI model type supported by the provider. These models extend abstract base models (e.g., `TextToImageModel`) and implement the `transform` method to interact with the API client.
+
 ```typescript
 // src/media/providers/amazingai/models/AmazingAiTextToImageModel.ts
 import { TextToImageModel } from '../../../models/abstracts/TextToImageModel';
@@ -174,7 +183,10 @@ export class AmazingAiTextToImageModel extends TextToImageModel {
 }
 ```
 
-### Step 4: Implement the Provider
+### Step 4: Implement the Provider (`src/media/providers/amazingai/AmazingAiProvider.ts`)
+
+The main provider class implements the `MediaProvider` interface and relevant capability interfaces (e.g., `TextToImageProvider`). It handles configuration, model discovery, and provides methods to create model instances.
+
 ```typescript
 // src/media/providers/amazingai/AmazingAiProvider.ts
 import { 
@@ -189,6 +201,7 @@ import {
 import { TextToImageProvider } from '../../capabilities';
 import { AmazingAiClient, AmazingAiConfig } from './AmazingAiClient';
 import { AmazingAiTextToImageModel } from './models/AmazingAiTextToImageModel';
+import { ProviderRegistry } from '../../registry/ProviderRegistry'; // Import for self-registration
 
 export class AmazingAiProvider implements MediaProvider, TextToImageProvider {
   readonly id = 'amazingai';
@@ -375,11 +388,13 @@ export class AmazingAiProvider implements MediaProvider, TextToImageProvider {
 }
 
 // Auto-register with the provider registry
-import { ProviderRegistry } from '../../registry/ProviderRegistry';
 ProviderRegistry.getInstance().register('amazingai', AmazingAiProvider);
 ```
 
-### Step 5: Create Package Index
+### Step 5: Create Package Index (`src/media/providers/amazingai/index.ts`)
+
+Create an `index.ts` file to export the main components of the new provider, making them easily importable throughout the application.
+
 ```typescript
 // src/media/providers/amazingai/index.ts
 /**
@@ -398,7 +413,10 @@ export { AmazingAiClient } from './AmazingAiClient';
 export type { AmazingAiConfig, AmazingAiResponse } from './AmazingAiClient';
 ```
 
-### Step 6: Write Tests
+### Step 6: Write Tests (`src/media/providers/amazingai/AmazingAiProvider.test.ts`)
+
+Develop comprehensive unit and integration tests for the new provider and its models to ensure correct functionality and adherence to interfaces.
+
 ```typescript
 // src/media/providers/amazingai/AmazingAiProvider.test.ts
 import { AmazingAiProvider } from './AmazingAiProvider';
@@ -443,16 +461,22 @@ describe('AmazingAiProvider', () => {
 });
 ```
 
-### Step 7: Update Environment Configuration
+### Step 7: Update Environment Configuration (`.env.example` / `.env.local`)
+
+Add the necessary environment variables for the new provider's API keys or configuration to the `.env.example` file, and instruct users to add them to their `.env.local`.
+
 ```bash
 # Add to .env.local
 AMAZINGAI_API_KEY=your_amazing_ai_api_key_here
 ```
 
 ### Step 8: Usage Example
+
+Provide a clear example of how to use the newly integrated provider and its models.
+
 ```typescript
-import { AmazingAiProvider } from './src/media/providers/amazingai';
-import { Text } from './src/media/assets/roles';
+import { AmazingAiProvider } from '../../src/media/providers/amazingai'; // Adjusted import path for docs
+import { Text } from '../../src/media/assets/roles'; // Adjusted import path for docs
 
 // The provider auto-configures from environment variables
 const provider = new AmazingAiProvider();
@@ -474,26 +498,32 @@ console.log('✅ Generated image:', image.getMetadata());
 
 ## 🐳 Adding a New Docker Service
 
-Let's add a hypothetical "VideoAI" service that runs locally via Docker.
+This section details how to integrate a new local service that runs via Docker, using a hypothetical "VideoAI" service as an example. This is ideal for services that require local computation or specific environments.
 
 ### Step 1: Create Service Structure
+
+Organize the Docker service files within the `services/` directory and its corresponding provider implementation within `src/media/providers/docker/`.
+
 ```
 src/media/providers/docker/videoai/
-├── VideoAiDockerProvider.ts      # Docker provider implementation
-├── VideoAiAPIClient.ts           # API client for Docker service
-├── VideoAiLocalClient.ts         # Local fallback client
-├── models/                       # Model implementations
-│   └── VideoAiTextToVideoModel.ts
-└── index.ts                      # Package exports
+├── VideoAiDockerProvider.ts      # Docker provider implementation, extends DockerComposeService
+├── VideoAiAPIClient.ts           # API client for the local Docker service
+├── VideoAiLocalClient.ts         # Optional: Local fallback client if Docker isn't running
+├── models/                       # Directory for specific model implementations
+│   └── VideoAiTextToVideoModel.ts # Example: Text-to-Video model
+└── index.ts                      # Exports for the VideoAI Docker provider package
 
-services/videoai/                 # Docker service configuration
-├── docker-compose.yml            # Docker setup
-├── Dockerfile                    # Service container
-├── requirements.txt              # Dependencies
-└── app.py                        # Service application
+services/videoai/                 # Docker service configuration directory
+├── docker-compose.yml            # Defines the Docker service and its dependencies
+├── Dockerfile                    # Instructions for building the service's Docker image
+├── requirements.txt              # Python dependencies for the service (if applicable)
+└── app.py                        # The main application script for the Docker service
 ```
 
-### Step 2: Create Docker Service Configuration
+### Step 2: Create Docker Service Configuration (`services/videoai/`)
+
+Define the Docker Compose configuration, Dockerfile, and the service's application code.
+
 ```yaml
 # services/videoai/docker-compose.yml
 version: '3.8'
@@ -501,7 +531,7 @@ version: '3.8'
 services:
   videoai:
     build: .
-    container_name: automarket-videoai
+    container_name: prizm-videoai
     ports:
       - "8008:8008"
     environment:
@@ -554,7 +584,7 @@ from flask import Flask, request, jsonify, send_file
 import os
 import uuid
 import tempfile
-from videoai_processor import VideoAiProcessor
+from videoai_processor import VideoAiProcessor # Assuming this is a custom processing module
 
 app = Flask(__name__)
 processor = VideoAiProcessor()
@@ -603,7 +633,10 @@ if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8008, debug=False)
 ```
 
-### Step 3: Create Docker Provider Implementation
+### Step 3: Create Docker Provider Implementation (`src/media/providers/docker/videoai/VideoAiDockerProvider.ts`)
+
+Implement the `MediaProvider` interface for the Docker service. This class will manage the Docker service lifecycle (start, stop, status) and interact with its API client.
+
 ```typescript
 // src/media/providers/docker/videoai/VideoAiDockerProvider.ts
 import { 
@@ -616,10 +649,11 @@ import {
   GenerationResult
 } from '../../../types/provider';
 import { TextToVideoProvider } from '../../../capabilities';
-import { DockerComposeService } from '../../../services/DockerComposeService';
+import { DockerComposeService } from '../../../services/DockerComposeService'; // Assumed existing utility
 import { VideoAiAPIClient } from './VideoAiAPIClient';
-import { VideoAiLocalClient } from './VideoAiLocalClient';
+import { VideoAiLocalClient } from './VideoAiLocalClient'; // Optional local fallback
 import { VideoAiTextToVideoModel } from './models/VideoAiTextToVideoModel';
+import { ProviderRegistry } from '../../../registry/ProviderRegistry'; // Import for self-registration
 
 export interface VideoAiDockerConfig extends ProviderConfig {
   dockerServiceUrl?: string;
@@ -641,6 +675,11 @@ export class VideoAiDockerProvider implements MediaProvider, TextToVideoProvider
   private dockerService?: DockerComposeService;
   private apiClient?: VideoAiAPIClient;
   private localClient?: VideoAiLocalClient;
+
+  constructor() {
+    // Auto-configure from environment variables if needed
+    // For Docker services, explicit configuration is often preferred.
+  }
 
   get models(): ProviderModel[] {
     return [
@@ -810,9 +849,15 @@ export class VideoAiDockerProvider implements MediaProvider, TextToVideoProvider
     throw new Error('No available VideoAI client (Docker service down and no local fallback)');
   }
 }
+
+// Auto-register with the provider registry
+ProviderRegistry.getInstance().register('videoai-docker', VideoAiDockerProvider);
 ```
 
-### Step 4: Create API Client
+### Step 4: Create API Client (`src/media/providers/docker/videoai/VideoAiAPIClient.ts`)
+
+This client handles HTTP communication with the running Docker service.
+
 ```typescript
 // src/media/providers/docker/videoai/VideoAiAPIClient.ts
 import axios, { AxiosInstance } from 'axios';
@@ -888,9 +933,12 @@ export class VideoAiAPIClient {
 ```
 
 ### Step 5: Usage Example
+
+Demonstrate how to configure, start, and use the Docker-based provider.
+
 ```typescript
-import { VideoAiDockerProvider } from './src/media/providers/docker/videoai';
-import { Text } from './src/media/assets/roles';
+import { VideoAiDockerProvider } from '../../src/media/providers/docker/videoai'; // Adjusted import path for docs
+import { Text } from '../../src/media/assets/roles'; // Adjusted import path for docs
 
 // Configure the Docker provider
 const provider = new VideoAiDockerProvider();
@@ -926,9 +974,12 @@ if (started) {
 
 ## 🔧 Adding Custom Capabilities
 
-Sometimes you need to add entirely new capabilities to the system.
+To extend Prizm with entirely new types of AI capabilities (e.g., 3D model generation), you need to define new `MediaCapability` enums, create corresponding provider interfaces, and implement abstract models and asset types.
 
-### Step 1: Define New Capability
+### Step 1: Define New Capability (`src/media/types/provider.ts`)
+
+Add new capability types to the `MediaCapability` enum.
+
 ```typescript
 // src/media/types/provider.ts
 export enum MediaCapability {
@@ -937,16 +988,19 @@ export enum MediaCapability {
   TEXT_TO_VIDEO = 'text-to-video',
   TEXT_TO_AUDIO = 'text-to-audio',
   
-  // New custom capability
+  // New custom capabilities
   TEXT_TO_3D_MODEL = 'text-to-3d-model',
   IMAGE_TO_3D_MODEL = 'image-to-3d-model'
 }
 ```
 
-### Step 2: Create Capability Interface
+### Step 2: Create Capability Interface (`src/media/capabilities/TextTo3DProvider.ts`)
+
+Define an interface for providers that offer this new capability. This interface will specify the methods for creating models of this type.
+
 ```typescript
 // src/media/capabilities/TextTo3DProvider.ts
-import { TextTo3DModel } from '../models/abstracts/TextTo3DModel';
+import { TextTo3DModel } from '../models/abstracts/TextTo3DModel'; // Assumed new abstract model
 
 export interface TextTo3DProvider {
   createTextTo3DModel(modelId?: string): Promise<TextTo3DModel>;
@@ -955,27 +1009,33 @@ export interface TextTo3DProvider {
 }
 ```
 
-### Step 3: Create Abstract Model
+### Step 3: Create Abstract Model (`src/media/models/abstracts/TextTo3DModel.ts`)
+
+Create an abstract model class that extends `BaseModel` and defines the `transform` method for the new capability. This abstract class will be extended by concrete model implementations within providers.
+
 ```typescript
 // src/media/models/abstracts/TextTo3DModel.ts
 import { BaseModel } from './BaseModel';
 import { Text } from '../../assets/roles';
-import { ThreeDModel } from '../../assets/roles/ThreeDModel'; // New asset type
+import { ThreeDModel } from '../../assets/roles/ThreeDModel'; // Assumed new asset type
 
 export abstract class TextTo3DModel extends BaseModel<Text, ThreeDModel> {
   abstract transform(input: Text, options?: any): Promise<ThreeDModel>;
   
   async estimateCost(input: Text, options?: any): Promise<number> {
-    return 0.5; // Default cost estimate
+    return 0.5; // Default cost estimate (example)
   }
   
   async validateInput(input: Text): Promise<boolean> {
-    return input.getText().length > 0 && input.getText().length <= 1000;
+    return input.getText().length > 0 && input.getText().length <= 1000; // Example validation
   }
 }
 ```
 
-### Step 4: Create New Asset Type
+### Step 4: Create New Asset Type (`src/media/assets/roles/ThreeDModel.ts`)
+
+If the new capability generates a new type of media, define a new asset class that extends `BaseAsset` and includes relevant properties and methods for that asset type.
+
 ```typescript
 // src/media/assets/roles/ThreeDModel.ts
 import { BaseAsset } from '../Asset';
@@ -1002,14 +1062,12 @@ export class ThreeDModel extends BaseAsset {
   }
 
   async exportAs(format: 'obj' | 'fbx' | 'gltf' | 'stl'): Promise<ThreeDModel> {
-    // Implement format conversion logic
-    // This could use a 3D processing library like Three.js or Assimp
+    // Implement format conversion logic (e.g., using a 3D processing library)
     throw new Error('3D model format conversion not implemented');
   }
 
   async generateThumbnail(width = 256, height = 256): Promise<Buffer> {
-    // Implement 3D model thumbnail generation
-    // This could use a 3D rendering library
+    // Implement 3D model thumbnail generation (e.g., using a 3D rendering library)
     throw new Error('3D model thumbnail generation not implemented');
   }
 
@@ -1022,6 +1080,9 @@ export class ThreeDModel extends BaseAsset {
 ## 🎨 Advanced Customization Examples
 
 ### Custom Model with Streaming Support
+
+Models can be customized to support advanced features like real-time progress updates. This involves passing callback functions in the options and polling the service for status.
+
 ```typescript
 // Custom model with real-time progress updates
 export class CustomStreamingModel extends TextToImageModel {
@@ -1059,6 +1120,9 @@ export class CustomStreamingModel extends TextToImageModel {
 ```
 
 ### Custom Provider with Cost Optimization
+
+Providers can implement custom logic for model selection, such as automatically choosing the cheapest available model for a given capability.
+
 ```typescript
 // Provider that automatically selects cheapest model
 export class CostOptimizedProvider implements TextToImageProvider {
@@ -1096,13 +1160,13 @@ export class CostOptimizedProvider implements TextToImageProvider {
 
 ## 🚀 Next Steps
 
-With these patterns, you can extend AutoMarket with:
+With these patterns, you can extend Prizm with:
 
-- **New AI providers** (Stability AI, Midjourney, RunwayML, etc.)
-- **Custom Docker services** (background removal, upscaling, style transfer)
-- **New capabilities** (3D generation, AR/VR content, audio processing)
-- **Specialized models** (domain-specific AI, custom fine-tuned models)
-- **Advanced features** (cost optimization, quality scoring, A/B testing)
+-   **New AI providers** (Stability AI, Midjourney, RunwayML, etc.)
+-   **Custom Docker services** (background removal, upscaling, style transfer)
+-   **New capabilities** (3D generation, AR/VR content, audio processing)
+-   **Specialized models** (domain-specific AI, custom fine-tuned models)
+-   **Advanced features** (cost optimization, quality scoring, A/B testing)
 
 The unified architecture ensures that any new provider or service integrates seamlessly with the existing ecosystem, providing a consistent developer experience across all media processing capabilities.
 
@@ -1110,6 +1174,8 @@ The unified architecture ensures that any new provider or service integrates sea
 
 *For more information, see:*
 - [Provider System Architecture](./architecture/provider-system.md)
+- [Model Discovery Deep Dive](./architecture/model-discovery.md)
+- [Asset & Role System Architecture](./architecture/asset-system.md)
 - [Capability Interfaces](./architecture/capabilities.md)
 - [Docker Services Guide](./services/docker-services.md)
 - [Testing Guide](./testing/provider-testing.md)

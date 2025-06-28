@@ -1,6 +1,6 @@
 # FFMPEG Service
 
-A RESTful TypeScript service for FFMPEG operations, dockerized and ready for production use.
+A RESTful TypeScript service for FFMPEG operations, dockerized and ready for production use within the Prizm SDK ecosystem.
 
 ## Features
 
@@ -10,6 +10,7 @@ A RESTful TypeScript service for FFMPEG operations, dockerized and ready for pro
 - **Docker Support**: Full Docker and docker-compose integration
 - **TypeScript**: Fully typed with comprehensive error handling
 - **RESTful API**: Clean REST endpoints with proper HTTP status codes
+- **Prizm Integration**: Full compatibility with Smart Asset System (Layer 5)
 
 ## Quick Start
 
@@ -81,9 +82,9 @@ Environment variables:
 - `MAX_FILE_SIZE`: Max upload size in MB (default: 500)
 - `CORS_ORIGIN`: CORS origin (default: *)
 
-## Integration with AutoMarket
+## Integration with Prizm
 
-The service integrates with the AutoMarket media transformation system through:
+The service integrates with the Prizm media transformation system through:
 
 - **FFMPEGAPIClient**: HTTP client for API communication
 - **FFMPEGDockerService**: Docker service management

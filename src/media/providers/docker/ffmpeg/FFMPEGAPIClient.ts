@@ -95,7 +95,7 @@ export class FFMPEGAPIClient implements IFFMPEGClient {
       baseURL: this.config.baseUrl,
       timeout: this.config.timeout,
       headers: {
-        'User-Agent': 'AutoMarket-FFMPEG-Client/1.0.0'
+        'User-Agent': 'Prizm-FFMPEG-Client/1.0.0'
       }
     });
 

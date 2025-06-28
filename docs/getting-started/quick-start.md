@@ -1,13 +1,13 @@
 # Quick Start Guide
 
-## 🚀 Get Started in 5 Minutes
+## 🚀 Get Started with Prizm in 5 Minutes
 
-This guide will get you up and running with the AutoMarket Media Transformation System in just a few minutes.
+This guide will get you up and running with the Prizm Media Transformation SDK in just a few minutes.
 
 ## 📋 Prerequisites
 
 - **Node.js 18+** with npm
-- **Docker** with GPU support (for TTS service)
+- **Docker** with GPU support (for local services - optional)
 - **Git** for cloning the repository
 
 ## ⚡ Quick Setup
@@ -17,7 +17,7 @@ This guide will get you up and running with the AutoMarket Media Transformation 
 ```bash
 # Clone the repository
 git clone <repository-url>
-cd AutoMarket
+cd prizm
 
 # Install dependencies
 npm install
@@ -26,7 +26,7 @@ npm install
 npm run test
 ```
 
-### 2. Start a Service
+### 2. Start a Service (Optional)
 
 #### Option A: Text-to-Speech (Chatterbox TTS)
 
@@ -73,7 +73,7 @@ async function generateSpeech() {
   
   // Generate speech from text
   const result = await ttsService.generateTTS(
-    'Hello! Welcome to AutoMarket Media Transformation!',
+    'Hello! Welcome to Prizm Media Transformation!',
     './output/welcome.mp3'
   );
   

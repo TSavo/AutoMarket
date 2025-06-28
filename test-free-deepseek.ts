@@ -47,9 +47,8 @@ class OpenRouterClient {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${this.apiKey}`,
-        'Content-Type': 'application/json',
-        'HTTP-Referer': 'https://automarket.ai',
-        'X-Title': 'AutoMarket AI Model Discovery'
+        'Content-Type': 'application/json',        'HTTP-Referer': 'https://prizm.ai',
+        'X-Title': 'Prizm AI Model Discovery'
       },
       body: JSON.stringify(request)
     });

@@ -1,6 +1,20 @@
 {
-  "name": "automarket",
+  "name": "prizm",
   "version": "0.1.0",
+  "description": "Media Transformation SDK - Unified access to 15+ AI providers through clean provider→model→transform architecture",
+  "keywords": [
+    "ai",
+    "media",
+    "transformation",
+    "sdk",
+    "typescript",
+    "providers",
+    "langchain",
+    "agents",
+    "multimodal"
+  ],
+  "main": "src/media/index.ts",
+  "types": "src/media/index.ts",
   "private": true,
   "overrides": {
     "tr46": "5.1.1",

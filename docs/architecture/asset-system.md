@@ -2,7 +2,7 @@
 
 ## 🎯 Overview
 
-The AutoMarket Asset & Role System provides intelligent, format-agnostic media loading with automatic capability detection. The system uses role-based mixins to dynamically add functionality to assets based on their format, enabling type-safe transformations across different media types.
+The Prizm Asset & Role System provides intelligent, format-agnostic media loading with automatic capability detection. The system uses role-based mixins to dynamically add functionality to assets based on their format, enabling type-safe transformations across different media types.
 
 ## 🏗️ Core Architecture
 
@@ -11,7 +11,9 @@ The AutoMarket Asset & Role System provides intelligent, format-agnostic media l
 The `SmartAssetFactory` and `AssetLoader` provide the main entry point for loading media assets:
 
 ```typescript
-// Single entry point for any media format
+// Single entry point for any media format - Layer 5 of Prizm SDK
+import { AssetLoader } from 'prizm';
+
 const asset = AssetLoader.load('video.mp4');  // Auto-detects as Video + Audio
 const video = await asset.asVideo();           // Access video functionality
 const audio = await asset.asAudio();           // Extract audio via FFMPEG
@@ -31,10 +33,15 @@ Format Detection → Role Assignment → Capability Enhancement
 
 ## 🎭 Role System
 
-### Core Role Interfaces
+Prizm uses a role-based system to dynamically assign capabilities to assets. This is achieved through TypeScript mixins that implement specific role interfaces.
 
-#### AudioRole
+### Core Role Interfaces (`src/media/assets/roles/index.ts`)
+
+These interfaces define the methods and properties available for different media types:
+
+#### `AudioRole`
 ```typescript
+// src/media/assets/roles/index.ts
 interface AudioRole {
   asAudio(): Promise<Audio>;
   getDuration(): Promise<number>;
@@ -49,8 +56,9 @@ interface AudioRole {
 }
 ```
 
-#### VideoRole
+#### `VideoRole`
 ```typescript
+// src/media/assets/roles/index.ts
 interface VideoRole {
   asVideo(): Promise<Video>;
   getDuration(): Promise<number>;
@@ -65,8 +73,9 @@ interface VideoRole {
 }
 ```
 
-#### TextRole
+#### `TextRole`
 ```typescript
+// src/media/assets/roles/index.ts
 interface TextRole {
   asText(): Promise<Text>;
   getContent(): Promise<string>;
@@ -80,8 +89,9 @@ interface TextRole {
 }
 ```
 
-#### ImageRole
+#### `ImageRole`
 ```typescript
+// src/media/assets/roles/index.ts
 interface ImageRole {
   asImage(): Promise<Image>;
   getDimensions(): Promise<{ width: number; height: number }>;
@@ -95,12 +105,12 @@ interface ImageRole {
 }
 ```
 
-### Role Mixins
+### Role Mixins (`src/media/assets/mixins/index.ts`)
 
-Roles are applied using TypeScript mixins for dynamic capability enhancement:
+Roles are applied using TypeScript mixins for dynamic capability enhancement. These mixins extend the `BaseAsset` with the methods defined in the role interfaces.
 
 ```typescript
-// Mixin implementations
+// src/media/assets/mixins/index.ts
 export function withAudioRole<T extends Constructor<BaseAsset>>(Base: T) {
   return class extends Base implements AudioRole {
     async asAudio(): Promise<Audio> {
@@ -114,18 +124,19 @@ export function withAudioRole<T extends Constructor<BaseAsset>>(Base: T) {
     
     async extractSegment(start: number, duration: number): Promise<Audio> {
       // Use FFMPEG to extract audio segment
-      const ffmpegProvider = getFFMPEGProvider();
+      const ffmpegProvider = getFFMPEGProvider(); // Assumes a helper to get the provider
       return await ffmpegProvider.extractAudioSegment(this.path, start, duration);
     }
   };
 }
 ```
 
-## 📁 Format Registry
+## 📁 Format Registry (`src/media/assets/SmartAssetFactory.ts`)
 
-The system maintains a comprehensive registry of supported formats:
+The system maintains a comprehensive `FORMAT_REGISTRY` that maps file extensions to their `FormatInfo`, which includes the `category` (e.g., 'audio', 'video', 'image', 'text') and the `roles` (e.g., 'audio', 'speech', 'video', 'image', 'text') an asset of that format can play. This registry is crucial for the `SmartAssetFactory` to correctly detect capabilities and assign roles.
 
 ```typescript
+// src/media/assets/SmartAssetFactory.ts
 const FORMAT_REGISTRY: Record<string, FormatInfo> = {
   // Audio formats - can play audio and speech roles
   mp3: { 
@@ -185,10 +196,16 @@ const FORMAT_REGISTRY: Record<string, FormatInfo> = {
 };
 ```
 
-## 🔧 Asset Creation Flow
+## 🔧 Asset Creation Flow (`src/media/assets/SmartAssetFactory.ts`)
+
+The process of creating a `SmartAsset` involves several steps, orchestrated by the `SmartAssetFactory` (aliased as `AssetLoader`):
 
 ### 1. Format Detection
+
+The `detectFormatFromPath` function determines the `FormatInfo` for a given file path by looking up its extension in the `FORMAT_REGISTRY`.
+
 ```typescript
+// src/media/assets/SmartAssetFactory.ts
 export function detectFormatFromPath(filePath: string): FormatInfo | null {
   const extension = path.extname(filePath).toLowerCase().substring(1);
   return FORMAT_REGISTRY[extension] || null;
@@ -196,7 +213,11 @@ export function detectFormatFromPath(filePath: string): FormatInfo | null {
 ```
 
 ### 2. Role Assignment
+
+The `createAssetWithRoles` function dynamically applies role mixins to a `BaseAsset` instance based on the detected `FormatInfo`. This is where the asset gains its specific capabilities (e.g., `asVideo()`, `asAudio()`).
+
 ```typescript
+// src/media/assets/SmartAssetFactory.ts
 export function createAssetWithRoles(filePath: string, metadata: AssetMetadata): BaseAsset & AnyRole {
   const formatInfo = detectFormatFromPath(filePath);
   if (!formatInfo) {
@@ -224,6 +245,9 @@ export function createAssetWithRoles(filePath: string, metadata: AssetMetadata):
 ```
 
 ### 3. Type-Safe Usage
+
+Once an asset is created with its assigned roles, TypeScript's type narrowing can be used with type guards to safely access role-specific methods.
+
 ```typescript
 // Automatic type detection and role assignment
 const asset = AssetLoader.load('presentation.mp4');
@@ -240,12 +264,12 @@ if (hasAudioRole(asset)) {
 }
 ```
 
-## 🛡️ Type Guards
+## 🛡️ Type Guards (`src/media/assets/mixins/index.ts`)
 
-Type guards provide runtime type checking for roles:
+Type guards are essential for runtime type checking and ensuring type safety when working with dynamically assigned roles. They allow you to narrow the type of an asset to a specific role.
 
 ```typescript
-// Role type guards
+// src/media/assets/mixins/index.ts
 export function hasAudioRole(asset: any): asset is AudioRole {
   return asset && typeof asset.asAudio === 'function';
 }
@@ -272,11 +296,12 @@ if (hasVideoRole(asset) && hasAudioRole(asset)) {
 
 ## 📊 Asset Types
 
-### Concrete Asset Classes
+### Concrete Asset Classes (`src/media/assets/roles/index.ts`)
 
-The system provides concrete asset classes for specific format combinations:
+For specific, common media types, the system provides concrete asset classes that pre-apply the relevant role mixins.
 
 ```typescript
+// src/media/assets/roles/index.ts
 // MP3Asset - Audio Role Only
 export class MP3Asset extends withAudioRole(BaseAsset) {
   constructor(filePath: string, metadata: AssetMetadata) {
@@ -299,11 +324,12 @@ export class PNGAsset extends withImageRole(BaseAsset) {
 }
 ```
 
-### Generic Asset Creation
+### Generic Asset Creation (`src/media/assets/SmartAssetFactory.ts`)
 
-For maximum flexibility, the factory creates generic assets with appropriate roles:
+The `SmartAssetFactory` provides the `createAsset` and `load` methods to generate generic assets with dynamically assigned roles based on their file path.
 
 ```typescript
+// src/media/assets/SmartAssetFactory.ts
 export class SmartAssetFactory {
   static createAsset(filePath: string): BaseAsset & AnyRole {
     const formatInfo = detectFormatFromPath(filePath);
@@ -329,12 +355,12 @@ export const AssetLoader = SmartAssetFactory;
 
 ### Cross-Format Transformations
 
-Assets can be transformed between formats using their role capabilities:
+Assets can be transformed between different media formats by leveraging their assigned role capabilities. These transformations often involve the use of underlying providers like FFMPEG or AI models.
 
 ```typescript
 // Video to Audio extraction
 const videoAsset = AssetLoader.load('movie.mp4');
-const audio = await videoAsset.extractAudio();  // Returns Audio object
+const extractedAudio = await videoAsset.extractAudio();
 
 // Text to Speech
 const textAsset = AssetLoader.load('script.txt');
@@ -347,21 +373,21 @@ const transcript = await audioAsset.toText();  // Returns Text object
 
 ### Provider Integration
 
-Asset transformations automatically use appropriate providers:
+Asset role methods automatically integrate with the appropriate `MediaProvider` instances to perform transformations. This abstraction ensures that the user doesn't need to directly manage provider instances for common operations.
 
 ```typescript
-// Asset roles automatically use the best available provider
+// Example from a Role Mixin (e.g., src/media/assets/mixins/AudioRoleMixin.ts)
 class AudioRoleMixin {
   async toText(): Promise<Text> {
     // Automatically uses Whisper STT provider
-    const whisperProvider = getWhisperProvider();
+    const whisperProvider = getWhisperProvider(); // Assumes a helper to get the provider
     const model = await whisperProvider.createAudioToTextModel('whisper-large');
     return await model.transform(this);
   }
   
   async changeSpeed(factor: number): Promise<Audio> {
     // Automatically uses FFMPEG provider
-    const ffmpegProvider = getFFMPEGProvider();
+    const ffmpegProvider = getFFMPEGProvider(); // Assumes a helper to get the provider
     const model = await ffmpegProvider.createAudioFilterModel('speed-change');
     return await model.transform(this, { speedFactor: factor });
   }
@@ -370,11 +396,12 @@ class AudioRoleMixin {
 
 ## 📝 Metadata System
 
-### Asset Metadata
+### Asset Metadata (`src/media/types/asset.ts`)
 
-Each asset maintains comprehensive metadata:
+Each asset maintains comprehensive metadata, defined by the `AssetMetadata` interface. This includes basic file information and format-specific details.
 
 ```typescript
+// src/media/types/asset.ts
 interface AssetMetadata {
   // Basic file information
   filename: string;
@@ -402,12 +429,13 @@ interface AssetMetadata {
 }
 ```
 
-### Metadata Extraction
+### Metadata Extraction (`src/media/assets/SmartAssetFactory.ts`)
 
-Metadata is extracted automatically during asset creation:
+Metadata is automatically extracted during asset creation by the `MetadataExtractor` (or similar logic within `SmartAssetFactory`). This process identifies the file type and then uses appropriate methods to gather detailed information.
 
 ```typescript
-class MetadataExtractor {
+// src/media/assets/SmartAssetFactory.ts (simplified example)
+class MetadataExtractor { // This might be an internal static method or a separate utility
   static async extractMetadata(filePath: string): Promise<AssetMetadata> {
     const stats = await fs.promises.stat(filePath);
     const formatInfo = detectFormatFromPath(filePath);
@@ -440,7 +468,7 @@ class MetadataExtractor {
 
 ### Basic Asset Loading
 ```typescript
-import { AssetLoader } from './src/media/assets';
+import { AssetLoader, hasVideoRole, hasAudioRole } from '../../src/media/assets'; // Adjusted import path for docs
 
 // Auto-detect format and roles
 const videoAsset = AssetLoader.load('presentation.mp4');
@@ -455,6 +483,8 @@ const resolution = await videoAsset.getResolution();
 
 ### Cross-Format Transformations
 ```typescript
+import { AssetLoader } '../../src/media/assets'; // Adjusted import path for docs
+
 // Video to audio extraction
 const videoAsset = AssetLoader.load('movie.mp4');
 const extractedAudio = await videoAsset.extractAudio();
@@ -465,11 +495,13 @@ const fasterSpeech = await audioAsset.changeSpeed(1.5);
 
 // Text to speech
 const textAsset = AssetLoader.load('script.txt');
-const speechAudio = await textAsset.toSpeech('en-US-GuyNeural');
+const speechAudio = await textAsset.toSpeech('en-US-AriaNeural');
 ```
 
 ### Type-Safe Role Checking
 ```typescript
+import { BaseAsset, AnyRole, hasVideoRole, hasAudioRole } from '../../src/media/assets'; // Adjusted import path for docs
+
 function processAsset(asset: BaseAsset & AnyRole) {
   if (hasVideoRole(asset)) {
     // TypeScript knows asset has video capabilities
@@ -489,6 +521,10 @@ function processAsset(asset: BaseAsset & AnyRole) {
 
 ### Batch Processing
 ```typescript
+import { AssetLoader, hasVideoRole, hasAudioRole } from '../../src/media/assets'; // Adjusted import path for docs
+import * as fs from 'fs';
+import * as path from 'path';
+
 async function processMediaDirectory(directoryPath: string) {
   const files = await fs.promises.readdir(directoryPath);
   
@@ -538,3 +574,4 @@ async function processMediaDirectory(directoryPath: string) {
 2. **Caching**: Cache asset instances for repeated access
 3. **Parallel Processing**: Use Promise.all for independent asset operations
 4. **Memory Management**: Clean up large assets when no longer needed
+

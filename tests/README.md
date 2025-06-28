@@ -1,6 +1,6 @@
 # Test Organization
 
-This document describes the current test files and their organization in the AutoMarket project.
+This document describes the current test files and their organization in the Prizm SDK project.
 
 ## Test Directory Structure
 

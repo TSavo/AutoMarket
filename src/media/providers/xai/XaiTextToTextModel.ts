@@ -2,7 +2,7 @@ import { TextToTextModel, TextToTextOptions } from '../../models/abstracts/TextT
 import { ModelMetadata } from '../../models/abstracts/Model';
 import { Text, TextRole } from '../../assets/roles';
 import { XaiAPIClient } from './XaiAPIClient';
-import { createGenerationPrompt } from '../../utils/GenerationPromptHelper';
+import { createGenerationPrompt, extractInputContent } from '../../utils/GenerationPromptHelper';
 
 export interface XaiTextToTextConfig {
   apiClient: XaiAPIClient;
@@ -35,10 +35,17 @@ export class XaiTextToTextModel extends TextToTextModel {
     this.modelId = config.modelId;
   }
 
-  async transform(input: TextRole | TextRole[], options?: XaiTextToTextOptions): Promise<Text> {
+  async transform(input: TextRole | TextRole[] | string | string[], options?: XaiTextToTextOptions): Promise<Text> {
     const startTime = Date.now();
     const inputRole = Array.isArray(input) ? input[0] : input;
-    const text = await inputRole.asText();
+    
+    // Handle both TextRole and string inputs
+    let text: Text;
+    if (typeof inputRole === 'string') {
+      text = Text.fromString(inputRole);
+    } else {
+      text = await inputRole.asText();
+    }
 
     if (!text.isValid()) {
       throw new Error('Invalid text data provided');

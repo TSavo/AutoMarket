@@ -1,43 +1,46 @@
-# 🌟 AutoMarket - Complete Platform Overview
+# 🌟 Prizm - Complete SDK Overview
 
-## 🎯 **What Is AutoMarket?**
+## 🎯 **What Is Prizm?**
 
-AutoMarket is the **most advanced multi-provider AI media processing platform ever built**. It unifies 15+ AI providers, supports 500+ models, and makes complex media pipelines as simple as one line of code.
+Prizm is the **TypeScript SDK that provides unified access to 15+ AI providers through a clean provider→model→transform architecture**. It offers multiple interface layers from zero-config one-liners to maximum-control APIs.
 
-Think of it as **the ultimate AI orchestration platform** where you can:
-- Generate content with **any AI provider** through identical APIs
-- Build **Hollywood-level video compositions** with professional tools
-- Create **multi-provider pipelines** that leverage the best of each service
+Think of it as **the ultimate media transformation SDK** where you can:
+- Access **any AI provider** through identical interfaces
+- Build **complex media pipelines** with simple, elegant code
+- Use **layered APIs** from one-liners to enterprise-grade control
 - Scale from **prototype to production** without architectural changes
 
-## 🚀 **Why AutoMarket is Revolutionary**
+## 🚀 **Why Prizm is Revolutionary**
 
-### 🎪 **Unified Multi-Provider Architecture**
-Instead of learning 15 different APIs, you learn **one interface** that works with everything:
+### 🎪 **Layered Architecture Design**
+Instead of learning 15 different APIs, you get **10 layers** of abstraction:
 
 ```typescript
-// Same pattern works with ANY provider
-const provider = new [FalAi|Replicate|Together|OpenRouter|HuggingFace]Provider();
-const model = await provider.createTextToImageModel();
-const result = await model.transform(input);
+// Layer 1: Core SDK - Maximum Control
+const registry = ProviderRegistry.getInstance();
+const provider = await registry.getProvider('replicate');
+const model = await provider.getModel('flux-schnell');
+const result = await model.transform(input, options);
+
+// Layer 2: Fluent API - Zero Config
+const result = await $("replicate")("flux-schnell")(input);
+
+// Layer 3: REST API - Language Agnostic
+POST /api/v1/transform/replicate/flux-schnell
 ```
 
 ### ⚡ **One-Line Magic**
 Complex AI operations become trivial:
 
 ```typescript
-// Complete video pipeline in one line
-const epic = await new FFMPEGCompositionBuilder()
-  .compose(await (await new FalAiProvider().createTextToVideoModel()).transform('Epic scene'))
-  .addOverlay(await (await new ReplicateProvider().createTextToImageModel()).transform('Logo'))
-  .transform(ffmpegModel);
+// Generate epic content with zero configuration
+const image = await $("replicate")("flux-schnell")("Epic dragon scene");
+const video = await $("runway")("gen-3")("Dragon flying through clouds");
+const audio = await $("chatterbox")("voice-clone")("Professional narration");
 ```
 
-### 🎬 **Hollywood-Level Video Composition**
-Professional video editing capabilities that rival industry tools:
-
-```typescript
-const masterpiece = await new FFMPEGCompositionBuilder()
+### � **Smart Asset System**
+Format-agnostic loading with automatic capability detection:
   .prepend(brandIntro)                    // Professional intro
   .compose(aiGeneratedContent)            // AI-generated main content
   .append(callToAction)                   // Compelling outro
@@ -267,7 +270,7 @@ custom-service:
     - MODEL_CACHE_DIR=/app/models
 ```
 
-## 🎉 **Why Choose AutoMarket?**
+## 🎉 **Why Choose Prizm?**
 
 ### 🚀 **Unmatched Capabilities**
 - **15+ providers** in one unified platform
@@ -297,8 +300,8 @@ custom-service:
 
 ```bash
 # Clone and set up
-git clone https://github.com/your-org/automarket
-cd automarket
+git clone https://github.com/your-org/prizm
+cd prizm
 pnpm install
 
 # Add your API keys
@@ -321,7 +324,7 @@ npm run start
 
 ## 🎬 **Ready to Create Something Epic?**
 
-AutoMarket isn't just another AI platform - it's **the foundation for the next generation of AI-powered media creation**. Whether you're building:
+Prizm isn't just another AI SDK - it's **the foundation for the next generation of AI-powered media creation**. Whether you're building:
 
 - 🎭 **Creative tools** for artists and content creators
 - 🏢 **Enterprise solutions** for marketing teams
@@ -329,6 +332,6 @@ AutoMarket isn't just another AI platform - it's **the foundation for the next g
 - 🌍 **Global applications** with multi-language support
 - 🚀 **Next-generation products** that push the boundaries
 
-**AutoMarket gives you the power to make it happen!**
+**Prizm gives you the power to make it happen!**
 
 *From one line of code to Hollywood-level productions - the future of AI media processing is here! 🌟*

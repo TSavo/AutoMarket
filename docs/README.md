@@ -1,52 +1,42 @@
-# 🎯 AutoMarket Documentation Index
+# � Prizm SDK Documentation
 
-Welcome to the most comprehensive AI media processing platform documentation! Find everything you need to harness the power of 15+ AI providers, 500+ models, and unlimited creative possibilities.
+Welcome to the comprehensive documentation for **Prizm** - the TypeScript SDK that provides unified access to 15+ AI providers through a clean provider→model→transform architecture!
 
-## 🚀 **Quick Start & One-Liners**
+## 🚀 **Quick Start & Examples**
 
-### ⚡ [One-Liner Magic](./ONE_LINER_MAGIC.md)
-**Generate epic content with single lines of code!**
-- Instant image, video, and audio generation
+### ⚡ [Getting Started](./getting-started/quick-start-new.md)
+**Get started in 5 minutes!**
+- Installation and setup
+- Core SDK usage
+- Fluent API examples  
+- REST API integration
+
+### � [Awesome Examples](./AWESOME_EXAMPLES.md) 
+**Epic one-liners and advanced pipelines!**
+- Instant media generation: `$("replicate")("flux-schnell")("A dragon")`
 - Smart asset loading and conversion
-- Provider-agnostic quick commands
-- Creative one-liner combinations
+- Multi-provider orchestration
+- AI agent integration patterns
 
-### 🌟 [Awesome Examples](./AWESOME_EXAMPLES.md) 
-**Epic multi-provider pipelines and use cases!**
-- Ultimate marketing video creation pipeline (5 AI providers)
-- Multi-language global content generation
-- Advanced green screen composition
-- Real-time collaborative editing
-- AI quality control and A/B testing
-
-### 🎪 [Provider Showcase](./PROVIDER_SHOWCASE.md)
+### � [Provider Showcase](./PROVIDER_SHOWCASE.md)
 **Advanced multi-provider orchestration!**
 - 15+ provider unified workflows
 - Auto-scaling media factory patterns
 - Cost optimization strategies  
 - Enterprise-grade architectures
-- Creative pipeline examples
 
 ## 🛠️ **Development & Extension**
 
-### 🔧 [Extending the Platform](./EXTENDING_PLATFORM.md)
+### 🔧 [Extending Prizm](./EXTENDING_PLATFORM.md)
 **Add new providers, models, and services!**
 - Complete new provider implementation guide
 - Adding Docker-based local services
 - Custom capabilities and model types
 - Advanced customization patterns
-- Enterprise integration examples
-
-### 📖 [Getting Started Guide](./getting-started/quick-start-new.md)
-**Complete setup and first steps**
-- Installation and configuration
-- Environment setup
-- First provider integration
-- Basic usage patterns
 
 ## 🏗️ **Architecture Deep Dives**
 
-### 🔌 [Provider System Architecture](./architecture/provider-system.md)
+### 🔌 [Provider System](./architecture/provider-system.md)
 **Multi-provider unified architecture**
 - Provider-centric organization
 - Remote API vs Docker services
@@ -196,7 +186,7 @@ Whether you're creating:
 - 🏭 **Enterprise-scale media processing** with auto-scaling
 - 🎪 **Interactive collaborative tools** with real-time AI
 
-AutoMarket provides the unified platform to make it happen!
+Prizm provides the unified SDK to make it happen!
 
 **Start with a one-liner, scale to the entire AI ecosystem! 🚀**
 

@@ -4,7 +4,7 @@
  * Shows the beautiful syntax that works right now
  */
 
-import { $ } from './src/media/fluent/FluentProvider';
+import { $ } from './src/media/index';
 import { Text } from './src/media/assets/roles/classes/Text';
 
 async function simpleWorkingDemo() {
@@ -19,7 +19,7 @@ async function simpleWorkingDemo() {
     
     // Traditional working syntax
     const provider = await $("openrouter");
-    const model = provider.model("meta-llama/llama-3.3-8b-instruct:free");
+    const model = await provider.model("meta-llama/llama-3.3-8b-instruct:free");
     const result1 = await model.transform(originalText, {
       system: "Enhance this into a vivid image description in under 50 words.",
       temperature: 0.8
@@ -33,7 +33,7 @@ async function simpleWorkingDemo() {
       try {
         // This should work now: provider("model-id") returns a callable model
         console.log('🔧 Testing direct function call syntax...');
-        const directModel = provider("mistralai/mistral-7b-instruct:free");
+        const directModel = await provider("mistralai/mistral-7b-instruct:free");
         console.log('✅ Model proxy created:', typeof directModel);
         
         // Check if it's callable
@@ -50,7 +50,7 @@ async function simpleWorkingDemo() {
           console.log('   Available methods:', Object.getOwnPropertyNames(directModel));
           
           // Try the transform method instead
-          const result2 = await directModel.transform(result1, {
+          const result2 = await (directModel as any).transform(result1, {
             system: "Make this description more cinematic and epic.",
             temperature: 0.6
           });

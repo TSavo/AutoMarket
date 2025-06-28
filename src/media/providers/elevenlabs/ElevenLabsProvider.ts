@@ -11,6 +11,24 @@ import { ProviderRegistry } from '../../registry/ProviderRegistry';
 import { ElevenLabsClient, ElevenLabsConfig } from './ElevenLabsClient';
 
 export class ElevenLabsProvider implements MediaProvider, TextToAudioProvider {
+  async createTextToAudioModel(modelId: string): Promise<ElevenLabsTextToAudioModel> {
+    await this.ensureConfigured();
+    if (!this.apiClient) throw new Error('Provider not configured');
+    return new ElevenLabsTextToAudioModel({ apiClient: this.apiClient, voiceId: modelId });
+  }
+
+  getSupportedTextToAudioModels(): string[] {
+    return Array.from(this.discoveredModels.keys());
+  }
+
+  supportsTextToAudioModel(modelId: string): boolean {
+    return this.discoveredModels.has(modelId);
+  }
+
+  async startService(): Promise<boolean> { return true; }
+  async stopService(): Promise<boolean> { return true; }
+  async getServiceStatus() { return { running: true, healthy: await this.isAvailable(), error: undefined }; }
+
   readonly id = 'elevenlabs';
   readonly name = 'ElevenLabs';
   readonly type = ProviderType.REMOTE;

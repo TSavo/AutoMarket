@@ -1,13 +1,13 @@
-# AutoMarket Quick Start Guide
+# Prizm Quick Start Guide
 
 ## 🎯 Overview
 
-This guide will help you get AutoMarket up and running quickly. AutoMarket is a comprehensive media processing platform that unifies multiple AI providers and local Docker services under a common interface.
+This guide will help you get Prizm up and running quickly. Prizm is a comprehensive TypeScript SDK that provides unified access to 15+ AI providers through a clean provider→model→transform architecture.
 
 ## 📋 Prerequisites
 
 - **Node.js** 18+ and npm
-- **Docker** and Docker Compose (for local services)
+- **Docker** and Docker Compose (for local services - optional)
 - **Git** for version control
 - **API Keys** for providers you want to use (optional for getting started)
 
@@ -16,7 +16,7 @@ This guide will help you get AutoMarket up and running quickly. AutoMarket is a 
 ### 1. Clone the Repository
 ```bash
 git clone <repository-url>
-cd AutoMarket
+cd prizm
 ```
 
 ### 2. Install Dependencies
@@ -78,7 +78,7 @@ Create `test-basic.ts`:
 import { TogetherProvider } from './src/media/providers/together';
 
 async function testBasicConnection() {
-  console.log('🧪 Testing AutoMarket Basic Setup...\n');
+  console.log('🧪 Testing Prizm Basic Setup...\n');
   
   // Test provider creation (no API key needed for this)
   const provider = new TogetherProvider();
@@ -111,7 +111,7 @@ async function testAssetLoading() {
   
   // Create a simple test file
   const testFile = 'test.txt';
-  fs.writeFileSync(testFile, 'Hello, AutoMarket!');
+  fs.writeFileSync(testFile, 'Hello, Prizm!');
   
   try {
     // Load asset with automatic role detection
@@ -193,7 +193,7 @@ async function testRealAPI() {
           console.log('🚀 Testing with free model:', freeTextModel.name);
           const model = await provider.createTextToTextModel(freeTextModel.id);
           
-          const input = new Text('Hello, AutoMarket!');
+          const input = new Text('Hello, Prizm!');
           const result = await model.transform(input);
           
           console.log('✅ Generated text:', result.content.substring(0, 100) + '...');
@@ -372,7 +372,7 @@ const result = await composer.transform(ffmpegModel);
 
 ## 🎯 What's Next?
 
-Now that you have AutoMarket running, explore these areas:
+Now that you have Prizm running, explore these areas:
 
 1. **[Provider System](../architecture/provider-system.md)**: Learn about the multi-provider architecture
 2. **[Asset System](../architecture/asset-system.md)**: Understand smart asset loading and roles
@@ -389,4 +389,4 @@ For production deployment:
 4. **Monitoring**: Set up health checks and monitoring
 5. **Security**: Secure API keys and service endpoints
 
-Ready to build amazing media applications with AutoMarket! 🎉
+Ready to build amazing media applications with Prizm! 🎉

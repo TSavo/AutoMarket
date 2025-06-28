@@ -6,14 +6,14 @@
  */
 
 import { TextToImageModel, TextToImageOptions } from '../../../models/abstracts/TextToImageModel';
-import { Image, TextRole } from '../../../assets/roles';
+import { Image, TextRole, Text } from '../../../assets/roles';
 import { ModelMetadata } from '../../../models/abstracts/Model';
 import { 
   HuggingFaceAPIClient, 
   HuggingFaceGenerationRequest,
   ModelLoadRequest 
 } from './HuggingFaceAPIClient';
-import { createGenerationPrompt } from '../../../utils/GenerationPromptHelper';
+import { createGenerationPrompt, extractInputContent } from '../../../utils/GenerationPromptHelper';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
@@ -79,12 +79,17 @@ export class HuggingFaceDockerModel extends TextToImageModel {
   /**
    * Transform text to image using HuggingFace model
    */
-  async transform(input: TextRole | TextRole[], options?: HuggingFaceTextToImageOptions): Promise<Image> {
-    // Handle array input - get first element for single image generation
+  async transform(input: TextRole | TextRole[] | string | string[], options?: HuggingFaceTextToImageOptions): Promise<Image> {
+    // Handle both array and single input
     const inputRole = Array.isArray(input) ? input[0] : input;
-
-    // Cast input to Text
-    const text = await inputRole.asText();
+    
+    // Handle both TextRole and string inputs
+    let text: Text;
+    if (typeof inputRole === 'string') {
+      text = Text.fromString(inputRole);
+    } else {
+      text = await inputRole.asText();
+    }
 
     if (!text.isValid()) {
       throw new Error('Invalid text data provided');

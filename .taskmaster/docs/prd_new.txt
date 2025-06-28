@@ -1,4 +1,4 @@
-# AutoMarket Media Processing Platform - Current Architecture (Updated June 2025)
+# Prizm Media Processing Platform - Current Architecture (Updated June 2025)
 
 ## 🎯 CURRENT STATE - PRODUCTION ARCHITECTURE
 

@@ -1,6 +1,6 @@
 import { TextToAudioModel, TextToAudioOptions } from '../../models/abstracts/TextToAudioModel';
 import { ModelMetadata } from '../../models/abstracts/Model';
-import { TextRole, Audio } from '../../assets/roles';
+import { TextRole, Audio, Text } from '../../assets/roles';
 import { SmartAssetFactory } from '../../assets/SmartAssetFactory';
 import { CreatifyClient } from './CreatifyClient';
 import * as fs from 'fs';
@@ -37,9 +37,15 @@ export class CreatifyTextToAudioModel extends TextToAudioModel {
     this.defaultVoiceId = config.defaultVoiceId;
   }
 
-  async transform(input: TextRole | TextRole[], options?: CreatifyTextToAudioOptions): Promise<Audio> {
+  async transform(input: TextRole | TextRole[] | string | string[], options?: CreatifyTextToAudioOptions): Promise<Audio> {
     const role = Array.isArray(input) ? input[0] : input;
-    const text = await role.asText();
+    // Handle both TextRole and string inputs
+    let text: Text;
+    if (typeof role === 'string') {
+      text = Text.fromString(role);
+    } else {
+      text = await role.asText();
+    }
     if (!text.isValid()) throw new Error('Invalid text input');
     const voiceId = options?.voiceId || this.defaultVoiceId;
     if (!voiceId) throw new Error('voiceId is required');
@@ -81,7 +87,7 @@ export class CreatifyTextToAudioModel extends TextToAudioModel {
 
   async getAvailableVoices(): Promise<string[]> {
     const voices = await this.client.api.avatar.getVoices();
-    return voices.map(v => v.id);
+    return voices.map(v => v.id).filter((id): id is string => id !== undefined);
   }
 
   supportsVoiceCloning(): boolean {

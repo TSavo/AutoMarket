@@ -1,6 +1,6 @@
 # Provider-Centric Organization
 
-This directory organizes all provider-related components by **provider domain** rather than by component type. This makes development and maintenance much easier.
+This directory organizes all provider-related components by **provider domain** within the Prizm SDK architecture. This makes development and maintenance much easier within the provider→model→transform pattern.
 
 ## Structure
 

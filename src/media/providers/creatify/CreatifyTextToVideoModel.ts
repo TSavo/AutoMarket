@@ -1,6 +1,6 @@
 import { TextToVideoModel, TextToVideoOptions } from '../../models/abstracts/TextToVideoModel';
 import { ModelMetadata } from '../../models/abstracts/Model';
-import { TextRole, Video } from '../../assets/roles';
+import { TextRole, Video, Text } from '../../assets/roles';
 import { SmartAssetFactory } from '../../assets/SmartAssetFactory';
 import { CreatifyClient } from './CreatifyClient';
 import * as fs from 'fs';
@@ -41,9 +41,18 @@ export class CreatifyTextToVideoModel extends TextToVideoModel {
     this.defaultVoiceId = config.defaultVoiceId;
   }
 
-  async transform(input: TextRole | TextRole[], options?: CreatifyTextToVideoOptions): Promise<Video> {
-    const role = Array.isArray(input) ? input[0] : input;
-    const text = await role.asText();
+  async transform(input: TextRole | TextRole[] | string | string[], options?: CreatifyTextToVideoOptions): Promise<Video> {
+    // Handle both array and single input
+    const inputRole = Array.isArray(input) ? input[0] : input;
+    
+    // Handle both TextRole and string inputs
+    let text: Text;
+    if (typeof inputRole === 'string') {
+      text = Text.fromString(inputRole);
+    } else {
+      text = await inputRole.asText();
+    }
+    
     if (!text.isValid()) {
       throw new Error('Invalid text input');
     }
@@ -58,7 +67,7 @@ export class CreatifyTextToVideoModel extends TextToVideoModel {
       text: text.content,
       creator: avatarId,
       aspect_ratio: (options?.aspectRatio as any) || '16:9',
-      accent: voiceId
+      voice_id: voiceId
     });
 
     if (!result.output) {
@@ -105,5 +114,15 @@ export class CreatifyTextToVideoModel extends TextToVideoModel {
 
   getMaxResolution() {
     return { width: 1920, height: 1080 };
+  }
+
+  estimateProcessingTime(prompt: string, options?: CreatifyTextToVideoOptions): number {
+    // Placeholder for estimation logic
+    return 30; // seconds
+  }
+
+  supportsFeature(feature: string): boolean {
+    // Placeholder for feature support
+    return false;
   }
 }

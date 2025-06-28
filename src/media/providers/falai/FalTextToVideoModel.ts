@@ -7,13 +7,13 @@
 
 import { ModelMetadata } from '../../models/abstracts/Model';
 import { TextToVideoModel, TextToVideoOptions } from '../../models/abstracts/TextToVideoModel';
-import { Video, TextRole } from '../../assets/roles';
+import { Video, TextRole, Text } from '../../assets/roles';
 import { FalAiClient, FalModelMetadata } from './FalAiClient';
 import { SmartAssetFactory } from '../../assets/SmartAssetFactory';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
-import { createGenerationPrompt } from '../../utils/GenerationPromptHelper';
+import { createGenerationPrompt, extractInputContent } from '../../utils/GenerationPromptHelper';
 
 export interface FalModelConfig {
   client: FalAiClient;
@@ -52,12 +52,17 @@ export class FalTextToVideoModel extends TextToVideoModel {
   /**
    * Transform text to video using specific fal.ai text-to-video model
    */
-  async transform(input: TextRole | TextRole[], options?: TextToVideoOptions): Promise<Video> {
+  async transform(input: TextRole | TextRole[] | string | string[], options?: TextToVideoOptions): Promise<Video> {
     // Handle array input - get first element for single video generation
-    const inputRole = Array.isArray(input) ? input[0] : input;
+    let textRole: TextRole;
+    if (Array.isArray(input)) {
+      textRole = typeof input[0] === 'string' ? new Text(input[0]) : input[0];
+    } else {
+      textRole = typeof input === 'string' ? new Text(input) : input;
+    }
 
     // Cast input to Text
-    const text = await inputRole.asText();
+    const text = await textRole.asText();
 
     if (!text.isValid()) {
       throw new Error('Invalid text data provided');

@@ -1,4 +1,4 @@
-import { Creatify, CreatifyApiOptions } from '@tsavo/creatify-api-ts';
+import { Creatify } from '@tsavo/creatify-api-ts';
 
 export interface CreatifyConfig {
   apiId: string;
@@ -9,10 +9,10 @@ export interface CreatifyConfig {
 export class CreatifyClient {
   private client: Creatify;
   constructor(config: CreatifyConfig) {
-    const options: CreatifyApiOptions = {
+    const options: any = {
       apiId: config.apiId,
       apiKey: config.apiKey,
-    } as CreatifyApiOptions;
+    };
     if (config.baseUrl) options.baseUrl = config.baseUrl;
     this.client = new Creatify(options);
   }

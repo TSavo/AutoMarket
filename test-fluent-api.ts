@@ -6,7 +6,7 @@
  * $("provider")("model-id").transform(input, options)  // Alternative syntax
  */
 
-import { $ } from './src/media/fluent/FluentProvider';
+import { $ } from './src/media/index';
 import { Text } from './src/media/assets/roles/classes/Text';
 
 async function testFluentAPI() {
@@ -24,8 +24,8 @@ async function testFluentAPI() {
     const openrouterProvider = await $("openrouter");
     console.log(`✅ Got provider: ${openrouterProvider.getProviderInfo().id}`);
     
-    const deepseekModel = openrouterProvider.model("deepseek/deepseek-chat:free");
-    console.log(`✅ Got model: ${deepseekModel.getModelInfo().modelId}`);
+    const deepseekModel = await openrouterProvider.model("deepseek/deepseek-chat:free");
+    console.log(`✅ Got model: ${(await deepseekModel.getModelInfo()).modelId}`);
     
     console.log('🚀 Starting transformation...');
     const enhancedText = await deepseekModel.transform(originalText, {
@@ -40,8 +40,8 @@ async function testFluentAPI() {
     
     // Test chained syntax: $("provider").model("model").transform() in one go
     console.log('🔧 Using chained fluent syntax...');
-    const imageResult = await (await $("replicate"))
-      .model("black-forest-labs/flux-schnell")
+    const imageResult = await (await (await $("replicate"))
+      .model("black-forest-labs/flux-schnell"))
       .transform(enhancedText, {
         aspect_ratio: "16:9",
         steps: 4,
@@ -56,7 +56,7 @@ async function testFluentAPI() {
     
     try {
       // This syntax: provider("model")(input, options)
-      const audioResult = await (await $("together"))("cartesia/sonic-english")(originalText, {
+      const audioResult = await (await (await $("together"))("cartesia/sonic-english"))(originalText, {
         voice: "male",
         speed: 1.1,
         output_format: "mp3"

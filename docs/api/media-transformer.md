@@ -2,7 +2,7 @@
 
 ## 🎯 Overview
 
-The MediaTransformer interface provides a unified API for all media transformations in the AutoMarket system. This document provides comprehensive API documentation with examples and best practices.
+The MediaTransformer interface provides a unified API for all media transformations in the Prizm system. This document provides comprehensive API documentation with examples and best practices.
 
 ## 📋 Interface Definition
 

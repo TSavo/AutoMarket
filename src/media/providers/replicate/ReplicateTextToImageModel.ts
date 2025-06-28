@@ -6,7 +6,7 @@
 
 import { ModelMetadata } from '../../models/abstracts/Model';
 import { TextToImageModel, TextToImageOptions } from '../../models/abstracts/TextToImageModel';
-import { Image, ImageFormat, TextRole } from '../../assets/roles';
+import { Image, ImageFormat, TextRole, Text } from '../../assets/roles';
 import { GenerationPrompt } from '../../assets/roles/types/metadata';
 import { ReplicateClient, ReplicateModelMetadata } from './ReplicateClient';
 import Replicate from 'replicate';
@@ -58,12 +58,17 @@ export class ReplicateTextToImageModel extends TextToImageModel {
   /**
    * Transform text to image using specific Replicate text-to-image model
    */
-  async transform(input: TextRole | TextRole[], options?: TextToImageOptions): Promise<Image> {
-    // Handle array input - get first element for single image generation
+  async transform(input: TextRole | TextRole[] | string | string[], options?: TextToImageOptions): Promise<Image> {
+    // Handle both array and single input
     const inputRole = Array.isArray(input) ? input[0] : input;
-
-    // Cast input to Text
-    const text = await inputRole.asText();
+    
+    // Handle both TextRole and string inputs
+    let text: Text;
+    if (typeof inputRole === 'string') {
+      text = Text.fromString(inputRole);
+    } else {
+      text = await inputRole.asText();
+    }
 
     if (!text.isValid()) {
       throw new Error('Invalid text data provided');
@@ -96,7 +101,7 @@ export class ReplicateTextToImageModel extends TextToImageModel {
             modelUsed: this.modelMetadata.id,
             options: options,
             predictionId: prediction.id,
-            generation_prompt: this.createGenerationPrompt(inputRole, options)
+            generation_prompt: this.createGenerationPrompt(text, options)
           }
         );
 

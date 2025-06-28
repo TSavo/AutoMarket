@@ -6,10 +6,10 @@
  */
 
 import { TextToAudioModel, TextToAudioOptions } from '../../../models/abstracts/TextToAudioModel';
-import { Audio, AudioRole, TextRole } from '../../../assets/roles';
+import { Audio, AudioRole, TextRole, Text } from '../../../assets/roles';
 import { ZonosDockerService } from '../../../services/ZonosDockerService';
 import { ZonosAPIClient, ZonosTTSRequest, EmotionConfig, ConditioningConfig, GenerationConfig, UnconditionalConfig } from './ZonosAPIClient';
-import { createGenerationPrompt } from '../../../utils/GenerationPromptHelper';
+import { createGenerationPrompt, extractInputContent } from '../../../utils/GenerationPromptHelper';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
@@ -76,12 +76,19 @@ export class ZonosTextToAudioModel extends TextToAudioModel {
   /**
    * Transform text to audio using Docker-based Zonos TTS
    */
-  async transform(input: TextRole | TextRole[], options?: ZonosDockerTTSOptions): Promise<Audio> {
+  async transform(input: TextRole | TextRole[] | string | string[], options?: ZonosDockerTTSOptions): Promise<Audio> {
     const startTime = Date.now();
 
-    // Handle array input - get first element for single audio generation
-    const inputRole = Array.isArray(input) ? input[0] : input;    // Get text from the TextRole
-    const text = await inputRole.asText();
+    // Handle both array and single input
+    const inputRole = Array.isArray(input) ? input[0] : input;
+
+    // Handle both TextRole and string inputs
+    let text: Text;
+    if (typeof inputRole === 'string') {
+      text = Text.fromString(inputRole);
+    } else {
+      text = await inputRole.asText();
+    }
     
     // Validate text data
     if (!text.isValid()) {
@@ -94,7 +101,9 @@ export class ZonosTextToAudioModel extends TextToAudioModel {
     
     if (enableSequenceBuilding && text.content.length > maxSingleChunkLength) {
       console.log(`[ZonosTextToAudioModel] Text length ${text.content.length} exceeds ${maxSingleChunkLength}, using sequence building`);
-      return await this.transformWithSequenceBuilder(inputRole, text, options);
+      // If inputRole is a string, convert it to a TextRole (using Text class)
+      const textRole = typeof inputRole === 'string' ? text : inputRole;
+      return await this.transformWithSequenceBuilder(textRole, text, options);
     }    // Ensure service is running
     const serviceStarted = await this.ensureServiceRunning();
     if (!serviceStarted) {

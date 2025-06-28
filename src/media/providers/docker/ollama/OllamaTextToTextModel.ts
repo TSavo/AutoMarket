@@ -2,7 +2,7 @@ import { TextToTextModel, TextToTextOptions } from '../../../models/abstracts/Te
 import { ModelMetadata } from '../../../models/abstracts/Model';
 import { Text, TextRole } from '../../../assets/roles';
 import { OllamaAPIClient } from './OllamaAPIClient';
-import { createGenerationPrompt } from '../../../utils/GenerationPromptHelper';
+import { createGenerationPrompt, extractInputContent } from '../../../utils/GenerationPromptHelper';
 
 export interface OllamaTextToTextConfig {
   apiClient: OllamaAPIClient;
@@ -31,10 +31,18 @@ export class OllamaTextToTextModel extends TextToTextModel {
     this.modelId = config.modelId;
   }
 
-  async transform(input: TextRole | TextRole[], options?: TextToTextOptions): Promise<Text> {
+  async transform(input: TextRole | TextRole[] | string | string[], options?: TextToTextOptions): Promise<Text> {
     const start = Date.now();
-    const role = Array.isArray(input) ? input[0] : input;
-    const text = await role.asText();
+    
+    let textRole: TextRole;
+    if (Array.isArray(input)) {
+      textRole = typeof input[0] === 'string' ? new Text(input[0]) : input[0];
+    } else {
+      textRole = typeof input === 'string' ? new Text(input) : input;
+    }
+
+    const text = await textRole.asText();
+    
     if (!text.isValid()) {
       throw new Error('Invalid text input');
     }

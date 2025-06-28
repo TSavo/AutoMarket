@@ -1,11 +1,11 @@
 import { TextToAudioModel, TextToAudioOptions } from '../../models/abstracts/TextToAudioModel';
 import { ModelMetadata } from '../../models/abstracts/Model';
-import { Audio, TextRole } from '../../assets/roles';
+import { Audio, TextRole, Text } from '../../assets/roles';
 import { ElevenLabsClient } from './ElevenLabsClient';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
-import { createGenerationPrompt } from '../../utils/GenerationPromptHelper';
+import { createGenerationPrompt, extractInputContent } from '../../utils/GenerationPromptHelper';
 
 export interface ElevenLabsTTSOptions extends TextToAudioOptions {
   voice?: string;
@@ -43,9 +43,17 @@ export class ElevenLabsTextToAudioModel extends TextToAudioModel {
     this.modelId = config.modelId;
   }
 
-  async transform(input: TextRole | TextRole[], options?: ElevenLabsTTSOptions): Promise<Audio> {
+  async transform(input: TextRole | TextRole[] | string | string[], options?: ElevenLabsTTSOptions): Promise<Audio> {
     const role = Array.isArray(input) ? input[0] : input;
-    const text = await role.asText();
+    
+    // Handle both TextRole and string inputs
+    let text: Text;
+    if (typeof role === 'string') {
+      text = Text.fromString(role);
+    } else {
+      text = await role.asText();
+    }
+    
     if (!text.isValid()) throw new Error('Invalid text');
 
     const voiceId = options?.voice || this.voiceId;
@@ -58,16 +66,17 @@ export class ElevenLabsTextToAudioModel extends TextToAudioModel {
     const filePath = path.join(tempDir, fileName);
     fs.writeFileSync(filePath, audioBuffer);
 
-    const result = new Audio(filePath, 'mp3' as any, 1.0, {
+    const result = new Audio(audioBuffer, role, {
+      format: 'mp3',
       generation_prompt: createGenerationPrompt({
-        input,
+        input: text.content,
         options,
         modelId: voiceId,
         modelName: voiceId,
         provider: 'elevenlabs',
         transformationType: 'text-to-audio'
       })
-    }, role.sourceAsset);
+    });
     return result;
   }
 

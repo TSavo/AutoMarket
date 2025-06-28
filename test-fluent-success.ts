@@ -4,7 +4,7 @@
  * Demonstrates the working FluentProvider patterns with available models
  */
 
-import { $ } from './src/media/fluent/FluentProvider';
+import { $ } from './src/media/index';
 import { Text } from './src/media/assets/roles/classes/Text';
 
 async function demonstrateFluentSuccess() {
@@ -17,8 +17,8 @@ async function demonstrateFluentSuccess() {
 
     console.log('\n=== Pattern 1: Basic Fluent Chaining ===');
       // Beautiful fluent syntax: $("provider").model("model").transform()
-    const result1 = await (await $("openrouter"))
-      .model("meta-llama/llama-3.3-8b-instruct:free")
+    const result1 = await (await (await $("openrouter"))
+      .model("meta-llama/llama-3.3-8b-instruct:free"))
       .transform(originalText, {
         system: "Enhance this into a vivid image description in under 50 words.",
         temperature: 0.8
@@ -30,8 +30,8 @@ async function demonstrateFluentSuccess() {
     console.log('\n=== Pattern 2: Chained with Different Model ===');
     
     // Another transformation using the enhanced text
-    const result2 = await (await $("openrouter"))
-      .model("mistralai/mistral-7b-instruct:free")
+    const result2 = await (await (await $("openrouter"))
+      .model("mistralai/mistral-7b-instruct:free"))
       .transform(result1, {
         system: "Make this description more cinematic and epic.",
         temperature: 0.6
@@ -43,10 +43,10 @@ async function demonstrateFluentSuccess() {
     console.log('\n=== Pattern 3: Model Information ===');
       // Show fluent provider capabilities
     const provider = await $("openrouter");
-    const model = provider.model("meta-llama/llama-3.3-8b-instruct:free");
+    const model = await provider.model("meta-llama/llama-3.3-8b-instruct:free");
     
     console.log('🔧 Provider Info:', provider.getProviderInfo().id);
-    console.log('🤖 Model Info:', model.getModelInfo());
+    console.log('🤖 Model Info:', await model.getModelInfo());
 
     console.log('\n🎉 FluentProvider SUCCESS!');
     console.log('\n💡 Perfect Foundation for Pipeline DSL:');

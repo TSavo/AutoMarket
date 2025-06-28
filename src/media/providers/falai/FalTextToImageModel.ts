@@ -7,13 +7,13 @@
 
 import { ModelMetadata } from '../../models/abstracts/Model';
 import { TextToImageModel, TextToImageOptions } from '../../models/abstracts/TextToImageModel';
-import { Image, ImageFormat, TextRole } from '../../assets/roles';
+import { Image, ImageFormat, TextRole, Text } from '../../assets/roles';
 import { FalAiClient, FalModelMetadata } from './FalAiClient';
 import { SmartAssetFactory } from '../../assets/SmartAssetFactory';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
-import { createGenerationPrompt } from '../../utils/GenerationPromptHelper';
+import { createGenerationPrompt, extractInputContent } from '../../utils/GenerationPromptHelper';
 
 export interface FalModelConfig {
   client: FalAiClient;
@@ -52,12 +52,18 @@ export class FalTextToImageModel extends TextToImageModel {
   /**
    * Transform text to image using specific fal.ai text-to-image model
    */
-  async transform(input: TextRole | TextRole[], options?: TextToImageOptions): Promise<Image> {
+  async transform(input: TextRole | TextRole[] | string | string[], options?: TextToImageOptions): Promise<Image> {
     // Handle array input - get first element for single image generation
     const inputRole = Array.isArray(input) ? input[0] : input;
 
     // Cast input to Text
-    const text = await inputRole.asText();
+    // Handle both TextRole and string inputs
+    let text: Text;
+    if (typeof inputRole === 'string') {
+      text = Text.fromString(inputRole);
+    } else {
+      text = await inputRole.asText();
+    }
 
     if (!text.isValid()) {
       throw new Error('Invalid text data provided');

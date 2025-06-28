@@ -63,14 +63,18 @@ export class KokoroDockerModel extends TextToAudioModel {
   /**
    * Transform text to audio using Docker-based Kokoro TTS
    */
-  async transform(input: TextRole | TextRole[], options?: KokoroDockerTTSOptions): Promise<Audio> {
+  async transform(input: TextRole | TextRole[] | string | string[], options?: KokoroDockerTTSOptions): Promise<Audio> {
     const startTime = Date.now();
 
-    // Handle array input - get first element for single audio generation
-    const inputRole = Array.isArray(input) ? input[0] : input;
+    let textRole: TextRole;
+    if (Array.isArray(input)) {
+      textRole = typeof input[0] === 'string' ? new Text(input[0]) : input[0];
+    } else {
+      textRole = typeof input === 'string' ? new Text(input) : input;
+    }
 
     // Get text from the TextRole
-    const text = await inputRole.asText();
+    const text = await textRole.asText();
     
     // Validate text data
     if (!text.isValid()) {

@@ -6,14 +6,14 @@
  */
 
 import { TextToImageModel, TextToImageOptions } from '../../models/abstracts/TextToImageModel';
-import { Image, TextRole } from '../../assets/roles';
+import { Image, TextRole, Text } from '../../assets/roles';
 import { ModelMetadata } from '../../models/abstracts/Model';
 import { TogetherAPIClient, TogetherModel } from './TogetherAPIClient';
 import axios from 'axios';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
-import { createGenerationPrompt } from '../../utils/GenerationPromptHelper';
+import { createGenerationPrompt, extractInputContent } from '../../utils/GenerationPromptHelper';
 
 export interface TogetherTextToImageOptions extends TextToImageOptions {
   model?: string;
@@ -59,15 +59,19 @@ export class TogetherTextToImageModel extends TextToImageModel {
   }
   /**
    * Transform text to image using Together AI
-   */
-  async transform(input: TextRole | TextRole[], options?: TogetherTextToImageOptions): Promise<Image> {
+   */  async transform(input: TextRole | TextRole[] | string | string[], options?: TogetherTextToImageOptions): Promise<Image> {
     const startTime = Date.now();
 
     // Handle array input - get first element for single image generation
     const inputRole = Array.isArray(input) ? input[0] : input;
 
-    // Get text from the TextRole
-    const text = await inputRole.asText();
+    // Handle both TextRole and string inputs
+    let text: Text;
+    if (typeof inputRole === 'string') {
+      text = Text.fromString(inputRole);
+    } else {
+      text = await inputRole.asText();
+    }
 
     // Validate text data
     if (!text.isValid()) {

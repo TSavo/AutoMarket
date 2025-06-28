@@ -7,13 +7,13 @@
 
 import { TextToAudioModel, TextToAudioOptions } from '../../models/abstracts/TextToAudioModel';
 import { ModelMetadata } from '../../models/abstracts/Model';
-import { Audio, TextRole, AudioRole } from '../../assets/roles';
+import { Audio, TextRole, AudioRole, Text } from '../../assets/roles';
 import { TogetherAPIClient, TogetherModel } from './TogetherAPIClient';
 import axios from 'axios';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
-import { createGenerationPrompt } from '../../utils/GenerationPromptHelper';
+import { createGenerationPrompt, extractInputContent } from '../../utils/GenerationPromptHelper';
 
 export interface TogetherTextToAudioOptions extends TextToAudioOptions {
   model?: string;
@@ -57,21 +57,25 @@ export class TogetherTextToAudioModel extends TextToAudioModel {
    * Transform text to audio using Together AI (Cartesia Sonic)
    */
   async transform(
-    inputOrText: TextRole | TextRole[],
+    inputOrText: TextRole | TextRole[] | string | string[],
     options?: TogetherTextToAudioOptions
   ): Promise<Audio> {
     const startTime = Date.now();
 
     // Check if voice cloning is requested (not supported by Cartesia Sonic)
     if (options?.voiceToClone) {
-      throw new Error('Voice cloning is not supported by Cartesia Sonic models. Use basic text-to-speech instead.');
-    }
+      throw new Error('Voice cloning is not supported by Cartesia Sonic models. Use basic text-to-speech instead.');    }
 
     // Handle array input - get first element for single audio generation
     const inputRole = Array.isArray(inputOrText) ? inputOrText[0] : inputOrText;
 
-    // Get text from the TextRole
-    const text = await inputRole.asText();
+    // Handle both TextRole and string inputs
+    let text: Text;
+    if (typeof inputRole === 'string') {
+      text = Text.fromString(inputRole);
+    } else {
+      text = await inputRole.asText();
+    }
     if (!text.isValid()) {
       throw new Error('Invalid text data provided');
     }

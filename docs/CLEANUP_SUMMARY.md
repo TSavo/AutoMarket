@@ -90,4 +90,4 @@ The documentation now accurately reflects:
 ### Created
 - `tests/README.md` (test organization guide)
 
-The documentation now provides an accurate reflection of the current AutoMarket media processing platform architecture and capabilities.
+The documentation now provides an accurate reflection of the current Prizm media processing platform architecture and capabilities.

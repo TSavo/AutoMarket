@@ -13,7 +13,7 @@ import Replicate from 'replicate';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
-import { createGenerationPrompt } from '../../utils/GenerationPromptHelper';
+import { createGenerationPrompt, extractInputContent } from '../../utils/GenerationPromptHelper';
 
 export interface ReplicateModelConfig {
   client: ReplicateClient;
@@ -53,12 +53,17 @@ export class ReplicateTextToAudioModel extends TextToAudioModel {
   /**
    * Transform text to audio using specific Replicate TTS model
    */
-  async transform(input: TextRole | TextRole[], options?: TextToAudioOptions): Promise<Audio> {
+  async transform(input: TextRole | TextRole[] | string | string[], options?: TextToAudioOptions): Promise<Audio> {
     // Handle array input - get first element for single audio generation
-    const inputRole = Array.isArray(input) ? input[0] : input;
+    let textRole: TextRole;
+    if (Array.isArray(input)) {
+      textRole = typeof input[0] === 'string' ? new Text(input[0]) : input[0];
+    } else {
+      textRole = typeof input === 'string' ? new Text(input) : input;
+    }
 
     // Get text from the TextRole
-    const text = await inputRole.asText();
+    const text = await textRole.asText();
 
     if (!text.isValid()) {
       throw new Error('Invalid text data provided');

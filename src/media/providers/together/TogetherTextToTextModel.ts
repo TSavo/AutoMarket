@@ -9,7 +9,7 @@ import { TextToTextModel, TextToTextOptions } from '../../models/abstracts/TextT
 import { ModelMetadata } from '../../models/abstracts/Model';
 import { Text, TextRole } from '../../assets/roles';
 import { TogetherAPIClient } from './TogetherAPIClient';
-import { createGenerationPrompt } from '../../utils/GenerationPromptHelper';
+import { createGenerationPrompt, extractInputContent } from '../../utils/GenerationPromptHelper';
 
 export interface TogetherTextToTextOptions extends TextToTextOptions {
   systemPrompt?: string;
@@ -49,14 +49,18 @@ export class TogetherTextToTextModel extends TextToTextModel {
   /**
    * Transform text to text using Together AI
    */
-  async transform(input: TextRole | TextRole[], options?: TogetherTextToTextOptions): Promise<Text> {
-    const startTime = Date.now();
+  async transform(input: TextRole | TextRole[] | string | string[], options?: TogetherTextToTextOptions): Promise<Text> {    const startTime = Date.now();
 
     // Handle array input - get first element for single text generation
     const inputRole = Array.isArray(input) ? input[0] : input;
 
-    // Get text from the TextRole
-    const text = await inputRole.asText();
+    // Handle both TextRole and string inputs
+    let text: Text;
+    if (typeof inputRole === 'string') {
+      text = Text.fromString(inputRole);
+    } else {
+      text = await inputRole.asText();
+    }
 
     // Validate text data
     if (!text.isValid()) {

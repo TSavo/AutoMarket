@@ -1,6 +1,6 @@
 # Provider Capabilities
 
-This directory contains **provider capability interfaces** that define what functionality providers can offer. This is distinct from **asset roles** which define what data types assets can provide.
+This directory contains **provider capability interfaces** that define what functionality providers can offer within the Prizm SDK architecture. This is distinct from **asset roles** which define what data types assets can provide.
 
 ## Key Distinction
 

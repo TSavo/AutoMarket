@@ -2,7 +2,7 @@
  * Test the Beautiful Direct Syntax: provider("model")(input, options)
  */
 
-import { $ } from './src/media/fluent/FluentProvider';
+import { $ } from './src/media/index';
 import { Text } from './src/media/assets/roles/classes/Text';
 
 async function testDirectCallSyntax() {
@@ -18,10 +18,10 @@ async function testDirectCallSyntax() {
     const provider = await $("openrouter");
     console.log('✅ Provider loaded');
 
-    // Test the beautiful direct syntax (no more waiting needed!)
-    console.log('🚀 Testing: provider("model")(input, options)');
+    // Test the beautiful direct syntax (with proper await handling)
+    console.log('🚀 Testing: (await provider("model"))(input, options)');
     
-    const result1 = await provider("meta-llama/llama-3.3-8b-instruct:free")(originalText, {
+    const result1 = await (await provider("meta-llama/llama-3.3-8b-instruct:free"))(originalText, {
       system: "Transform this into a cinematic description in under 40 words.",
       temperature: 0.7
     });
@@ -33,7 +33,7 @@ async function testDirectCallSyntax() {
     console.log('\n=== Chaining Multiple Direct Calls ===');
     
     // Chain multiple direct calls
-    const result2 = await provider("mistralai/mistral-7b-instruct:free")(result1, {
+    const result2 = await (await provider("mistralai/mistral-7b-instruct:free"))(result1, {
       system: "Make this description more poetic and mystical.",
       temperature: 0.6
     });
@@ -45,7 +45,7 @@ async function testDirectCallSyntax() {
     console.log('\n=== Testing Mixed Syntax ===');
     
     // Test that traditional syntax still works
-    const result3 = await provider.model("mistralai/mistral-7b-instruct:free").transform(result2, {
+    const result3 = await (await provider.model("mistralai/mistral-7b-instruct:free")).transform(result2, {
       system: "Summarize this in exactly 20 words.",
       temperature: 0.5
     });

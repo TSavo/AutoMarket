@@ -2,7 +2,7 @@
 
 ## 🎯 Overview
 
-The Docker Self-Management system allows services to automatically manage their own Docker containers without external orchestration. This approach provides:
+The Docker Self-Management system allows Prizm services to automatically manage their own Docker containers without external orchestration. This approach provides:
 
 - **Autonomy**: Services control their own lifecycle
 - **Simplicity**: No external orchestration required
@@ -23,7 +23,7 @@ interface LocalServiceManager {
 }
 ```
 
-**Purpose**: Defines the contract for services that manage local Docker containers.
+**Purpose**: Defines the contract for services that manage local Docker containers within the Prizm ecosystem.
 
 ### 2. DockerComposeService (DRY Component)
 

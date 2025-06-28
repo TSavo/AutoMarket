@@ -2,7 +2,7 @@
 
 ## 🎯 Overview
 
-The MediaTransformer interface is the cornerstone of the AutoMarket Media Transformation System. It provides a unified, type-safe API for all media transformations, ensuring consistency across different service implementations.
+The MediaTransformer interface is the cornerstone of the Prizm Media Transformation System. It provides a unified, type-safe API for all media transformations, ensuring consistency across different service implementations within the provider→model→transform architecture.
 
 ## 📋 Interface Definition
 

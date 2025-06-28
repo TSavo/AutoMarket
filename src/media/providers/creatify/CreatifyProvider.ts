@@ -91,8 +91,8 @@ export class CreatifyProvider implements MediaProvider, TextToVideoProvider, Tex
   getSupportedTextToAudioModels(): string[] { return ['creatify-tts']; }
   supportsTextToAudioModel(modelId: string): boolean { return modelId === 'creatify-tts'; }
 
-  async startService(): Promise<void> {}
-  async stopService(): Promise<void> {}
+  async startService(): Promise<boolean> { return true; }
+  async stopService(): Promise<boolean> { return true; }
   async getServiceStatus() { return { running: true, healthy: await this.isAvailable(), error: undefined }; }
 
   async generate(request: GenerationRequest): Promise<GenerationResult> {

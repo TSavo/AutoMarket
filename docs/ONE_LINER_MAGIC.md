@@ -1,43 +1,46 @@
-# 🎯 AutoMarket - One-Liner Magic & Quick Examples
+# 🎯 Prizm - One-Liner Magic & Quick Examples
 
-The most powerful media processing platform ever built, now available in one-line commands! AutoMarket makes complex AI operations as simple as a single function call while providing unlimited scalability and customization.
+The most elegant media transformation SDK ever built! Prizm makes complex AI operations as simple as a single function call while providing unlimited scalability and customization through its layered architecture.
 
 ## ⚡ The Ultimate One-Liners
 
 ### 🖼️ **Instant Image Generation**
 ```typescript
-// Any provider, best quality, zero configuration
-const image = await (await (await getBestTextToImageProvider()).createTextToImageModel()).transform('Cyberpunk cat with neon eyes');
+// Fluent API - zero configuration required
+const image = await $("replicate")("flux-schnell")('Cyberpunk cat with neon eyes');
+const proImage = await $("falai")("flux-pro")('Professional headshot', { steps: 4 });
 ```
 
 ### 🎬 **Instant Video Generation**  
 ```typescript
 // One line from text to video
-const video = await (await new FalAiProvider().createTextToVideoModel('runway-gen3')).transform('Dragon flying through clouds');
+const video = await $("runway")("gen-3")('Dragon flying through clouds');
+const animation = await $("replicate")("animate")(heroImage, { duration: 5 });
 ```
 
 ### 🎵 **Instant Audio Generation**
 ```typescript
-// Text to speech in one line
-const audio = await (await new TogetherProvider().createTextToAudioModel()).transform('Welcome to the future!');
+// Text to speech in one line - local or remote
+const audio = await $("chatterbox")("voice-clone")('Welcome to the future!');
+const speech = await $("huggingface")("mms-tts")('Professional narration');
 ```
 
 ### 🗣️ **Instant Speech Recognition**
 ```typescript
 // Video to transcript in one line  
-const transcript = await (await AssetLoader.load('video.mp4')).asSpeech().transcribe();
+const transcript = await AssetLoader.load('video.mp4').asSpeech().transcribe();
 ```
 
 ### 🎨 **Instant Style Transfer**
 ```typescript
 // Apply artistic style in one line
-const styled = await (await new ReplicateProvider().createImageToImageModel()).transform(photo, { style: 'van-gogh' });
+const styled = await $("replicate")("style-transfer")(photo, { style: 'van-gogh' });
 ```
 
 ### 🔄 **Instant Format Conversion**
 ```typescript
-// Convert any media format
-const mp3 = await (await AssetLoader.load('video.mp4')).asAudio().convertTo('mp3');
+// Convert any media format with smart loading
+const mp3 = await AssetLoader.load('video.mp4').asAudio().convertTo('mp3');
 ```
 
 ### 🎛️ **Instant Audio Processing**

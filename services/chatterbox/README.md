@@ -2,6 +2,8 @@
 
 **Self-host the powerful [Chatterbox TTS model](https://github.com/resemble-ai/chatterbox) with this enhanced FastAPI server! Features an intuitive Web UI, a flexible API endpoint, voice cloning, large text processing via intelligent chunking, audiobook generation, and consistent, reproducible voices using built-in ready-to-use voices and a generation seed feature.**
 
+**🌟 Prizm Integration:** This service is fully integrated into the Prizm SDK ecosystem, accessible through the Fluent API (`$("chatterbox")("voice-clone")(text)`), Core SDK, and REST API layers.
+
 > 🚀 **Try it now!** Test the full TTS server with voice cloning and audiobook generation in Google Colab - no installation required!
 > 
 > [![Open Live Demo](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/devnen/Chatterbox-TTS-Server/blob/main/Chatterbox_TTS_Colab_Demo.ipynb)

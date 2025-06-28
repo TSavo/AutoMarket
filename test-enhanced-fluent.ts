@@ -5,7 +5,7 @@
  * $("provider")("model")(input, options)
  */
 
-import { $ } from './src/media/fluent/FluentProvider';
+import { $ } from './src/media/index';
 import { Text } from './src/media/assets/roles/classes/Text';
 
 async function testEnhancedFluentAPI() {
@@ -19,7 +19,7 @@ async function testEnhancedFluentAPI() {
     console.log('\n=== Pattern 1: Ultra-Clean Direct Syntax ===');
       // Beautiful direct syntax: $("provider")("model")(input, options)
     const provider = await $("openrouter");
-    const model = provider("meta-llama/llama-3.3-8b-instruct:free");
+    const model = await provider("meta-llama/llama-3.3-8b-instruct:free");
     const result1 = await model(originalText, {
       system: "Enhance this into a vivid image description in under 50 words.",
       temperature: 0.8
@@ -31,7 +31,7 @@ async function testEnhancedFluentAPI() {
     console.log('\n=== Pattern 2: Store Model Reference ===');
     
     // Store model reference for reuse (pipeline pattern)
-    const mistralModel = (await $("openrouter"))("mistralai/mistral-7b-instruct:free");
+    const mistralModel = await (await $("openrouter"))("mistralai/mistral-7b-instruct:free");
     
     const result2 = await mistralModel(result1, {
       system: "Make this description more cinematic and epic.",
@@ -44,8 +44,8 @@ async function testEnhancedFluentAPI() {
     console.log('\n=== Pattern 3: Traditional Syntax Still Works ===');
     
     // Traditional syntax for comparison
-    const result3 = await (await $("openrouter"))
-      .model("mistralai/mistral-7b-instruct:free")
+    const result3 = await (await (await $("openrouter"))
+      .model("mistralai/mistral-7b-instruct:free"))
       .transform(originalText, {
         system: "Create a short, punchy description.",
         temperature: 0.7
@@ -58,8 +58,8 @@ async function testEnhancedFluentAPI() {
     
     // Show how this enables pipeline DSL
     const openrouter = await $("openrouter");
-    const enhancer = openrouter("meta-llama/llama-3.3-8b-instruct:free");
-    const cinematographer = openrouter("mistralai/mistral-7b-instruct:free");
+    const enhancer = await openrouter("meta-llama/llama-3.3-8b-instruct:free");
+    const cinematographer = await openrouter("mistralai/mistral-7b-instruct:free");
     
     console.log('🎬 Pipeline-style execution:');
     const step1 = await enhancer(originalText, { system: "Enhance description", temperature: 0.8 });

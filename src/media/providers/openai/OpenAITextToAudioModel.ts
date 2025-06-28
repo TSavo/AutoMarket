@@ -7,12 +7,12 @@
 
 import { TextToAudioModel, TextToAudioOptions } from '../../models/abstracts/TextToAudioModel';
 import { ModelMetadata } from '../../models/abstracts/Model';
-import { Audio, TextRole, AudioRole } from '../../assets/roles';
+import { Audio, TextRole, AudioRole, Text } from '../../assets/roles';
 import { OpenAIAPIClient } from './OpenAIAPIClient';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
-import { createGenerationPrompt } from '../../utils/GenerationPromptHelper';
+import { createGenerationPrompt, extractInputContent } from '../../utils/GenerationPromptHelper';
 
 export interface OpenAITextToAudioOptions extends TextToAudioOptions {
   model?: string;
@@ -53,7 +53,7 @@ export class OpenAITextToAudioModel extends TextToAudioModel {
    * Transform text to audio using OpenAI TTS
    */
   async transform(
-    inputOrText: TextRole | TextRole[],
+    inputOrText: TextRole | TextRole[] | string | string[],
     options?: OpenAITextToAudioOptions
   ): Promise<Audio> {
     const startTime = Date.now();
@@ -63,11 +63,15 @@ export class OpenAITextToAudioModel extends TextToAudioModel {
       throw new Error('Voice cloning is not supported by OpenAI TTS models. Use basic text-to-speech instead.');
     }
 
-    // Handle array input - get first element for single audio generation
-    const inputRole = Array.isArray(inputOrText) ? inputOrText[0] : inputOrText;
+    let textRole: TextRole;
+    if (Array.isArray(inputOrText)) {
+      textRole = typeof inputOrText[0] === 'string' ? new Text(inputOrText[0]) : inputOrText[0];
+    } else {
+      textRole = typeof inputOrText === 'string' ? new Text(inputOrText) : inputOrText;
+    }
 
     // Get text from the TextRole
-    const text = await inputRole.asText();
+    const text = await textRole.asText();
     if (!text.isValid()) {
       throw new Error('Invalid text data provided');
     }

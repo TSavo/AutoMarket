@@ -169,4 +169,4 @@ The updated documentation provides:
 - ✅ **Error Handling**: Comprehensive error handling documentation
 - ✅ **Performance Considerations**: Optimization and scaling guidance
 
-The documentation is now a reliable guide for developers working with the AutoMarket media processing platform.
+The documentation is now a reliable guide for developers working with the Prizm media processing platform.

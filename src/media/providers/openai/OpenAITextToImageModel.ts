@@ -6,7 +6,7 @@
  */
 
 import { TextToImageModel, TextToImageOptions } from '../../models/abstracts/TextToImageModel';
-import { Image, TextRole } from '../../assets/roles';
+import { Image, TextRole, Text } from '../../assets/roles';
 import { ImageFormat } from '../../assets/roles/types';
 import { ModelMetadata } from '../../models/abstracts/Model';
 import { OpenAIAPIClient } from './OpenAIAPIClient';
@@ -14,7 +14,7 @@ import axios from 'axios';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
-import { createGenerationPrompt } from '../../utils/GenerationPromptHelper';
+import { createGenerationPrompt, extractInputContent } from '../../utils/GenerationPromptHelper';
 
 export interface OpenAITextToImageOptions extends TextToImageOptions {
   model?: string;
@@ -58,14 +58,18 @@ export class OpenAITextToImageModel extends TextToImageModel {
   /**
    * Transform text to image using OpenAI DALL-E
    */
-  async transform(input: TextRole | TextRole[], options?: OpenAITextToImageOptions): Promise<Image> {
+  async transform(input: TextRole | TextRole[] | string | string[], options?: OpenAITextToImageOptions): Promise<Image> {
     const startTime = Date.now();
 
-    // Handle array input - get first element for single image generation
-    const inputRole = Array.isArray(input) ? input[0] : input;
+    let textRole: TextRole;
+    if (Array.isArray(input)) {
+      textRole = typeof input[0] === 'string' ? new Text(input[0]) : input[0];
+    } else {
+      textRole = typeof input === 'string' ? new Text(input) : input;
+    }
 
     // Get text from the TextRole
-    const text = await inputRole.asText();
+    const text = await textRole.asText();
 
     // Validate text data
     if (!text.isValid()) {

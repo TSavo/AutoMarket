@@ -1,6 +1,6 @@
 # 🚀 Smart Asset Loading System
 
-The new **Smart Asset Loading System** provides intelligent, format-agnostic asset loading that automatically detects file formats and applies appropriate role mixins for maximum functionality.
+The **Smart Asset Loading System** is Layer 5 of the Prizm SDK, providing intelligent, format-agnostic asset loading that automatically detects file formats and applies appropriate role mixins for maximum functionality.
 
 ## ✅ **What You Wanted - Achieved!**
 
@@ -12,6 +12,8 @@ const videoAsset = MP4Asset.fromFile('video.mp4');
 const audioAsset = MP3Asset.fromFile('audio.mp3');
 
 // ✅ New way - smart auto-detection
+import { AssetLoader } from 'prizm';
+
 const videoAsset = AssetLoader.load('video.mp4');    // Auto-detects MP4, applies video+audio+speech roles
 const audioAsset = AssetLoader.load('audio.mp3');    // Auto-detects MP3, applies audio+speech roles
 const textAsset = AssetLoader.load('document.txt');  // Auto-detects TXT, applies text role
@@ -21,7 +23,7 @@ const textAsset = AssetLoader.load('document.txt');  // Auto-detects TXT, applie
 
 ### 1. **Auto-Detection with Role Mixins**
 ```typescript
-import { AssetLoader } from './src/media/assets/SmartAssetFactory';
+import { AssetLoader } from 'prizm';
 
 // Automatically detects format and applies appropriate role mixins
 const asset = AssetLoader.load('video.mp4');

@@ -7,13 +7,13 @@
 
 import { ModelMetadata } from '../../models/abstracts/Model';
 import { TextToAudioModel, TextToAudioOptions } from '../../models/abstracts/TextToAudioModel';
-import { Audio, TextRole, AudioRole } from '../../assets/roles';
+import { Audio, TextRole, AudioRole, Text } from '../../assets/roles';
 import { FalAiClient, FalModelMetadata } from './FalAiClient';
 import { SmartAssetFactory } from '../../assets/SmartAssetFactory';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
-import { createGenerationPrompt } from '../../utils/GenerationPromptHelper';
+import { createGenerationPrompt, extractInputContent } from '../../utils/GenerationPromptHelper';
 
 export interface FalModelConfig {
   client: FalAiClient;
@@ -52,7 +52,7 @@ export class FalTextToAudioModel extends TextToAudioModel {
    * Transform text to audio using fal.ai models
    */
   async transform(
-    inputOrText: TextRole | TextRole[],
+    inputOrText: TextRole | TextRole[] | string | string[],
     options?: TextToAudioOptions
   ): Promise<Audio> {
     const startTime = Date.now();
@@ -67,7 +67,13 @@ export class FalTextToAudioModel extends TextToAudioModel {
     }
 
     // Get text from the TextRole
-    const text = await inputRole.asText();
+    // Handle both TextRole and string inputs
+    let text: Text;
+    if (typeof inputRole === 'string') {
+      text = Text.fromString(inputRole);
+    } else {
+      text = await inputRole.asText();
+    }
     if (!text.isValid()) {
       throw new Error('Invalid text data provided');
     }

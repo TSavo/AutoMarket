@@ -2,7 +2,7 @@
 
 ## 🎯 Overview
 
-The ChatterboxTTSDockerService provides high-quality text-to-speech conversion using the Chatterbox TTS engine with CUDA acceleration. It implements both the MediaTransformer and LocalServiceManager interfaces for seamless integration and Docker self-management.
+The ChatterboxTTSDockerService provides high-quality text-to-speech conversion using the Chatterbox TTS engine with CUDA acceleration. It implements both the MediaTransformer and LocalServiceManager interfaces for seamless integration within the Prizm SDK ecosystem and Docker self-management.
 
 ## 🚀 Key Features
 
@@ -13,6 +13,7 @@ The ChatterboxTTSDockerService provides high-quality text-to-speech conversion u
 - **🐳 Docker Self-Management**: Automatic container lifecycle management
 - **📊 Progress Monitoring**: Real-time progress updates during generation
 - **🔄 Voice Cloning**: Support for custom voice models (future feature)
+- **🎯 Prizm Integration**: Full compatibility with Fluent API and Core SDK
 
 ## 📋 Service Information
 
@@ -115,7 +116,7 @@ console.log(`Duration: ${result.duration} seconds`);
 // Using the unified MediaTransformer interface
 const input = {
   type: 'text' as const,
-  data: 'Welcome to AutoMarket!'
+  data: 'Welcome to Prizm!'
 };
 
 const output = await ttsService.transform(input, 'audio', {
