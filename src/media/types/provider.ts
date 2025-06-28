@@ -212,7 +212,7 @@ export interface FluentTransformResult {
 /**
  * Request for media generation
  */
-// Types for the fluent API wrappers
+// Types for the fluent API wrappers with single await pattern
 export type CallableModelType = ((input: any, options?: FluentTransformOptions, useJobSystem?: boolean) => Promise<any>) & {
   transform: (input: any, options?: FluentTransformOptions, useJobSystem?: boolean) => Promise<any>;
   getModelInfo: () => { providerId: string; modelId: string; capabilities: MediaCapability[] };

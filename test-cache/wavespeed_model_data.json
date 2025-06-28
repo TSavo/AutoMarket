@@ -1,0 +1,1234 @@
+[
+  {
+    "id": "wavespeed-ai/flux-dev",
+    "name": "FLUX.1 [dev]",
+    "category": "text-to-image",
+    "description": "Flux-dev text to image model, 12 billion parameter rectified flow transformer",
+    "parameters": {
+      "prompt": {
+        "type": "string",
+        "description": "Text prompt for generation",
+        "required": true
+      },
+      "width": {
+        "type": "integer",
+        "description": "Output width",
+        "default": 1024,
+        "min": 256,
+        "max": 2048
+      },
+      "height": {
+        "type": "integer",
+        "description": "Output height",
+        "default": 1024,
+        "min": 256,
+        "max": 2048
+      }
+    },
+    "capabilities": [
+      "high-resolution image generation",
+      "complex scene synthesis",
+      "detailed text-to-image translation"
+    ],
+    "tags": [
+      "flux"
+    ],
+    "pricing": "usage-based",
+    "lastUpdated": 1751101787027
+  },
+  {
+    "id": "wavespeed-ai/flux-dev-ultra-fast",
+    "name": "FLUX.1 [dev] Ultra Fast",
+    "category": "other",
+    "description": "Ultra fast version of FLUX.1 dev model",
+    "parameters": {
+      "prompt": {
+        "type": "string",
+        "description": "Text prompt for generation",
+        "required": true
+      },
+      "width": {
+        "type": "integer",
+        "description": "Output width",
+        "default": 1024,
+        "min": 256,
+        "max": 2048
+      },
+      "height": {
+        "type": "integer",
+        "description": "Output height",
+        "default": 1024,
+        "min": 256,
+        "max": 2048
+      }
+    },
+    "capabilities": [
+      "ultra-fast processing",
+      "development model",
+      "optimized performance"
+    ],
+    "tags": [
+      "flux",
+      "ultra-fast"
+    ],
+    "pricing": "usage-based",
+    "lastUpdated": 1751101789707
+  },
+  {
+    "id": "wavespeed-ai/flux-dev-lora",
+    "name": "FLUX.1 [dev] LoRA",
+    "category": "unknown",
+    "description": "FLUX.1 dev with LoRA support for personalized styles",
+    "parameters": {
+      "prompt": {
+        "type": "string",
+        "description": "Text prompt for generation",
+        "required": true
+      },
+      "width": {
+        "type": "integer",
+        "description": "Output width",
+        "default": 1024,
+        "min": 256,
+        "max": 2048
+      },
+      "height": {
+        "type": "integer",
+        "description": "Output height",
+        "default": 1024,
+        "min": 256,
+        "max": 2048
+      },
+      "lora_url": {
+        "type": "string",
+        "description": "URL to LoRA weights",
+        "required": false
+      }
+    },
+    "capabilities": [],
+    "tags": [
+      "flux",
+      "lora"
+    ],
+    "pricing": "usage-based",
+    "lastUpdated": 1751101794007
+  },
+  {
+    "id": "wavespeed-ai/flux-dev-lora-ultra-fast",
+    "name": "FLUX.1 [dev] LoRA Ultra Fast",
+    "category": "unknown",
+    "description": "Ultra fast FLUX.1 dev with LoRA support",
+    "parameters": {
+      "prompt": {
+        "type": "string",
+        "description": "Text prompt for generation",
+        "required": true
+      },
+      "width": {
+        "type": "integer",
+        "description": "Output width",
+        "default": 1024,
+        "min": 256,
+        "max": 2048
+      },
+      "height": {
+        "type": "integer",
+        "description": "Output height",
+        "default": 1024,
+        "min": 256,
+        "max": 2048
+      },
+      "lora_url": {
+        "type": "string",
+        "description": "URL to LoRA weights",
+        "required": false
+      }
+    },
+    "capabilities": [],
+    "tags": [
+      "flux",
+      "lora",
+      "ultra-fast"
+    ],
+    "pricing": "usage-based",
+    "lastUpdated": 1751101794349
+  },
+  {
+    "id": "wavespeed-ai/flux-schnell",
+    "name": "FLUX.1 [schnell]",
+    "category": "unknown",
+    "description": "Fastest FLUX model for local development and personal use",
+    "parameters": {
+      "prompt": {
+        "type": "string",
+        "description": "Text prompt for generation",
+        "required": true
+      },
+      "width": {
+        "type": "integer",
+        "description": "Output width",
+        "default": 1024,
+        "min": 256,
+        "max": 2048
+      },
+      "height": {
+        "type": "integer",
+        "description": "Output height",
+        "default": 1024,
+        "min": 256,
+        "max": 2048
+      }
+    },
+    "capabilities": [],
+    "tags": [
+      "flux"
+    ],
+    "pricing": "usage-based",
+    "lastUpdated": 1751101794804
+  },
+  {
+    "id": "wavespeed-ai/flux-schnell-lora",
+    "name": "FLUX.1 [schnell] LoRA",
+    "category": "unknown",
+    "description": "FLUX.1 schnell with LoRA support",
+    "parameters": {
+      "prompt": {
+        "type": "string",
+        "description": "Text prompt for generation",
+        "required": true
+      },
+      "width": {
+        "type": "integer",
+        "description": "Output width",
+        "default": 1024,
+        "min": 256,
+        "max": 2048
+      },
+      "height": {
+        "type": "integer",
+        "description": "Output height",
+        "default": 1024,
+        "min": 256,
+        "max": 2048
+      },
+      "lora_url": {
+        "type": "string",
+        "description": "URL to LoRA weights",
+        "required": false
+      }
+    },
+    "capabilities": [],
+    "tags": [
+      "flux",
+      "lora"
+    ],
+    "pricing": "usage-based",
+    "lastUpdated": 1751101795120
+  },
+  {
+    "id": "wavespeed-ai/flux-kontext-dev",
+    "name": "FLUX.1 Kontext [dev]",
+    "category": "unknown",
+    "description": "State-of-the-art image editing model using text prompts",
+    "parameters": {
+      "prompt": {
+        "type": "string",
+        "description": "Text prompt for generation",
+        "required": true
+      },
+      "width": {
+        "type": "integer",
+        "description": "Output width",
+        "default": 1024,
+        "min": 256,
+        "max": 2048
+      },
+      "height": {
+        "type": "integer",
+        "description": "Output height",
+        "default": 1024,
+        "min": 256,
+        "max": 2048
+      },
+      "image": {
+        "type": "string",
+        "description": "Input image URL",
+        "required": true
+      }
+    },
+    "capabilities": [],
+    "tags": [
+      "flux",
+      "kontext",
+      "editing"
+    ],
+    "pricing": "usage-based",
+    "lastUpdated": 1751101795432
+  },
+  {
+    "id": "wavespeed-ai/flux-kontext-dev-ultra-fast",
+    "name": "FLUX.1 Kontext [dev] Ultra Fast",
+    "category": "unknown",
+    "description": "Ultra fast image editing with text prompts",
+    "parameters": {
+      "prompt": {
+        "type": "string",
+        "description": "Text prompt for generation",
+        "required": true
+      },
+      "width": {
+        "type": "integer",
+        "description": "Output width",
+        "default": 1024,
+        "min": 256,
+        "max": 2048
+      },
+      "height": {
+        "type": "integer",
+        "description": "Output height",
+        "default": 1024,
+        "min": 256,
+        "max": 2048
+      },
+      "image": {
+        "type": "string",
+        "description": "Input image URL",
+        "required": true
+      }
+    },
+    "capabilities": [],
+    "tags": [
+      "flux",
+      "kontext",
+      "ultra-fast",
+      "editing"
+    ],
+    "pricing": "usage-based",
+    "lastUpdated": 1751101795859
+  },
+  {
+    "id": "wavespeed-ai/flux-kontext-pro",
+    "name": "FLUX.1 Kontext [pro]",
+    "category": "unknown",
+    "description": "Professional-grade image editing model",
+    "parameters": {
+      "prompt": {
+        "type": "string",
+        "description": "Text prompt for generation",
+        "required": true
+      },
+      "width": {
+        "type": "integer",
+        "description": "Output width",
+        "default": 1024,
+        "min": 256,
+        "max": 2048
+      },
+      "height": {
+        "type": "integer",
+        "description": "Output height",
+        "default": 1024,
+        "min": 256,
+        "max": 2048
+      },
+      "image": {
+        "type": "string",
+        "description": "Input image URL",
+        "required": true
+      }
+    },
+    "capabilities": [],
+    "tags": [
+      "flux",
+      "kontext",
+      "professional",
+      "editing"
+    ],
+    "pricing": "usage-based",
+    "lastUpdated": 1751101796289
+  },
+  {
+    "id": "wavespeed-ai/flux-kontext-max",
+    "name": "FLUX.1 Kontext [max]",
+    "category": "unknown",
+    "description": "Maximum performance image editing model",
+    "parameters": {
+      "prompt": {
+        "type": "string",
+        "description": "Text prompt for generation",
+        "required": true
+      },
+      "width": {
+        "type": "integer",
+        "description": "Output width",
+        "default": 1024,
+        "min": 256,
+        "max": 2048
+      },
+      "height": {
+        "type": "integer",
+        "description": "Output height",
+        "default": 1024,
+        "min": 256,
+        "max": 2048
+      },
+      "image": {
+        "type": "string",
+        "description": "Input image URL",
+        "required": true
+      }
+    },
+    "capabilities": [],
+    "tags": [
+      "flux",
+      "kontext",
+      "editing"
+    ],
+    "pricing": "usage-based",
+    "lastUpdated": 1751101796672
+  },
+  {
+    "id": "wavespeed-ai/wan-2.1/t2v-480p",
+    "name": "WAN 2.1 Text-to-Video 480p",
+    "category": "unknown",
+    "description": "Advanced text-to-video model with 480p output",
+    "parameters": {
+      "prompt": {
+        "type": "string",
+        "description": "Text prompt for generation",
+        "required": true
+      },
+      "width": {
+        "type": "integer",
+        "description": "Output width",
+        "default": 1024,
+        "min": 256,
+        "max": 2048
+      },
+      "height": {
+        "type": "integer",
+        "description": "Output height",
+        "default": 1024,
+        "min": 256,
+        "max": 2048
+      }
+    },
+    "capabilities": [],
+    "tags": [
+      "wan",
+      "text-to-video"
+    ],
+    "pricing": "usage-based",
+    "lastUpdated": 1751101797132
+  },
+  {
+    "id": "wavespeed-ai/wan-2.1/t2v-720p",
+    "name": "WAN 2.1 Text-to-Video 720p",
+    "category": "unknown",
+    "description": "High-resolution text-to-video model with 720p output",
+    "parameters": {
+      "prompt": {
+        "type": "string",
+        "description": "Text prompt for generation",
+        "required": true
+      },
+      "width": {
+        "type": "integer",
+        "description": "Output width",
+        "default": 1024,
+        "min": 256,
+        "max": 2048
+      },
+      "height": {
+        "type": "integer",
+        "description": "Output height",
+        "default": 1024,
+        "min": 256,
+        "max": 2048
+      }
+    },
+    "capabilities": [],
+    "tags": [
+      "wan",
+      "text-to-video"
+    ],
+    "pricing": "usage-based",
+    "lastUpdated": 1751101797607
+  },
+  {
+    "id": "wavespeed-ai/wan-2.1/i2v-480p",
+    "name": "WAN 2.1 Image-to-Video 480p",
+    "category": "unknown",
+    "description": "Convert static images to dynamic videos in 480p",
+    "parameters": {
+      "prompt": {
+        "type": "string",
+        "description": "Text prompt for generation",
+        "required": true
+      },
+      "width": {
+        "type": "integer",
+        "description": "Output width",
+        "default": 1024,
+        "min": 256,
+        "max": 2048
+      },
+      "height": {
+        "type": "integer",
+        "description": "Output height",
+        "default": 1024,
+        "min": 256,
+        "max": 2048
+      },
+      "image": {
+        "type": "string",
+        "description": "Input image URL",
+        "required": true
+      }
+    },
+    "capabilities": [],
+    "tags": [
+      "wan"
+    ],
+    "pricing": "usage-based",
+    "lastUpdated": 1751101797964
+  },
+  {
+    "id": "wavespeed-ai/wan-2.1/i2v-720p",
+    "name": "WAN 2.1 Image-to-Video 720p",
+    "category": "unknown",
+    "description": "Convert static images to high-definition 720p videos",
+    "parameters": {
+      "prompt": {
+        "type": "string",
+        "description": "Text prompt for generation",
+        "required": true
+      },
+      "width": {
+        "type": "integer",
+        "description": "Output width",
+        "default": 1024,
+        "min": 256,
+        "max": 2048
+      },
+      "height": {
+        "type": "integer",
+        "description": "Output height",
+        "default": 1024,
+        "min": 256,
+        "max": 2048
+      },
+      "image": {
+        "type": "string",
+        "description": "Input image URL",
+        "required": true
+      }
+    },
+    "capabilities": [],
+    "tags": [
+      "wan"
+    ],
+    "pricing": "usage-based",
+    "lastUpdated": 1751101798352
+  },
+  {
+    "id": "wavespeed-ai/wan-2.1/i2v-480p-lora",
+    "name": "WAN 2.1 Image-to-Video 480p LoRA",
+    "category": "unknown",
+    "description": "Image-to-video with LoRA support for custom styles",
+    "parameters": {
+      "prompt": {
+        "type": "string",
+        "description": "Text prompt for generation",
+        "required": true
+      },
+      "width": {
+        "type": "integer",
+        "description": "Output width",
+        "default": 1024,
+        "min": 256,
+        "max": 2048
+      },
+      "height": {
+        "type": "integer",
+        "description": "Output height",
+        "default": 1024,
+        "min": 256,
+        "max": 2048
+      },
+      "lora_url": {
+        "type": "string",
+        "description": "URL to LoRA weights",
+        "required": false
+      },
+      "image": {
+        "type": "string",
+        "description": "Input image URL",
+        "required": true
+      }
+    },
+    "capabilities": [],
+    "tags": [
+      "wan",
+      "lora",
+      "image-to-video"
+    ],
+    "pricing": "usage-based",
+    "lastUpdated": 1751101798784
+  },
+  {
+    "id": "wavespeed-ai/wan-2.1/i2v-720p-lora",
+    "name": "WAN 2.1 Image-to-Video 720p LoRA",
+    "category": "image-to-video",
+    "description": "High-res image-to-video with LoRA support",
+    "parameters": {
+      "prompt": {
+        "type": "string",
+        "description": "Text prompt for generation",
+        "required": true
+      },
+      "width": {
+        "type": "integer",
+        "description": "Output width",
+        "default": 1024,
+        "min": 256,
+        "max": 2048
+      },
+      "height": {
+        "type": "integer",
+        "description": "Output height",
+        "default": 1024,
+        "min": 256,
+        "max": 2048
+      },
+      "lora_url": {
+        "type": "string",
+        "description": "URL to LoRA weights",
+        "required": false
+      },
+      "image": {
+        "type": "string",
+        "description": "Input image URL",
+        "required": true
+      }
+    },
+    "capabilities": [
+      "high-resolution video generation",
+      "LoRA support",
+      "image-to-video conversion"
+    ],
+    "tags": [
+      "wan",
+      "lora",
+      "image-to-video"
+    ],
+    "pricing": "usage-based",
+    "lastUpdated": 1751101799204
+  },
+  {
+    "id": "bytedance/seedance-v1-pro-t2v-480p",
+    "name": "Seedance V1 Pro Text-to-Video 480p",
+    "category": "text-to-video",
+    "description": "ByteDance's SOTA video generation model",
+    "parameters": {
+      "prompt": {
+        "type": "string",
+        "description": "Text prompt for generation",
+        "required": true
+      },
+      "width": {
+        "type": "integer",
+        "description": "Output width",
+        "default": 1024,
+        "min": 256,
+        "max": 2048
+      },
+      "height": {
+        "type": "integer",
+        "description": "Output height",
+        "default": 1024,
+        "min": 256,
+        "max": 2048
+      }
+    },
+    "capabilities": [
+      "video generation",
+      "text-to-video synthesis",
+      "480p resolution output"
+    ],
+    "tags": [
+      "seedance"
+    ],
+    "pricing": "usage-based",
+    "lastUpdated": 1751101801738
+  },
+  {
+    "id": "bytedance/seedance-v1-pro-i2v-720p",
+    "name": "Seedance V1 Pro Image-to-Video 720p",
+    "category": "image-to-video",
+    "description": "High-quality image-to-video with superior motion realism",
+    "parameters": {
+      "prompt": {
+        "type": "string",
+        "description": "Text prompt for generation",
+        "required": true
+      },
+      "width": {
+        "type": "integer",
+        "description": "Output width",
+        "default": 1024,
+        "min": 256,
+        "max": 2048
+      },
+      "height": {
+        "type": "integer",
+        "description": "Output height",
+        "default": 1024,
+        "min": 256,
+        "max": 2048
+      },
+      "image": {
+        "type": "string",
+        "description": "Input image URL",
+        "required": true
+      }
+    },
+    "capabilities": [
+      "high-quality video generation",
+      "superior motion realism",
+      "720p resolution"
+    ],
+    "tags": [
+      "seedance",
+      "image-to-video"
+    ],
+    "pricing": "usage-based",
+    "lastUpdated": 1751101803577
+  },
+  {
+    "id": "bytedance/seedance-v1-pro-i2v-1080p",
+    "name": "Seedance V1 Pro Image-to-Video 1080p",
+    "category": "image-to-video",
+    "description": "Ultra-high-quality 1080p image-to-video generation",
+    "parameters": {
+      "prompt": {
+        "type": "string",
+        "description": "Text prompt for generation",
+        "required": true
+      },
+      "width": {
+        "type": "integer",
+        "description": "Output width",
+        "default": 1024,
+        "min": 256,
+        "max": 2048
+      },
+      "height": {
+        "type": "integer",
+        "description": "Output height",
+        "default": 1024,
+        "min": 256,
+        "max": 2048
+      },
+      "image": {
+        "type": "string",
+        "description": "Input image URL",
+        "required": true
+      }
+    },
+    "capabilities": [
+      "ultra-high-quality video generation",
+      "1080p resolution output",
+      "image-to-video conversion"
+    ],
+    "tags": [
+      "seedance",
+      "image-to-video"
+    ],
+    "pricing": "usage-based",
+    "lastUpdated": 1751101805733
+  },
+  {
+    "id": "kwaivgi/kling-v2.1-i2v-master",
+    "name": "Kling V2.1 Image-to-Video Master",
+    "category": "image-to-video",
+    "description": "Premium image-to-video with unparalleled motion fluidity",
+    "parameters": {
+      "prompt": {
+        "type": "string",
+        "description": "Text prompt for generation",
+        "required": true
+      },
+      "width": {
+        "type": "integer",
+        "description": "Output width",
+        "default": 1024,
+        "min": 256,
+        "max": 2048
+      },
+      "height": {
+        "type": "integer",
+        "description": "Output height",
+        "default": 1024,
+        "min": 256,
+        "max": 2048
+      },
+      "image": {
+        "type": "string",
+        "description": "Input image URL",
+        "required": true
+      }
+    },
+    "capabilities": [
+      "generate video from images",
+      "enhance motion fluidity",
+      "create high-quality video output"
+    ],
+    "tags": [
+      "image-to-video"
+    ],
+    "pricing": "usage-based",
+    "lastUpdated": 1751101807762
+  },
+  {
+    "id": "kwaivgi/kling-v2.1-i2v-pro",
+    "name": "Kling V2.1 Image-to-Video Pro",
+    "category": "image-to-video",
+    "description": "Professional-grade video generation with enhanced visual fidelity",
+    "parameters": {
+      "prompt": {
+        "type": "string",
+        "description": "Text prompt for generation",
+        "required": true
+      },
+      "width": {
+        "type": "integer",
+        "description": "Output width",
+        "default": 1024,
+        "min": 256,
+        "max": 2048
+      },
+      "height": {
+        "type": "integer",
+        "description": "Output height",
+        "default": 1024,
+        "min": 256,
+        "max": 2048
+      },
+      "image": {
+        "type": "string",
+        "description": "Input image URL",
+        "required": true
+      }
+    },
+    "capabilities": [
+      "enhanced visual fidelity",
+      "professional-grade video generation"
+    ],
+    "tags": [
+      "professional"
+    ],
+    "pricing": "usage-based",
+    "lastUpdated": 1751101810564
+  },
+  {
+    "id": "minimax/hailuo-02/standard",
+    "name": "Hailuo 02 Standard",
+    "category": "text-to-video",
+    "description": "Next-generation AI video model with 2.5x efficiency improvement",
+    "parameters": {
+      "prompt": {
+        "type": "string",
+        "description": "Text prompt for generation",
+        "required": true
+      },
+      "width": {
+        "type": "integer",
+        "description": "Output width",
+        "default": 1024,
+        "min": 256,
+        "max": 2048
+      },
+      "height": {
+        "type": "integer",
+        "description": "Output height",
+        "default": 1024,
+        "min": 256,
+        "max": 2048
+      }
+    },
+    "capabilities": [
+      "efficient video generation",
+      "next-generation AI video processing"
+    ],
+    "tags": [],
+    "pricing": "usage-based",
+    "lastUpdated": 1751101812135
+  },
+  {
+    "id": "minimax/hailuo-02/pro",
+    "name": "Hailuo 02 Pro",
+    "category": "text-to-video",
+    "description": "Professional Hailuo model for high-quality 6-second videos",
+    "parameters": {
+      "prompt": {
+        "type": "string",
+        "description": "Text prompt for generation",
+        "required": true
+      },
+      "width": {
+        "type": "integer",
+        "description": "Output width",
+        "default": 1024,
+        "min": 256,
+        "max": 2048
+      },
+      "height": {
+        "type": "integer",
+        "description": "Output height",
+        "default": 1024,
+        "min": 256,
+        "max": 2048
+      }
+    },
+    "capabilities": [
+      "high-quality video generation",
+      "6-second video creation",
+      "professional-grade output"
+    ],
+    "tags": [
+      "professional"
+    ],
+    "pricing": "usage-based",
+    "lastUpdated": 1751101815612
+  },
+  {
+    "id": "google/veo3",
+    "name": "Google Veo 3",
+    "category": "text-to-video",
+    "description": "Google's flagship Veo 3 text to video model with audio",
+    "parameters": {
+      "prompt": {
+        "type": "string",
+        "description": "Text prompt for generation",
+        "required": true
+      },
+      "width": {
+        "type": "integer",
+        "description": "Output width",
+        "default": 1024,
+        "min": 256,
+        "max": 2048
+      },
+      "height": {
+        "type": "integer",
+        "description": "Output height",
+        "default": 1024,
+        "min": 256,
+        "max": 2048
+      }
+    },
+    "capabilities": [
+      "text-to-video generation",
+      "audio integration"
+    ],
+    "tags": [],
+    "pricing": "usage-based",
+    "lastUpdated": 1751101817452
+  },
+  {
+    "id": "wavespeed-ai/veo2-t2v",
+    "name": "Veo 2 Text-to-Video",
+    "category": "text-to-video",
+    "description": "Create videos with realistic motion and high quality output",
+    "parameters": {
+      "prompt": {
+        "type": "string",
+        "description": "Text prompt for generation",
+        "required": true
+      },
+      "width": {
+        "type": "integer",
+        "description": "Output width",
+        "default": 1024,
+        "min": 256,
+        "max": 2048
+      },
+      "height": {
+        "type": "integer",
+        "description": "Output height",
+        "default": 1024,
+        "min": 256,
+        "max": 2048
+      }
+    },
+    "capabilities": [
+      "create videos",
+      "realistic motion",
+      "high quality output"
+    ],
+    "tags": [],
+    "pricing": "usage-based",
+    "lastUpdated": 1751101822213
+  },
+  {
+    "id": "wavespeed-ai/veo2-i2v",
+    "name": "Veo 2 Image-to-Video",
+    "category": "image-to-video",
+    "description": "Create videos from images with realistic motion",
+    "parameters": {
+      "prompt": {
+        "type": "string",
+        "description": "Text prompt for generation",
+        "required": true
+      },
+      "width": {
+        "type": "integer",
+        "description": "Output width",
+        "default": 1024,
+        "min": 256,
+        "max": 2048
+      },
+      "height": {
+        "type": "integer",
+        "description": "Output height",
+        "default": 1024,
+        "min": 256,
+        "max": 2048
+      },
+      "image": {
+        "type": "string",
+        "description": "Input image URL",
+        "required": true
+      }
+    },
+    "capabilities": [
+      "create videos from images",
+      "generate realistic motion"
+    ],
+    "tags": [],
+    "pricing": "usage-based",
+    "lastUpdated": 1751101825237
+  },
+  {
+    "id": "wavespeed-ai/imagen4",
+    "name": "Imagen 4",
+    "category": "text-to-image",
+    "description": "Google's highest quality image generation model",
+    "parameters": {
+      "prompt": {
+        "type": "string",
+        "description": "Text prompt for generation",
+        "required": true
+      },
+      "width": {
+        "type": "integer",
+        "description": "Output width",
+        "default": 1024,
+        "min": 256,
+        "max": 2048
+      },
+      "height": {
+        "type": "integer",
+        "description": "Output height",
+        "default": 1024,
+        "min": 256,
+        "max": 2048
+      }
+    },
+    "capabilities": [
+      "high-quality image generation",
+      "text-to-image synthesis",
+      "photorealistic image creation"
+    ],
+    "tags": [],
+    "pricing": "usage-based",
+    "lastUpdated": 1751101826745
+  },
+  {
+    "id": "wavespeed-ai/dia-tts",
+    "name": "Dia TTS",
+    "category": "text-to-audio",
+    "description": "Generate realistic dialogue from transcripts with emotion control",
+    "parameters": {
+      "prompt": {
+        "type": "string",
+        "description": "Text prompt for generation",
+        "required": true
+      },
+      "width": {
+        "type": "integer",
+        "description": "Output width",
+        "default": 1024,
+        "min": 256,
+        "max": 2048
+      },
+      "height": {
+        "type": "integer",
+        "description": "Output height",
+        "default": 1024,
+        "min": 256,
+        "max": 2048
+      }
+    },
+    "capabilities": [
+      "generate realistic dialogue",
+      "emotion control",
+      "text-to-speech"
+    ],
+    "tags": [],
+    "pricing": "usage-based",
+    "lastUpdated": 1751101829612
+  },
+  {
+    "id": "wavespeed-ai/hunyuan3d-v2-multi-view",
+    "name": "Hunyuan 3D V2",
+    "category": "image-to-3d",
+    "description": "Generate 3D models from images using Hunyuan 3D",
+    "parameters": {
+      "prompt": {
+        "type": "string",
+        "description": "Text prompt for generation",
+        "required": true
+      },
+      "width": {
+        "type": "integer",
+        "description": "Output width",
+        "default": 1024,
+        "min": 256,
+        "max": 2048
+      },
+      "height": {
+        "type": "integer",
+        "description": "Output height",
+        "default": 1024,
+        "min": 256,
+        "max": 2048
+      }
+    },
+    "capabilities": [
+      "3D model generation",
+      "multi-view reconstruction",
+      "image-based 3D modeling"
+    ],
+    "tags": [],
+    "pricing": "usage-based",
+    "lastUpdated": 1751101832637
+  },
+  {
+    "id": "wavespeed-ai/video-upscaler",
+    "name": "Video Upscaler",
+    "category": "video-to-video",
+    "description": "Enhance video resolution and quality using advanced ML models",
+    "parameters": {
+      "prompt": {
+        "type": "string",
+        "description": "Text prompt for generation",
+        "required": true
+      },
+      "width": {
+        "type": "integer",
+        "description": "Output width",
+        "default": 1024,
+        "min": 256,
+        "max": 2048
+      },
+      "height": {
+        "type": "integer",
+        "description": "Output height",
+        "default": 1024,
+        "min": 256,
+        "max": 2048
+      },
+      "duration": {
+        "type": "number",
+        "description": "Video duration in seconds",
+        "default": 5,
+        "min": 1,
+        "max": 30
+      }
+    },
+    "capabilities": [
+      "video resolution enhancement",
+      "video quality improvement",
+      "upscaling"
+    ],
+    "tags": [],
+    "pricing": "usage-based",
+    "lastUpdated": 1751101834697
+  },
+  {
+    "id": "wavespeed-ai/hidream-i1-full",
+    "name": "HiDream I1 Full",
+    "category": "text-to-image",
+    "description": "17B parameter open-source image generation model",
+    "parameters": {
+      "prompt": {
+        "type": "string",
+        "description": "Text prompt for generation",
+        "required": true
+      },
+      "width": {
+        "type": "integer",
+        "description": "Output width",
+        "default": 1024,
+        "min": 256,
+        "max": 2048
+      },
+      "height": {
+        "type": "integer",
+        "description": "Output height",
+        "default": 1024,
+        "min": 256,
+        "max": 2048
+      }
+    },
+    "capabilities": [
+      "generate images from text prompts",
+      "high-resolution image generation",
+      "open-source model"
+    ],
+    "tags": [
+      "hidream"
+    ],
+    "pricing": "usage-based",
+    "lastUpdated": 1751101836498
+  },
+  {
+    "id": "wavespeed-ai/instant-character",
+    "name": "Instant Character",
+    "category": "image-to-image",
+    "description": "Create consistent characters with diverse poses and styles",
+    "parameters": {
+      "prompt": {
+        "type": "string",
+        "description": "Text prompt for generation",
+        "required": true
+      },
+      "width": {
+        "type": "integer",
+        "description": "Output width",
+        "default": 1024,
+        "min": 256,
+        "max": 2048
+      },
+      "height": {
+        "type": "integer",
+        "description": "Output height",
+        "default": 1024,
+        "min": 256,
+        "max": 2048
+      }
+    },
+    "capabilities": [
+      "character creation",
+      "pose variation",
+      "style diversity"
+    ],
+    "tags": [
+      "character"
+    ],
+    "pricing": "usage-based",
+    "lastUpdated": 1751101838473
+  }
+]

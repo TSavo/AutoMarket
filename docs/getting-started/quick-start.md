@@ -26,7 +26,25 @@ npm install
 npm run test
 ```
 
-### 2. Start a Service (Optional)
+### 2. Set Up API Keys
+
+Prizm supports multiple providers. Set up your preferred provider:
+
+```bash
+# ElevenLabs (Premium TTS)
+export ELEVENLABS_API_KEY="your_api_key_here"
+
+# Replicate (Image/Video generation)  
+export REPLICATE_API_TOKEN="your_token_here"
+
+# OpenRouter (Text processing)
+export OPENROUTER_API_KEY="your_key_here"
+
+# FAL.ai (Premium AI models)
+export FALAI_API_KEY="your_key_here"
+```
+
+### 3. Start a Service (Optional)
 
 #### Option A: Text-to-Speech (Chatterbox TTS)
 
@@ -51,7 +69,7 @@ docker-compose -f services/whisper/docker-compose.yml up -d
 curl http://localhost:9000/health
 ```
 
-### 3. Test the Services
+### 4. Test the Services
 
 ```bash
 # Run integration tests to see services in action
@@ -63,15 +81,48 @@ npm run test:integration -- ChatterboxTTSDockerService.integration.test.ts
 
 ## 🎵 Your First Transformation
 
-### Text-to-Speech Example
+### ElevenLabs Text-to-Speech Example
+
+```typescript
+import { $$ } from 'prizm';
+
+async function generateSpeech() {
+  // NEW: Clean single await syntax
+  const speech = await $$("elevenlabs")("voice-id")('Hello! Welcome to Prizm!');
+  
+  console.log(`✅ Generated speech: ${speech.format}`);
+  console.log(`📊 File size: ${(speech.data.length / 1024).toFixed(1)}KB`);
+}
+
+generateSpeech();
+```
+
+### Alternative Syntax Options
+
+```typescript
+import { $, $$ } from 'prizm';
+
+// Option 1: Single await (cleanest)
+const audio1 = await $$("elevenlabs")("voice-id")("Hello!");
+
+// Option 2: Double await (explicit async)
+const audio2 = await (await $("elevenlabs")("voice-id"))("Hello!");
+
+// Option 3: Store chain for reuse
+const ttsChain = $$("elevenlabs")("voice-id");
+const audio3 = await ttsChain("First message");
+const audio4 = await ttsChain("Second message");
+```
+
+### Alternative: Local TTS (Docker)
 
 ```typescript
 import { ChatterboxTTSDockerService } from './src/media/ChatterboxTTSDockerService';
 
-async function generateSpeech() {
+async function generateLocalSpeech() {
   const ttsService = new ChatterboxTTSDockerService();
   
-  // Generate speech from text
+  // Generate speech from text locally
   const result = await ttsService.generateTTS(
     'Hello! Welcome to Prizm Media Transformation!',
     './output/welcome.mp3'

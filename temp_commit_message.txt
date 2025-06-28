@@ -1,0 +1,5 @@
+fix: Resolve TypeScript import errors
+
+Corrected import statements for Node.js built-in modules (fs, path, os) and
+'form-data' from default imports to namespace imports in several files.
+This addresses TS1192 and TS1259 errors related to esModuleInterop.

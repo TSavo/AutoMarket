@@ -6,23 +6,35 @@ The most elegant media transformation SDK ever built! Prizm makes complex AI ope
 
 ### 🖼️ **Instant Image Generation**
 ```typescript
-// Fluent API - zero configuration required
-const image = await $("replicate")("flux-schnell")('Cyberpunk cat with neon eyes');
-const proImage = await $("falai")("flux-pro")('Professional headshot', { steps: 4 });
+// NEW: Single await pattern (cleanest!)
+const image = await $$("replicate")("flux-schnell")('Cyberpunk cat with neon eyes');
+const proImage = await $$("falai")("flux-pro")('Professional headshot', { steps: 4 });
+
+// LEGACY: Double await pattern (still works)
+const imageLegacy = await (await $("replicate")("flux-schnell"))('Cyberpunk cat with neon eyes');
 ```
 
 ### 🎬 **Instant Video Generation**  
 ```typescript
-// One line from text to video
-const video = await $("runway")("gen-3")('Dragon flying through clouds');
-const animation = await $("replicate")("animate")(heroImage, { duration: 5 });
+// NEW: Single await pattern
+const video = await $$("runway")("gen-3")('Dragon flying through clouds');
+const animation = await $$("replicate")("animate")(heroImage, { duration: 5 });
+
+// LEGACY: Double await pattern  
+const videoLegacy = await (await $("runway")("gen-3"))('Dragon flying through clouds');
 ```
 
 ### 🎵 **Instant Audio Generation**
 ```typescript
-// Text to speech in one line - local or remote
-const audio = await $("chatterbox")("voice-clone")('Welcome to the future!');
-const speech = await $("huggingface")("mms-tts")('Professional narration');
+// NEW: Single await pattern - ElevenLabs premium quality
+const speech = await $$("elevenlabs")("voice-id")('Welcome to the future!');
+
+// NEW: Single await pattern - Local TTS for privacy
+const audio = await $$("chatterbox")("voice-clone")('Welcome to the future!');
+const narration = await $$("huggingface")("mms-tts")('Professional narration');
+
+// LEGACY: Double await pattern (still works)
+const speechLegacy = await (await $("elevenlabs")("voice-id"))('Welcome to the future!');
 ```
 
 ### 🗣️ **Instant Speech Recognition**
@@ -407,3 +419,41 @@ These one-liners are just the beginning! Each simple command opens the door to u
 - [Provider Showcase](./PROVIDER_SHOWCASE.md)
 - [Awesome Examples](./AWESOME_EXAMPLES.md)
 - [Quick Start Guide](./getting-started/quick-start-new.md)
+
+## ⚡ **Two Fluent API Patterns**
+
+Prizm now offers **two fluent API patterns** for maximum flexibility:
+
+### **🆕 Single Await Pattern (Recommended)**
+```typescript
+// Ultra-clean syntax with single await
+const result = await $$("provider")("model")(input, options);
+
+// Store chain for reuse
+const chain = $$("elevenlabs")("voice-id");
+const audio1 = await chain("First message");
+const audio2 = await chain("Second message");
+```
+
+### **🔄 Double Await Pattern (Legacy)**
+```typescript
+// Traditional pattern (still fully supported)
+const result = await (await $("provider")("model"))(input, options);
+
+// Explicit async handling
+const provider = await $("elevenlabs");
+const model = await provider("voice-id");  
+const audio = await model("Hello world");
+```
+
+### **🎯 When to Use Which**
+
+**Use `$$` (Single Await) when:**
+- ✅ You want the cleanest, most readable syntax
+- ✅ You're doing simple one-off transformations
+- ✅ You prefer minimal complexity
+
+**Use `$` (Double Await) when:**
+- ✅ You need provider-level control and methods
+- ✅ You want explicit async operation handling
+- ✅ You're building complex provider management logic

@@ -36,6 +36,7 @@ export function createCallableModel(provider: MediaProvider, modelId: string): C
   return callable;
 }
 
+
 /**
  * Creates a callable provider wrapper that allows direct model selection and method chaining.
  * This replaces the functionality of the old FluentProvider class.

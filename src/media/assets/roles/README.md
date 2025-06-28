@@ -45,9 +45,49 @@ assets/roles/
 ### **3. Clean Imports**
 ```typescript
 // Import everything (convenience)
-import { Audio, AudioRole, AudioFormat, hasAudioRole } from './assets/roles';
+import { Audio, AudioRole, AudioFormat, Text, TextRole, hasAudioRole } from './assets/roles';
 
 // Import specific categories
+import { Text } from './assets/roles/classes';
+import { TextRole } from './assets/roles/interfaces';
+import { AudioFormat } from './assets/roles/types';
+```
+
+## 🚀 **Updated Usage Patterns**
+
+### **Text Creation (IMPORTANT)**
+
+**❌ Old Pattern (Deprecated):**
+```typescript
+const text = new Text("Hello world");
+```
+
+**✅ New Pattern (Correct):**
+```typescript
+const text = Text.fromString("Hello world");
+```
+
+### **Provider Integration**
+```typescript
+import { Text, TextRole } from './assets/roles';
+
+// In transform methods
+async transform(input: TextRole | string): Promise<Audio> {
+  let text: Text;
+  if (typeof input === 'string') {
+    text = Text.fromString(input);  // Correct factory method
+  } else {
+    text = await input.asText();
+  }
+  
+  if (!text.isValid()) {
+    throw new Error('Invalid text');
+  }
+  
+  // Use text.content for processing
+  return processAudio(text.content);
+}
+```
 import { Audio, Video } from './assets/roles/classes';
 import { AudioRole, VideoRole } from './assets/roles/interfaces';
 import { AudioFormat, VideoFormat } from './assets/roles/types';
