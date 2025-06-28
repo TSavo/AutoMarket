@@ -11,8 +11,8 @@
  */
 
 import fetch, { Response } from 'node-fetch';
-import fs from 'fs/promises';
-import path from 'path';
+import * as fs from 'fs/promises';
+import * as path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 
 export interface ReplicateConfig {

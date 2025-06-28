@@ -9,8 +9,8 @@ import { ModelMetadata } from '../../../models/abstracts/Model';
 import { Audio, Text, AudioRole } from '../../../assets/roles';
 import { WhisperAPIClient } from './WhisperAPIClient';
 import { WhisperDockerService } from '../../../services/WhisperDockerService';
-import fs from 'fs';
-import path from 'path';
+import * as fs from 'fs';
+import * as path from 'path';
 import { AudioToTextModel, AudioToTextOptions } from '../../../models/abstracts/AudioToTextModel';
 import { createGenerationPrompt } from '../../../utils/GenerationPromptHelper';
 

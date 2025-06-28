@@ -11,9 +11,9 @@ import { Audio, AudioRole } from '../../../assets/roles';
 import { AudioFormat } from '../../../assets/roles/types/formats';
 import { FFMPEGAPIClient } from './FFMPEGAPIClient';
 import { FFMPEGDockerService } from '../../../services/FFMPEGDockerService';
-import fs from 'fs';
-import path from 'path';
-import os from 'os';
+import * as fs from 'fs';
+import * as path from 'path';
+import * as os from 'os';
 
 export interface FFMPEGAudioToAudioModelConfig {
   apiClient?: FFMPEGAPIClient;

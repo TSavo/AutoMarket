@@ -7,7 +7,7 @@
 
 import axios, { AxiosInstance, AxiosResponse } from 'axios';
 import * as fs from 'fs';
-import FormData from 'form-data';
+import * as FormData from 'form-data';
 
 export interface OpenAIConfig {
   apiKey: string;

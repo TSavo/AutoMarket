@@ -10,9 +10,9 @@ import { ModelMetadata } from '../../../models/abstracts/Model';
 import { Video, Audio, VideoRole } from '../../../assets/roles';
 import { FFMPEGAPIClient } from './FFMPEGAPIClient';
 import { FFMPEGDockerService } from '../../../services/FFMPEGDockerService';
-import fs from 'fs';
-import path from 'path';
-import os from 'os';
+import * as fs from 'fs';
+import * as path from 'path';
+import * as os from 'os';
 
 export interface FFMPEGDockerModelConfig {
   dockerService: FFMPEGDockerService;

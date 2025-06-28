@@ -1,6 +1,6 @@
 import { ZonosClient } from "./zonos-client.js";
-import fs from 'fs';
-import path from 'path';
+import * as fs from 'fs';
+import * as path from 'path';
 import { spawn } from 'child_process';
 
 export interface SequenceOptions {

@@ -41,6 +41,54 @@ export async function $(providerId: string): Promise<CallableProviderType> {
 // Export default as $ for convenient usage
 export default $;
 
+/**
+ * Enhanced fluent API factory function with single await pattern
+ * 
+ * This version chains all async operations internally, allowing for clean single-await syntax:
+ * 
+ * Usage patterns:
+ * - Single await: await $("provider")("model")(input, options)
+ * - Store chain: const chain = $("provider")("model"); await chain(input, options)
+ */
+export function $$(providerId: string): (modelId: string) => (input: any, options?: any) => Promise<any> {
+  return (modelId: string) => {
+    return (input: any, options?: any) => {
+      // Chain all async operations internally
+      return (async () => {
+        const registry = ProviderRegistry.getInstance();
+        
+        // Ensure registry is initialized
+        if (!registry.hasProvider(providerId)) {
+          await initializeProviders();
+        }
+
+        if (!registry.hasProvider(providerId)) {
+          throw new Error(`Provider '${providerId}' not found. Available providers: ${registry.getAvailableProviders().join(', ')}`);
+        }
+
+        const provider = await registry.getProvider(providerId);
+        
+        // Check if provider is available
+        const isAvailable = await provider.isAvailable();
+        if (!isAvailable) {
+          console.warn(`[FluentAPI] Provider '${providerId}' may not be available`);
+        }
+        
+        // Get the model
+        const model = await provider.getModel(modelId);
+        if (!model) {
+          throw new Error(`Model '${modelId}' not found in provider '${providerId}'.`);
+        }
+        
+        // Execute transform
+        return await model.transform(input, options);
+      })();
+    };
+  };
+}
+
+
+
 // Export Smart Asset Loading System (Layer 5)
 export { SmartAssetFactory, AssetLoader } from './assets/SmartAssetFactory';
 

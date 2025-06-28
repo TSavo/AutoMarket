@@ -8,7 +8,7 @@
 
 import * as fs from 'fs';
 import axios from 'axios';
-import FormData from 'form-data';
+import * as FormData from 'form-data';
 
 export interface WhisperTranscriptionRequest {
   audioFilePath: string;
