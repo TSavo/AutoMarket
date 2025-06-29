@@ -4,6 +4,67 @@
 
 The ChatterboxTTSDockerService provides high-quality text-to-speech conversion using the Chatterbox TTS engine with CUDA acceleration. It implements both the MediaTransformer and LocalServiceManager interfaces for seamless integration within the Prizm SDK ecosystem and Docker self-management.
 
+## 🌐 **Dynamic Service Loading (June 2025)**
+
+Chatterbox TTS can now be used as a dynamic service dependency:
+
+### **As a Distributed Service**
+```yaml
+# prizm.service.yml for Chatterbox TTS
+name: chatterbox-tts
+version: "1.0.0"
+description: "High-quality neural text-to-speech with CUDA acceleration"
+
+docker:
+  composeFile: "docker-compose.yml"
+  serviceName: "chatterbox"
+  ports: [8082]
+  healthCheck:
+    url: "http://localhost:8082/health"
+    
+capabilities:
+  - "text-to-audio"
+  
+requirements:
+  gpu: true
+  memory: "4GB"
+```
+
+### **Usage with Dynamic Loading**
+```typescript
+// Provider requests Chatterbox TTS service
+await provider.configure({
+  serviceUrl: 'github:community/chatterbox-tts-service@v1.0.0',
+  serviceConfig: {
+    enableCUDA: true,
+    qualityLevel: 'high',
+    voiceModel: 'neural-v2'
+  }
+});
+
+// Or use from local services directory
+await provider.configure({
+  serviceUrl: 'chatterbox-tts'  // Local static service
+});
+```
+
+### **Custom Chatterbox Providers**
+```typescript
+// Custom provider that uses Chatterbox TTS
+const voiceProvider = await getProvider('github:studio/voice-cloning@v2.0.0');
+
+await voiceProvider.configure({
+  serviceUrl: 'github:studio/enhanced-chatterbox@v1.0.0',
+  serviceConfig: {
+    voiceCloningEnabled: true,
+    customModels: '/models/custom-voices',
+    realTimeProcessing: true
+  }
+});
+
+const clonedVoice = await $$(voiceProvider)("clone-voice")(audioSample);
+```
+
 ## 🚀 Key Features
 
 - **🎵 High-Quality TTS**: Neural text-to-speech with natural voice synthesis
@@ -294,7 +355,7 @@ describe('ChatterboxTTSDockerService', () => {
     const invalidInput = { type: 'image' as const, data: 'test' };
     
     await expect(service.transform(invalidInput, 'audio'))
-      .rejects.toThrow('ChatterboxTTSDockerService only supports text input');
+      .rejects toThrow('ChatterboxTTSDockerService only supports text input');
   });
 });
 ```

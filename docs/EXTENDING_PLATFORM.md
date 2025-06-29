@@ -2,6 +2,94 @@
 
 This guide shows you how to extend Prizm with new AI providers, models, and services. The SDK is designed for easy extensibility using consistent interfaces and patterns.
 
+## 🌐 **NEW: Dynamic Provider Loading (June 2025)**
+
+You can now create and distribute providers dynamically without modifying the core SDK:
+
+### **Creating a Distributed Provider**
+
+1. **GitHub Repository Structure:**
+```
+my-ai-provider/
+├── package.json                  # Entry point and dependencies
+├── prizm.config.json            # Optional provider metadata
+├── src/
+│   └── index.ts                 # Provider implementation
+├── dist/
+│   └── index.js                 # Compiled output (optional)
+├── tsconfig.json                # TypeScript configuration
+└── README.md                    # Documentation
+```
+
+2. **Provider Implementation:**
+```typescript
+// src/index.ts
+import { MediaProvider, MediaCapability, ProviderType } from 'prizm';
+
+export default class MyCustomProvider implements MediaProvider {
+  readonly id = 'my-custom-provider';
+  readonly name = 'My Custom AI Provider';
+  readonly type = ProviderType.REMOTE;
+  readonly capabilities = [MediaCapability.TEXT_TO_IMAGE];
+  
+  async configure(config: any): Promise<void> {
+    // Handle dynamic service loading
+    if (config.serviceUrl) {
+      const { ServiceRegistry } = await import('prizm');
+      const serviceRegistry = ServiceRegistry.getInstance();
+      this.dockerService = await serviceRegistry.getService(config.serviceUrl);
+    }
+  }
+  
+  // ... implement other MediaProvider methods
+}
+```
+
+3. **Usage:**
+```typescript
+// Load your distributed provider
+const provider = await getProvider('https://github.com/username/my-ai-provider');
+const provider = await getProvider('@username/my-ai-provider@1.0.0');
+
+// Configure with dynamic service
+await provider.configure({
+  serviceUrl: 'github:username/my-gpu-service@v1.0.0'
+});
+```
+
+4. **Publishing:**
+- **GitHub**: Push to public repository, users load via URL
+- **NPM**: `npm publish`, users load via package name
+- **Private**: Use private repositories or packages
+
+### **Creating a Distributed Service**
+
+Services are configuration-driven via `prizm.service.yml`:
+
+```yaml
+# prizm.service.yml
+name: my-gpu-service
+version: "1.0.0"
+description: "GPU-accelerated inference service"
+
+docker:
+  composeFile: "docker-compose.yml"
+  serviceName: "inference"
+  ports: [8080]
+  healthCheck:
+    url: "http://localhost:8080/health"
+    
+capabilities:
+  - "text-to-image"
+  - "image-to-image"
+  
+requirements:
+  gpu: true
+  memory: "8GB"
+```
+
+➡️ **[Complete Dynamic Loading Guide](./getting-started/dynamic-loading-guide.md)**
+
 ## 🎯 Quick Overview
 
 Prizm's extensible architecture follows these patterns:

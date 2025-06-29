@@ -1,6 +1,50 @@
 # 🚀 Prizm - The Ultimate AI Media Processing Platform
 
-The most advanced multi-provider AI media processing platform ever built! Prizm unifies 15+ AI providers, supports 500+ models, and features **Universal Role Compatibility** - where ANY asset can be input to ANY model through automatic conversions.
+The most advanced multi-provider AI media processing platform ever built! Prizm unifies 15+ AI ### 3. Fluent API (Zero Config)
+```typescript
+import { $$ } from 'prizm';
+
+// NEW: Single await pattern (cleanest)
+const speech = await $$("elevenlabs")("voice-id")("Hello world!");
+const image = await $$("replicate")("flux-schnell")("A beautiful sunset");
+const video = await $$("runway")("gen-3")("Dancing robot", { duration: 5 });
+
+// LEGACY: Double await pattern (still works)
+const speechLegacy = await (await $("elevenlabs")("voice-id"))("Hello world!");
+```
+
+### 4. Smart Asset Loadingports 500+ models, and features **Dynamic Provider & Service Loading** - enabling a decentralized ecosystem with Go-like module loading.
+
+## 🌐 **NEW: Dynamic Provider & Service Loading (June 2025)**
+
+**The breakthrough feature for ecosystem building:** Load providers and services from URLs at runtime!
+
+```typescript
+// 🔄 Load providers from GitHub repositories
+const provider = await getProvider('https://github.com/company/custom-ai-provider');
+
+// 📦 Load providers from NPM packages  
+const provider = await getProvider('@company/enterprise-provider@2.1.0');
+
+// 🤝 Providers dynamically load their service dependencies
+await provider.configure({
+  serviceUrl: 'github:company/gpu-accelerated-service@v2.0.0',
+  serviceConfig: { enableGPU: true, memory: '24GB' }
+});
+
+// 🚀 Zero-setup deployment
+const result = await provider.getModel('custom-model').transform(input);
+```
+
+**Benefits:**
+- 🔄 **Dynamic Dependencies**: Providers specify exact service needs via URL
+- 📦 **Decentralized Ecosystem**: Community-driven provider/service development
+- 🚀 **Zero Setup**: Just specify URL, everything else automatic
+- 🔒 **Service Isolation**: Each provider can use different service versions
+- 🌐 **Version Control**: Use semantic versioning for reproducible deployments
+
+➡️ **[Quick Start: Dynamic Loading Guide](./docs/getting-started/dynamic-loading-guide.md)**  
+➡️ **[Architecture: Dynamic Loading System](./docs/architecture/dynamic-loading.md)**
 
 ## 🔥 **Universal Role Compatibility - GAME CHANGER**
 
@@ -57,16 +101,18 @@ POST /api/v1/transform/elevenlabs/voice-id
 
 **Prizm provides the unified platform to make it happen!**
 
-1. **Core SDK** - provider→model→transform foundation
-2. **Fluent API** - zero-config one-liners: `$("provider")("model")(input)`
-3. **REST API** - language-agnostic HTTP interface  
-4. **Job System** - async workflows with generation chains
-5. **Smart Assets** - format-agnostic loading with auto-detection
-6. **Asset Utilities** - rich helper methods for manipulation
-7. **Type Guards** - runtime safety and role checking
-8. **Provider Utils** - discovery and health management
-9. **Job Management** - complete workflow orchestration
-10. **Format Registry** - extensible format detection system
+1. **Dynamic Loading** - Go-like module loading: `getProvider('github:owner/repo@v1.0.0')`
+2. **Provider → Service** - Dynamic service dependency management
+3. **Core SDK** - provider→model→transform foundation
+4. **Fluent API** - zero-config one-liners: `$("provider")("model")(input)`
+5. **REST API** - language-agnostic HTTP interface  
+6. **Job System** - async workflows with generation chains
+7. **Smart Assets** - format-agnostic loading with auto-detection
+8. **Asset Utilities** - rich helper methods for manipulation
+9. **Type Guards** - runtime safety and role checking
+10. **Provider Utils** - discovery and health management
+11. **Job Management** - complete workflow orchestration
+12. **Format Registry** - extensible format detection system
 
 ## 🎯 **Target Users**
 
@@ -78,6 +124,8 @@ POST /api/v1/transform/elevenlabs/voice-id
 
 ## 🌟 **World-Class Features**
 
+- 🌐 **Dynamic Loading**: Load providers from GitHub/NPM at runtime with Go-like module system
+- 🤝 **Provider → Service**: Providers automatically load and manage their service dependencies
 - 🔌 **15+ AI Providers**: FAL.ai, Replicate, Together.ai, OpenRouter, HuggingFace, OpenAI + Local Docker Services
 - 🧠 **500+ AI Models**: Access any model through unified interfaces with dynamic discovery
 - 🎨 **Smart Asset System**: Load any format, get the right capabilities automatically
@@ -89,7 +137,24 @@ POST /api/v1/transform/elevenlabs/voice-id
 
 ## 🚀 Quick Start
 
-### 1. Core SDK Usage
+### 1. Dynamic Provider Loading (NEW!)
+```typescript
+import { getProvider } from 'prizm';
+
+// Load provider from GitHub
+const provider = await getProvider('https://github.com/company/custom-provider');
+
+// Configure with dynamic service
+await provider.configure({
+  serviceUrl: 'github:company/specialized-service@v1.0.0',
+  serviceConfig: { enableGPU: true }
+});
+
+// Use like any other provider
+const result = await provider.getModel('custom-model').transform(input);
+```
+
+### 2. Core SDK Usage
 ```typescript
 import { ProviderRegistry, Text } from 'prizm';
 
@@ -99,7 +164,7 @@ const model = await provider.createTextToAudioModel('voice-id');
 const result = await model.transform(Text.fromString("Hello world!"), options);
 ```
 
-### 2. Fluent API (Zero Config)
+### 3. Fluent API (Zero Config)
 ```typescript
 import { $$ } from 'prizm';
 
@@ -112,7 +177,7 @@ const video = await $$("runway")("gen-3")("Dancing robot", { duration: 5 });
 const speechLegacy = await (await $("elevenlabs")("voice-id"))("Hello world!");
 ```
 
-### 3. Smart Asset Loading
+### 4. Smart Asset Loading
 ```typescript
 import { AssetLoader } from 'prizm';
 
@@ -121,7 +186,7 @@ const video = await asset.asVideo();           // Type-safe video access
 const audio = await asset.extractAudio();     // FFmpeg integration
 ```
 
-### 4. REST API (Any Language)
+### 5. REST API (Any Language)
 ```bash
 # Start the server
 npm install && npm run dev
@@ -134,7 +199,36 @@ curl -X POST http://localhost:3000/api/v1/transform/replicate/flux-schnell \
 
 ## 🏗️ **Prizm SDK Architecture**
 
-### **Layer 1: Core SDK** (Maximum Control)
+**Prizm provides the unified platform to make it happen!**
+
+1. **Dynamic Loading** - Go-like module loading: `getProvider('github:owner/repo@v1.0.0')`
+2. **Provider → Service** - Dynamic service dependency management
+3. **Core SDK** - provider→model→transform foundation
+4. **Fluent API** - zero-config one-liners: `$("provider")("model")(input)`
+5. **REST API** - language-agnostic HTTP interface  
+6. **Job System** - async workflows with generation chains
+7. **Smart Assets** - format-agnostic loading with auto-detection
+8. **Asset Utilities** - rich helper methods for manipulation
+9. **Type Guards** - runtime safety and role checking
+10. **Provider Utils** - discovery and health management
+11. **Job Management** - complete workflow orchestration
+12. **Format Registry** - extensible format detection system
+
+### **Layer 1: Dynamic Loading** (Ecosystem Building)
+```typescript
+// Load providers from any source
+const provider = await getProvider('github:company/ai-provider@v2.1.0');
+const provider = await getProvider('@company/enterprise-provider@latest');
+const provider = await getProvider('file:///path/to/local/provider');
+
+// Providers auto-load their service dependencies
+await provider.configure({
+  serviceUrl: 'github:company/gpu-service@v1.0.0',
+  serviceConfig: { enableGPU: true, memory: '24GB' }
+});
+```
+
+### **Layer 2: Core SDK** (Maximum Control)
 ```typescript
 // Full control over every aspect
 const registry = ProviderRegistry.getInstance();
@@ -355,8 +449,19 @@ npm run test:providers
 npm run test:assets
 ```
 
-## 🐳 Docker Services (Docker Compose Only)
+## 🐳 Docker Services
 
-Prizm now manages local Docker services purely via Docker Compose. You no longer need to manually `cd` into service directories and run `docker-compose up`. The `ServiceRegistry` handles this dynamically when a `MediaProvider` requests a service.
+Start required Docker services:
+```bash
+# Start FFMPEG service
+cd services/ffmpeg && docker-compose up -d
 
-For development, ensure Docker is running and the necessary Docker Compose files are available (e.g., in the `services/` directory).
+# Start Chatterbox TTS service
+cd services/chatterbox && docker-compose up -d
+
+# Start Whisper STT service
+cd services/whisper && docker-compose up -d
+
+# Start HuggingFace Text-to-Image service
+cd services/huggingface && docker-compose up -d
+```

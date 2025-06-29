@@ -1,6 +1,48 @@
 # 🎯 Fluent API Complete Reference
 
-Prizm's Fluent API provides the most elegant syntax for AI media transformations. We now offer **two syntax patterns** for maximum flexibility and consistency.
+Prizm's Fluent API provides the most elegant syntax for AI media transformations. We now offer **two syntax patterns** for maximum flexibility and consistency, plus **dynamic provider loading**.
+
+## 🌐 **NEW: Dynamic Provider Loading (June 2025)**
+
+### **Dynamic Provider Syntax**
+```typescript
+import { getProvider, $$ } from 'prizm';
+
+// Load providers dynamically
+const customProvider = await getProvider('github:company/ai-provider@v1.0.0');
+const enterpriseProvider = await getProvider('@company/enterprise-ai@2.1.0');
+
+// Use with fluent syntax
+const result = await $$(customProvider)("custom-model")(input, options);
+
+// Or with provider ID after loading
+const result = await $$("custom-provider")("model")(input);
+```
+
+### **Dynamic Provider with Services**
+```typescript
+// Provider loads its service dependency
+const provider = await getProvider('github:lab/research-provider@latest');
+
+await provider.configure({
+  serviceUrl: 'github:lab/gpu-inference-service@v2.0.0',
+  serviceConfig: { enableQuantum: true, memory: '32GB' }
+});
+
+// Use like any built-in provider
+const result = await $$(provider)("quantum-model")(input);
+```
+
+### **Environment-Specific Providers**
+```typescript
+// Load different providers per environment
+const providerId = process.env.NODE_ENV === 'production'
+  ? '@company/production-ai@stable'
+  : 'github:company/dev-ai@main';
+
+const provider = await getProvider(providerId);
+const result = await $$(provider)("model")(input);
+```
 
 ## 🚀 **Syntax Patterns**
 

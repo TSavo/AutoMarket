@@ -2,6 +2,43 @@
 
 This directory organizes all provider-related components by **provider domain** within the Prizm SDK architecture. This makes development and maintenance much easier within the provider→model→transform pattern.
 
+## 🌐 **NEW: Dynamic Provider Loading (June 2025)**
+
+Providers can now be loaded dynamically from external sources:
+
+```typescript
+// Load providers from GitHub repositories
+const provider = await getProvider('https://github.com/company/custom-ai-provider');
+
+// Load providers from NPM packages
+const provider = await getProvider('@company/enterprise-provider@2.1.0');
+
+// Load from local files
+const provider = await getProvider('file:///path/to/provider');
+```
+
+### **Dynamic Provider Structure**
+```
+custom-ai-provider/               # GitHub repository
+├── package.json                  # Entry point definition
+├── prizm.config.json            # Optional provider metadata
+├── src/
+│   └── index.ts                 # Provider implementation
+├── dist/
+│   └── index.js                 # Compiled output
+└── README.md                    # Documentation
+```
+
+### **Provider → Service Dependencies**
+Providers can dynamically load their service dependencies:
+
+```typescript
+await provider.configure({
+  serviceUrl: 'github:company/specialized-service@v1.0.0',
+  serviceConfig: { enableGPU: true, memory: '24GB' }
+});
+```
+
 ## Structure
 
 ```

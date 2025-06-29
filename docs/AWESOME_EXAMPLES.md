@@ -2,6 +2,57 @@
 
 Welcome to the most elegant media transformation SDK ever built! Prizm makes AI-powered media generation as simple as one line of code, while supporting incredibly complex multi-provider pipelines.
 
+## 🌐 **NEW: Dynamic Loading Examples (June 2025)**
+
+### 🔄 Load Providers Dynamically
+```typescript
+import { getProvider } from 'prizm';
+
+// Load custom provider from GitHub
+const customProvider = await getProvider('https://github.com/company/ai-provider');
+
+// Load enterprise provider from NPM
+const enterpriseProvider = await getProvider('@company/enterprise-ai@2.1.0');
+
+// Use like any built-in provider
+const result = await customProvider.getModel('custom-model').transform(input);
+```
+
+### 🤝 Providers with Dynamic Services
+```typescript
+// Provider automatically loads GPU-accelerated service
+const provider = await getProvider('github:company/inference-provider@v1.0.0');
+
+await provider.configure({
+  serviceUrl: 'github:company/gpu-inference-service@v2.0.0',
+  serviceConfig: { 
+    enableGPU: true, 
+    memory: '24GB',
+    modelPath: '/models/custom-model.bin'
+  }
+});
+
+// Zero-setup inference with custom hardware
+const result = await provider.getModel('ultra-fast-model').transform(input);
+```
+
+### 🌍 Environment-Specific Loading
+```typescript
+// Different providers for different environments
+const provider = await getProvider(
+  process.env.NODE_ENV === 'production'
+    ? '@company/production-provider@stable'
+    : 'github:company/dev-provider@main'
+);
+
+// Different services for different environments  
+await provider.configure({
+  serviceUrl: process.env.NODE_ENV === 'production'
+    ? 'github:company/prod-service@v2.0.0'
+    : 'github:company/dev-service@latest'
+});
+```
+
 ## 🎯 One-Liner Magic
 
 ### 🖼️ Generate Images (Fluent API - Zero Config)
