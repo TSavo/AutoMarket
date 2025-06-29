@@ -1,11 +1,9 @@
-Refactor: Remove DockerBackedMediaProviderAdapter and use DockerMediaProvider directly
+Refactor: Update all Docker-related providers and tests for Docker Compose Only model
 
-This commit refactors the dynamic service loading mechanism to remove the intermediate `DockerBackedMediaProviderAdapter` and directly use a new `DockerMediaProvider` class.
+This commit finalizes the refactoring of the Docker service management by updating all remaining Docker-related providers and their associated test files.
 
-- **Removed Adapter**: The `DockerBackedMediaProviderAdapter` class has been deleted.
-- **Introduced DockerMediaProvider**: A new `DockerMediaProvider` class has been created. This class directly implements the `MediaProvider` interface and internally manages a `DockerComposeService` instance. This provides a cleaner class hierarchy by avoiding a wrapper.
-- **ProviderRegistry Update**: The `ProviderRegistry` has been updated to instantiate and return `DockerMediaProvider` instances for dynamically loaded Docker-based providers.
-- **Provider Reversion**: `FFMPEGProvider` and `HuggingFaceDockerProvider` have been reverted to their state before the adapter was introduced. They no longer implement `DockerBackedMediaProvider` and manage their Docker services directly via `ServiceRegistry` when statically configured.
-- **Type System Cleanup**: The `DockerBackedMediaProvider` interface has been removed from `src/media/types/provider.ts`.
+- **Provider Refactoring**: `ChatterboxProvider`, `KokoroDockerProvider`, `OllamaDockerProvider`, `WhisperDockerProvider`, and `ZonosDockerProvider` have been refactored to align with the 'Docker Compose Only' model. They now obtain their `DockerComposeService` instances from the `ServiceRegistry` and delegate Docker operations to it.
+- **Test Updates**: Relevant test files, including `test-dynamic-registries.ts`, `test-github-loading.ts`, `test-provider-service-loading.ts`, and `test-zonos-health.ts`, have been updated to reflect the new architecture and ensure correct interaction with Docker-backed services.
+- **Cleanup**: Redundant provider files (e.g., `ChatterboxDockerProvider.ts`) and direct Docker service instantiations in tests have been removed.
 
-This change simplifies the architecture and improves the clarity of the class relationships.
+This ensures a consistent and clean approach to Docker service management across the entire codebase.
