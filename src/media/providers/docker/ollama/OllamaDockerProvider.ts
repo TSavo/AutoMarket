@@ -5,11 +5,11 @@ import {
   ProviderModel,
   ProviderConfig,
 } from '../../../types/provider';
-import { OllamaDockerService } from '../../../services/OllamaDockerService';
 import { OllamaAPIClient } from './OllamaAPIClient';
 import { TextToTextProvider } from '../../../capabilities';
 import { TextToTextModel } from '../../../models/abstracts/TextToTextModel';
 import { OllamaTextToTextModel } from './OllamaTextToTextModel';
+import { DockerComposeService } from '../../../services/DockerComposeService';
 
 export class OllamaDockerProvider implements MediaProvider, TextToTextProvider {
   readonly id = 'ollama-docker';
@@ -18,15 +18,8 @@ export class OllamaDockerProvider implements MediaProvider, TextToTextProvider {
   readonly capabilities = [MediaCapability.TEXT_TO_TEXT];
   readonly models: ProviderModel[] = [];
 
-  private dockerService?: OllamaDockerService;
+  private dockerServiceManager?: DockerComposeService;
   private apiClient?: OllamaAPIClient;
-
-  protected async getDockerService(): Promise<OllamaDockerService> {
-    if (!this.dockerService) {
-      this.dockerService = new OllamaDockerService();
-    }
-    return this.dockerService;
-  }
 
   protected async getAPIClient(): Promise<OllamaAPIClient> {
     if (!this.apiClient) {
@@ -36,26 +29,33 @@ export class OllamaDockerProvider implements MediaProvider, TextToTextProvider {
   }
 
   async startService(): Promise<boolean> {
-    const svc = await this.getDockerService();
-    const started = await svc.startService();
+    if (!this.dockerServiceManager) {
+      throw new Error('Docker service manager not initialized for OllamaDockerProvider');
+    }
+    const started = await this.dockerServiceManager.startService();
     if (started) {
-      return svc.waitForHealthy(30000);
+      return this.dockerServiceManager.waitForHealthy(30000);
     }
     return false;
   }
 
   async stopService(): Promise<boolean> {
-    const svc = await this.getDockerService();
-    return svc.stopService();
+    if (!this.dockerServiceManager) {
+      throw new Error('Docker service manager not initialized for OllamaDockerProvider');
+    }
+    return this.dockerServiceManager.stopService();
   }
 
   async getServiceStatus(): Promise<{ running: boolean; healthy: boolean; error?: string }> {
-    try {
-      const status = await (await this.getDockerService()).getServiceStatus();
-      return { running: status.running, healthy: status.health === 'healthy' };
-    } catch (error) {
-      return { running: false, healthy: false, error: (error as Error).message };
+    if (!this.dockerServiceManager) {
+      return {
+        running: false,
+        healthy: false,
+        error: 'Docker service manager not initialized'
+      };
     }
+    const status = await this.dockerServiceManager.getServiceStatus();
+    return { running: status.running, healthy: status.health === 'healthy', error: status.state === 'error' ? status.state : undefined };
   }
 
   getAvailableModels(): string[] {
@@ -76,8 +76,10 @@ export class OllamaDockerProvider implements MediaProvider, TextToTextProvider {
   }
 
   async isAvailable(): Promise<boolean> {
-    const svc = await this.getDockerService();
-    return svc.isHealthy();
+    if (!this.dockerServiceManager) {
+      return false;
+    }
+    return this.dockerServiceManager.isServiceHealthy();
   }
 
   getModelsForCapability(capability: MediaCapability): ProviderModel[] {
@@ -109,8 +111,19 @@ export class OllamaDockerProvider implements MediaProvider, TextToTextProvider {
   }
 
   async configure(config: ProviderConfig): Promise<void> {
+    this.config = config;
+    if (config.serviceUrl) {
+      const { ServiceRegistry } = await import('../../../registry/ServiceRegistry');
+      const serviceRegistry = ServiceRegistry.getInstance();
+      this.dockerServiceManager = await serviceRegistry.getService(config.serviceUrl, config.serviceConfig) as DockerComposeService;
+      const serviceInfo = this.dockerServiceManager.getServiceInfo();
+      if (serviceInfo.ports && serviceInfo.ports.length > 0) {
+        const port = serviceInfo.ports[0];
+        this.apiClient = new OllamaAPIClient({ baseUrl: `http://localhost:${port}` });
+      }
+    }
     // No special configuration for now
-    if (config.baseUrl) {
+    if (config.baseUrl && !this.apiClient) {
       this.apiClient = new OllamaAPIClient({ baseUrl: config.baseUrl });
     }
   }

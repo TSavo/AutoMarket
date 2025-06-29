@@ -28,18 +28,10 @@ export class WhisperDockerProvider implements MediaProvider, AudioToTextProvider
   readonly capabilities = [MediaCapability.AUDIO_TO_TEXT];
   readonly models: ProviderModel[] = [];
 
-  private dockerService?: WhisperDockerService;
+  private dockerServiceManager?: DockerComposeService;
   private apiClient?: WhisperAPIClient;
 
-  /**
-   * Get the Docker service instance
-   */
-  protected async getDockerService(): Promise<WhisperDockerService> {
-    if (!this.dockerService) {
-      this.dockerService = new WhisperDockerService();
-    }
-    return this.dockerService;
-  }
+  
 
   /**
    * Get the API client instance
@@ -55,34 +47,28 @@ export class WhisperDockerProvider implements MediaProvider, AudioToTextProvider
    * Start the Docker service
    */
   async startService(): Promise<boolean> {
-    try {
-      const dockerService = await this.getDockerService();
-      const started = await dockerService.startService();
-      
-      if (started) {
-        // Wait for service to be healthy
-        const healthy = await dockerService.waitForHealthy(30000);
-        return healthy;
-      }
-      
-      return false;
-    } catch (error) {
-      console.error('Failed to start Whisper Docker service:', error);
-      return false;
+    if (!this.dockerServiceManager) {
+      throw new Error('Docker service manager not initialized for WhisperDockerProvider');
     }
+    const started = await this.dockerServiceManager.startService();
+    
+    if (started) {
+      // Wait for service to be healthy
+      const healthy = await this.dockerServiceManager.waitForHealthy(30000);
+      return healthy;
+    }
+    
+    return false;
   }
 
   /**
    * Stop the Docker service
    */
   async stopService(): Promise<boolean> {
-    try {
-      const dockerService = await this.getDockerService();
-      return await dockerService.stopService();
-    } catch (error) {
-      console.error('Failed to stop Whisper Docker service:', error);
-      return false;
+    if (!this.dockerServiceManager) {
+      throw new Error('Docker service manager not initialized for WhisperDockerProvider');
     }
+    return await this.dockerServiceManager.stopService();
   }
 
   /**
@@ -93,21 +79,20 @@ export class WhisperDockerProvider implements MediaProvider, AudioToTextProvider
     healthy: boolean;
     error?: string;
   }> {
-    try {
-      const dockerService = await this.getDockerService();
-      const status = await dockerService.getServiceStatus();
-      
-      return {
-        running: status.running || false,
-        healthy: status.health === 'healthy'
-      };
-    } catch (error) {
+    if (!this.dockerServiceManager) {
       return {
         running: false,
         healthy: false,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: 'Docker service manager not initialized'
       };
     }
+    const status = await this.dockerServiceManager.getServiceStatus();
+    
+    return {
+      running: status.running || false,
+      healthy: status.health === 'healthy',
+      error: status.state === 'error' ? status.state : undefined
+    };
   }
 
   /**
@@ -213,7 +198,21 @@ export class WhisperDockerProvider implements MediaProvider, AudioToTextProvider
    * Configure the provider
    */
   async configure(config: ProviderConfig): Promise<void> {
+    this.config = config;
+    if (config.serviceUrl) {
+      const { ServiceRegistry } = await import('../../../registry/ServiceRegistry');
+      const serviceRegistry = ServiceRegistry.getInstance();
+      this.dockerServiceManager = await serviceRegistry.getService(config.serviceUrl, config.serviceConfig) as DockerComposeService;
+      const serviceInfo = this.dockerServiceManager.getServiceInfo();
+      if (serviceInfo.ports && serviceInfo.ports.length > 0) {
+        const port = serviceInfo.ports[0];
+        this.apiClient = new WhisperAPIClient({ baseUrl: `http://localhost:${port}` });
+      }
+    }
     // Docker providers typically don't need API keys, but may need service URLs
+    if (config.baseUrl && !this.apiClient) {
+      this.apiClient = new WhisperAPIClient({ baseUrl: config.baseUrl });
+    }
   }
 
   /**
@@ -257,36 +256,10 @@ export class WhisperDockerProvider implements MediaProvider, AudioToTextProvider
     };
   }
 
-  /**
-   * Initialize the provider (start services if needed)
-   */
-  async initialize(): Promise<void> {
-    console.log('🚀 Initializing Whisper Docker Provider...');
-    
-    const started = await this.startService();
-    if (!started) {
-      throw new Error('Failed to start Whisper Docker service');
-    }
-    
-    console.log('✅ Whisper Docker Provider initialized successfully');
-  }
-
-  /**
-   * Cleanup the provider (stop services)
-   */
-  async cleanup(): Promise<void> {
-    console.log('🛑 Cleaning up Whisper Docker Provider...');
-    
-    await this.stopService();
-    
-    console.log('✅ Whisper Docker Provider cleaned up');
-  }
+  
 }
 
-/**
- * Default instance for easy importing
- */
-export const whisperDockerProvider = new WhisperDockerProvider();
+
 
 // Self-register with the provider registry
 import { ProviderRegistry } from '../../../registry/ProviderRegistry';

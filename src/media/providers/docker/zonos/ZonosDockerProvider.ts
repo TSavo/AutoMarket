@@ -9,7 +9,7 @@ import { MediaProvider, ProviderConfig, ProviderModel, ProviderType } from '../.
 import { TextToAudioProvider } from '../../../capabilities/interfaces/TextToAudioProvider';
 import { TextToAudioModel } from '../../../models/abstracts/TextToAudioModel';
 import { MediaCapability } from '../../../types/provider';
-import { ZonosDockerService } from '../../../services/ZonosDockerService';
+import { DockerComposeService } from '../../../services/DockerComposeService'; // Updated import
 import { ZonosTextToAudioModel } from './ZonosTextToAudioModel';
 import { ZonosAPIClient } from './ZonosAPIClient';
 
@@ -22,8 +22,8 @@ export class ZonosDockerProvider implements MediaProvider, TextToAudioProvider {
   readonly type = ProviderType.LOCAL;
   readonly capabilities = [MediaCapability.TEXT_TO_AUDIO];
   
-  private dockerService: ZonosDockerService | null = null;
-  private apiClient: ZonosAPIClient | null = null;
+  private dockerServiceManager?: DockerComposeService; // Updated property
+  private apiClient?: ZonosAPIClient;
 
   constructor() {
     // Initialize lazily to avoid startup overhead
@@ -34,16 +34,6 @@ export class ZonosDockerProvider implements MediaProvider, TextToAudioProvider {
    */
   get models(): ProviderModel[] {
     return this.getModelsForCapability(MediaCapability.TEXT_TO_AUDIO);
-  }
-
-  /**
-   * Get Docker service instance (lazy initialization)
-   */
-  private async getDockerService(): Promise<ZonosDockerService> {
-    if (!this.dockerService) {
-      this.dockerService = new ZonosDockerService();
-    }
-    return this.dockerService;
   }
 
   /**
@@ -60,34 +50,28 @@ export class ZonosDockerProvider implements MediaProvider, TextToAudioProvider {
    * Start the Docker service
    */
   async startService(): Promise<boolean> {
-    try {
-      const dockerService: ZonosDockerService = await this.getDockerService();
-      const started: boolean = await dockerService.startService();
-
-      if (started) {
-        // Wait for service to be healthy
-        const healthy: boolean = await dockerService.waitForHealthy(30000);
-        return healthy;
-      }
-
-      return false;
-    } catch (error) {
-      console.error('Failed to start Zonos Docker service:', error);
-      return false;
+    if (!this.dockerServiceManager) {
+      throw new Error('Docker service manager not initialized for ZonosDockerProvider');
     }
+    const started: boolean = await this.dockerServiceManager.startService();
+
+    if (started) {
+      // Wait for service to be healthy
+      const healthy: boolean = await this.dockerServiceManager.waitForHealthy(30000);
+      return healthy;
+    }
+
+    return false;
   }
 
   /**
    * Stop the Docker service
    */
   async stopService(): Promise<boolean> {
-    try {
-      const dockerService: ZonosDockerService = await this.getDockerService();
-      return await dockerService.stopService();
-    } catch (error) {
-      console.error('Failed to stop Zonos Docker service:', error);
-      return false;
+    if (!this.dockerServiceManager) {
+      throw new Error('Docker service manager not initialized for ZonosDockerProvider');
     }
+    return await this.dockerServiceManager.stopService();
   }
 
   /**
@@ -98,21 +82,20 @@ export class ZonosDockerProvider implements MediaProvider, TextToAudioProvider {
     healthy: boolean;
     error?: string;
   }> {
-    try {
-      const dockerService: ZonosDockerService = await this.getDockerService();
-      const status = await dockerService.getServiceStatus();
-
-      return {
-        running: status.running || false,
-        healthy: status.health === 'healthy'
-      };
-    } catch (error) {
+    if (!this.dockerServiceManager) {
       return {
         running: false,
         healthy: false,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: 'Docker service manager not initialized'
       };
     }
+    const status = await this.dockerServiceManager.getServiceStatus();
+
+    return {
+      running: status.running || false,
+      healthy: status.health === 'healthy',
+      error: status.state === 'error' ? status.state : undefined
+    };
   }
 
   /**
@@ -142,11 +125,11 @@ export class ZonosDockerProvider implements MediaProvider, TextToAudioProvider {
     }
 
     // Get Docker service and API client
-    const dockerService = await this.getDockerService();
+    // Removed direct call to getDockerService()
     const apiClient = this.getAPIClient();
 
     return new ZonosTextToAudioModel({
-      dockerService,
+      dockerService: this.dockerServiceManager!, // Use the manager directly
       apiClient
     });
   }
@@ -194,7 +177,21 @@ export class ZonosDockerProvider implements MediaProvider, TextToAudioProvider {
    * Configure the provider
    */
   async configure(config: ProviderConfig): Promise<void> {
+    this.config = config;
+    if (config.serviceUrl) {
+      const { ServiceRegistry } = await import('../../../registry/ServiceRegistry');
+      const serviceRegistry = ServiceRegistry.getInstance();
+      this.dockerServiceManager = await serviceRegistry.getService(config.serviceUrl, config.serviceConfig) as DockerComposeService;
+      const serviceInfo = this.dockerServiceManager.getServiceInfo();
+      if (serviceInfo.ports && serviceInfo.ports.length > 0) {
+        const port = serviceInfo.ports[0];
+        this.apiClient = new ZonosAPIClient({ baseUrl: `http://localhost:${port}` });
+      }
+    }
     // Docker providers typically don't need API keys, but may need service URLs
+    if (config.baseUrl && !this.apiClient) {
+      this.apiClient = new ZonosAPIClient({ baseUrl: config.baseUrl });
+    }
   }
 
   /**
@@ -380,17 +377,8 @@ export class ZonosDockerProvider implements MediaProvider, TextToAudioProvider {
     }
   }
 
-  /**
-   * Get Docker service for advanced operations
-   */
-  async getDockerServiceInstance(): Promise<ZonosDockerService> {
-    return this.getDockerService();
-  }
-
-  /**
-   * Get API client for direct access
-   */
-  getAPIClientInstance(): ZonosAPIClient {
-    return this.getAPIClient();
-  }
 }
+
+// Self-register with the provider registry
+import { ProviderRegistry } from '../../../registry/ProviderRegistry';
+ProviderRegistry.getInstance().register('zonos-docker', ZonosDockerProvider);

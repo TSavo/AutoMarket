@@ -10,8 +10,7 @@ import {
   ProviderType,
   MediaCapability,
   ProviderModel,
-  ProviderConfig,
-  DockerBackedMediaProvider
+  ProviderConfig
 } from '../../../types/provider';
 import { DockerComposeService } from '../../../services/DockerComposeService';
 import { HuggingFaceDockerService } from '../../../services/HuggingFaceDockerService';
@@ -25,7 +24,7 @@ import { TextToImageProvider, TextToAudioProvider } from '../../../capabilities'
 /**
  * Provider for HuggingFace text-to-image and text-to-audio models via Docker
  */
-export class HuggingFaceDockerProvider implements MediaProvider, TextToImageProvider, TextToAudioProvider, DockerBackedMediaProvider {
+export class HuggingFaceDockerProvider implements MediaProvider, TextToImageProvider, TextToAudioProvider {
   readonly id = 'huggingface-docker';
   readonly name = 'HuggingFace Docker Provider';
   readonly type = ProviderType.LOCAL;
@@ -329,7 +328,7 @@ export class HuggingFaceDockerProvider implements MediaProvider, TextToImageProv
   /**
    * Configure the provider
    */
-  async configure(config: ProviderConfig, dockerServiceAdapter?: DockerBackedMediaProviderAdapter): Promise<void> {
+  async configure(config: ProviderConfig): Promise<void> {
     this.config = config;
     if (dockerServiceAdapter) {
       this.dockerServiceManager = dockerServiceAdapter.getDockerServiceManager();

@@ -8,24 +8,8 @@ import { initializeProviders, ProviderRegistry } from './src/media/registry/boot
 import { initializeServices, ServiceRegistry } from './src/media/registry/serviceBootstrap';
 
 async function testDynamicRegistries() {
-  console.log('🧪 Testing Dynamic Provider and Service Registries\n');
-
-  // Initialize providers first
-  console.log('📦 INITIALIZING REGISTRIES:');
-  console.log('============================');
-  try {
-    await initializeProviders();
-    console.log('✅ Providers initialized');
-  } catch (error) {
-    console.log(`❌ Provider initialization failed: ${error.message}`);
-  }
-
-  try {
-    await initializeServices();
-    console.log('✅ Services initialized');
-  } catch (error) {
-    console.log(`❌ Service initialization failed: ${error.message}`);
-  }
+  console.log('🧪 Testing Dynamic Provider and Service Registries
+');
 
   // Test Provider Registry
   console.log('\n📦 PROVIDER REGISTRY TESTS:');
@@ -47,17 +31,22 @@ async function testDynamicRegistries() {
     console.log('2. Testing URL parsing...');
     const parsed = (providerRegistry as any).parseIdentifier('https://github.com/tsavo/prizm-ffmpeg-provider');
     console.log(`   ✅ URL parsed: ${JSON.stringify(parsed, null, 2)}`);
-  } catch (error) {
-    console.log(`   ❌ URL parsing failed: ${error.message}`);
-  }
 
-  try {
-    // Test npm package identifier
-    console.log('3. Testing npm package parsing...');
-    const parsed = (providerRegistry as any).parseIdentifier('@tsavo/prizm-ffmpeg-provider@1.2.3');
-    console.log(`   ✅ NPM parsed: ${JSON.stringify(parsed, null, 2)}`);
+    // Test dynamic GitHub provider loading
+    console.log('4. Testing dynamic GitHub provider loading...');
+    const githubProvider = await providerRegistry.getProvider('github:tsavo/prizm-ffmpeg-provider');
+    console.log(`   ✅ GitHub provider loaded: ${githubProvider.name} (${githubProvider.id})`);
+    if (githubProvider.id !== 'prizm-ffmpeg-provider') {
+      throw new Error('GitHub provider ID mismatch');
+    }
+    if (githubProvider.type !== 'local') {
+      throw new Error('GitHub provider type mismatch');
+    }
+    if (!githubProvider.capabilities.includes('video-to-video')) {
+      throw new Error('GitHub provider capabilities mismatch');
+    }
   } catch (error) {
-    console.log(`   ❌ NPM parsing failed: ${error.message}`);
+    console.log(`   ❌ Dynamic provider loading failed: ${error.message}`);
   }
 
   // Test Service Registry
@@ -111,18 +100,13 @@ async function testDynamicRegistries() {
   }
   console.log('\n🎯 SUMMARY:');
   console.log('===========');
-  console.log('Both registries are enhanced to support:');
+  console.log('Registries now support:');
   console.log('• ✅ Static registration (existing behavior)');
-  console.log('• ✅ Dynamic loading from URLs');
-  console.log('• ✅ NPM package loading');
-  console.log('• ✅ GitHub repository loading (IMPLEMENTED!)');
-  console.log('• ✅ File system loading');
+  console.log('• ✅ Dynamic loading of Docker Compose services from URLs (GitHub, local files)');
   console.log('\nUsage Examples:');
   console.log(`• getProvider('ffmpeg')                                    // Static`);
-  console.log(`• getProvider('@tsavo/prizm-ffmpeg-provider@1.2.3')       // NPM`);
-  console.log(`• getProvider('https://github.com/tsavo/prizm-provider')   // GitHub`);
+  console.log(`• getProvider('github:tsavo/prizm-ffmpeg-provider')        // GitHub Docker Service`);
   console.log(`• getService('huggingface-docker')                        // Static`);
-  console.log(`• getService('@company/custom-docker-service')            // NPM`);
 }
 
 if (require.main === module) {

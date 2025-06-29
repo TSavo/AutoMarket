@@ -2,13 +2,25 @@
  * Test script to verify Zonos Docker health check configuration
  */
 
-import { ZonosDockerService } from './src/media/services/ZonosDockerService';
+import { ServiceRegistry } from './src/media/registry/ServiceRegistry';
+import { DockerComposeService } from './src/services/DockerComposeService';
 
 async function testZonosHealth() {
   console.log('🏥 Testing Zonos Docker Health Check');
   console.log('=' .repeat(50));
 
-  const dockerService = new ZonosDockerService();
+  let dockerService: DockerComposeService | undefined;
+  try {
+    dockerService = await ServiceRegistry.getInstance().getService('zonos-docker') as DockerComposeService;
+  } catch (error) {
+    console.error(`❌ Failed to get Zonos Docker service from registry: ${error.message}`);
+    return;
+  }
+
+  if (!dockerService) {
+    console.error('❌ Zonos Docker service not found in registry.');
+    return;
+  }
   
   try {
     // Test 1: Check current status
@@ -32,9 +44,8 @@ async function testZonosHealth() {
           console.log('\n✅ Health check is working correctly!');
         } else {
           console.log('\n❌ Health check failed - checking logs...');
-          const logs = await dockerService.getLogs(50);
-          console.log('Container logs:');
-          console.log(logs);
+          // Removed getLogs as DockerComposeService does not have it directly
+          console.log('Container logs: (Not available via DockerComposeService directly)');
         }
       }
     } else {

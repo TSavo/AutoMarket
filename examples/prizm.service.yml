@@ -1,0 +1,74 @@
+# Example Prizm Service Configuration
+# This file defines how the ServiceRegistry should configure the DockerService
+
+name: enhanced-ffmpeg-service
+version: "2.1.0"
+description: "GPU-accelerated FFMPEG service with custom codecs and real-time processing"
+
+# Docker configuration (REQUIRED)
+docker:
+  composeFile: "docker-compose.yml"     # Path to docker-compose file
+  serviceName: "ffmpeg"                 # Service name in docker-compose.yml
+  image: "company/enhanced-ffmpeg:2.1.0" # Docker image (optional, can be in compose file)
+  ports: [8080, 8081]                   # Exposed ports
+  
+  # Health check configuration
+  healthCheck:
+    url: "http://localhost:8080/health"
+    interval: "30s"
+    timeout: "10s"  
+    retries: 3
+    
+  # Environment variables (optional, can override compose file)
+  environment:
+    GPU_ENABLED: "true"
+    CODEC_SUPPORT: "av1,h265,h264,vp9"
+    MAX_CONCURRENT: "4"
+    LOG_LEVEL: "info"
+    
+  # Volume mounts (optional)
+  volumes:
+    - "./configs:/app/configs:ro"
+    - "./temp:/tmp/ffmpeg:rw"
+
+# Service capabilities (for provider discovery)
+capabilities:
+  - "video-to-video"
+  - "video-to-image" 
+  - "video-to-audio"
+  - "image-to-video"
+  - "audio-to-audio"
+
+# Resource requirements (for deployment planning)
+requirements:
+  gpu: true
+  memory: "8GB"
+  cpu: "4 cores"
+  disk: "20GB"
+
+# Additional metadata (optional)
+metadata:
+  author: "Company DevOps Team"
+  repository: "https://github.com/company/enhanced-ffmpeg-service"
+  documentation: "https://docs.company.com/ffmpeg-service"
+  license: "MIT"
+  
+# Service-specific configuration (optional)
+configuration:
+  # Default encoding settings
+  encoding:
+    defaultCodec: "h264"
+    quality: "high"
+    preset: "medium"
+    
+  # GPU acceleration settings
+  gpu:
+    driver: "nvidia"
+    deviceId: 0
+    memoryLimit: "6GB"
+    
+  # Performance tuning
+  performance:
+    threads: 8
+    bufferSize: "64MB"
+    timeout: "300s"

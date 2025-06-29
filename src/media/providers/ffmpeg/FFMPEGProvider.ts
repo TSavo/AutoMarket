@@ -35,7 +35,7 @@ export interface FFMPEGProviderConfig extends ProviderConfig {
  * Provider for FFMPEG-based media processing
  * Works with any FFMPEG client implementation (Docker or local)
  */
-export class FFMPEGProvider implements MediaProvider, AudioToAudioProvider, VideoToAudioProvider, VideoToVideoProvider, VideoToImageProvider, DockerBackedMediaProvider {
+export class FFMPEGProvider implements MediaProvider, AudioToAudioProvider, VideoToAudioProvider, VideoToVideoProvider, VideoToImageProvider {
   readonly id = 'ffmpeg';
   readonly name = 'FFMPEG Provider';
   readonly type = ProviderType.LOCAL;
@@ -105,7 +105,7 @@ export class FFMPEGProvider implements MediaProvider, AudioToAudioProvider, Vide
     }
   }
 
-  async configure(config: FFMPEGProviderConfig, dockerServiceAdapter?: DockerBackedMediaProviderAdapter): Promise<void> {
+  async configure(config: FFMPEGProviderConfig): Promise<void> {
     this.config = { ...this.config, ...config };
     
     if (dockerServiceAdapter) {

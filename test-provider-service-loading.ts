@@ -4,32 +4,27 @@
  * Demonstrates how providers can dynamically load and manage their service dependencies
  */
 
-import { initializeProviders } from './src/media/registry/bootstrap';
-import { initializeServices } from './src/media/registry/serviceBootstrap';
+import { ProviderRegistry } from './src/media/registry/ProviderRegistry';
+import { ServiceRegistry } from './src/media/registry/ServiceRegistry';
+import { DockerMediaProvider } from './src/media/providers/docker/DockerMediaProvider';
+import { DockerComposeService } from './src/services/DockerComposeService';
 
 async function testProviderServiceDynamicLoading() {
   console.log('🧪 Testing Provider → Service Dynamic Loading\n');
 
-  // Initialize registries
-  console.log('📦 INITIALIZING REGISTRIES:');
-  console.log('============================');
+  // Initialize registries (no explicit initialization needed anymore)
+  console.log('📦 REGISTRIES ARE LAZILY INITIALIZED:');
+  console.log('=====================================');
   
-  try {
-    await initializeProviders();
-    await initializeServices();
-    console.log('✅ Registries initialized');
-  } catch (error) {
-    console.log(`❌ Registry initialization failed: ${error.message}`);
-    return;
-  }
+  const providerRegistry = ProviderRegistry.getInstance();
+  const serviceRegistry = ServiceRegistry.getInstance();
+
   console.log('\n🔄 TESTING DYNAMIC SERVICE LOADING:');
   console.log('====================================');
 
   // First, let's see what providers are actually available
   console.log('0. Checking available providers...');
   try {
-    const { ProviderRegistry } = await import('./src/media/registry/bootstrap');
-    const providerRegistry = ProviderRegistry.getInstance();
     const availableProviders = providerRegistry.getAvailableProviders();
     console.log(`   Available providers: ${availableProviders.join(', ')}`);
   } catch (error) {
@@ -40,104 +35,92 @@ async function testProviderServiceDynamicLoading() {
   console.log('\n1. Testing provider with static service dependency...');
   
   try {
-    const { ProviderRegistry } = await import('./src/media/registry/bootstrap');
-    const providerRegistry = ProviderRegistry.getInstance();
-    
     // Get FFMPEG provider (use the actual registered name)
-    const ffmpegProvider = await providerRegistry.getProvider('ffmpeg-docker'); // Try the actual name
+    const ffmpegProvider = await providerRegistry.getProvider('ffmpeg');
     
     // Configure it to use a static service
     await ffmpegProvider.configure({
-      serviceUrl: 'ffmpeg-docker',  // Static service from our registry
+      serviceUrl: 'github:tsavo/prizm-ffmpeg-service',  // Use a GitHub URL for a static service
       autoStartService: false       // Don't actually start for this demo
     });
     
+    // Verify that the provider now has a DockerComposeService manager
+    const dockerServiceManager = (ffmpegProvider as any).dockerServiceManager; // Access private property for testing
+    if (!(dockerServiceManager instanceof DockerComposeService)) {
+      throw new Error('FFMPEGProvider did not get a DockerComposeService manager');
+    }
     console.log(`   ✅ Provider configured with static service successfully`);
     
   } catch (error) {
     console.log(`   ❌ Static service loading failed: ${error.message}`);
   }
+
   // Test 2: Provider with dynamic GitHub service URL
-  console.log('\n2. Testing provider with GitHub service URL...');
+  console.log('\n2. Testing provider with dynamic GitHub service URL...');
   
   try {
-    const { ProviderRegistry } = await import('./src/media/registry/bootstrap');
-    const providerRegistry = ProviderRegistry.getInstance();
+    // Get a dynamic provider from GitHub
+    const githubProvider = await providerRegistry.getProvider('github:tsavo/prizm-chatterbox-service');
     
-    // Get a fresh provider instance
-    const ffmpegProvider = await providerRegistry.getProvider('ffmpeg-docker');
-    
-    // Configure it to load a service from GitHub (this will likely fail, but shows the pattern)
-    await ffmpegProvider.configure({
-      serviceUrl: 'https://github.com/tsavo/enhanced-ffmpeg-service',
-      serviceConfig: {
-        enableGPU: true,
-        maxConcurrent: 4
-      },
-      autoStartService: false  // Don't auto-start for this test
-    });
-    
-    console.log(`   ✅ Provider accepted GitHub service URL (would download if repo existed)`);
+    // Verify it's a DockerMediaProvider
+    if (!(githubProvider instanceof DockerMediaProvider)) {
+      throw new Error('GitHub provider is not an instance of DockerMediaProvider');
+    }
+
+    // Verify its properties
+    console.log(`   ✅ GitHub provider loaded: ${githubProvider.name} (${githubProvider.id})`);
+    if (githubProvider.id !== 'prizm-chatterbox-service') {
+      throw new Error('GitHub provider ID mismatch');
+    }
+    if (githubProvider.type !== 'local') {
+      throw new Error('GitHub provider type mismatch');
+    }
+    if (!githubProvider.capabilities.includes('text-to-audio')) {
+      throw new Error('GitHub provider capabilities mismatch');
+    }
+
+    // Access the underlying DockerComposeService
+    const dockerServiceManager = githubProvider.getDockerServiceManager();
+    if (!(dockerServiceManager instanceof DockerComposeService)) {
+      throw new Error('DockerMediaProvider did not encapsulate a DockerComposeService');
+    }
+    console.log(`   ✅ DockerMediaProvider encapsulates a DockerComposeService`);
     
   } catch (error) {
-    console.log(`   ❌ GitHub service loading failed (expected): ${error.message}`);
-    console.log(`   ℹ️ This is expected - demo repo doesn't exist`);
+    console.log(`   ❌ GitHub service loading failed: ${error.message}`);
   }
 
-  // Test 3: Provider with NPM service package
-  console.log('\n3. Testing provider with NPM service package...');
+  // Test 3: Provider with NPM service package (conceptual - requires actual NPM package)
+  console.log('\n3. Testing provider with NPM service package (conceptual)...');
   
   try {
-    const { ProviderRegistry } = await import('./src/media/registry/bootstrap');
-    const providerRegistry = ProviderRegistry.getInstance();
-    
-    // Get a fresh provider instance  
-    const ffmpegProvider = await providerRegistry.getProvider('ffmpeg-docker');
-    
-    // Configure it to load a service from NPM
-    await ffmpegProvider.configure({
-      serviceUrl: '@company/gpu-accelerated-ffmpeg@2.1.0',
-      serviceConfig: {
-        gpuType: 'nvidia',
-        memory: '8GB'
-      },
-      autoStartService: false
-    });
-    
-    console.log(`   ✅ Provider accepted NPM service URL (would install if package existed)`);
+    // This test is conceptual as it requires a real NPM package to exist
+    // const npmProvider = await providerRegistry.getProvider('@company/gpu-accelerated-ffmpeg@2.1.0');
+    // console.log(`   ✅ NPM provider loaded: ${npmProvider.name}`);
+    console.log(`   ℹ️ This test is conceptual and requires a real NPM package to exist.`);
     
   } catch (error) {
     console.log(`   ❌ NPM service loading failed (expected): ${error.message}`);
-    console.log(`   ℹ️ This is expected - demo package doesn't exist`);
   }
 
   console.log('\n🎯 PROVIDER → SERVICE ARCHITECTURE:');
   console.log('====================================');
-  console.log('✅ Provider can specify service dependencies via URL');
-  console.log('✅ Automatic service downloading and installation');
-  console.log('✅ Automatic service startup and health checking');
-  console.log('✅ Provider auto-configuration from service info');
-  console.log('✅ Support for static, GitHub, and NPM service sources');
+  console.log('✅ Providers can specify service dependencies via URL (GitHub, local files)');
+  console.log('✅ ServiceRegistry handles dynamic loading of Docker Compose services');
+  console.log('✅ Providers can obtain and manage their DockerComposeService instances');
+  console.log('✅ DockerMediaProvider encapsulates DockerComposeService for dynamic providers');
   
   console.log('\n📋 CONFIGURATION EXAMPLES:');
   console.log('===========================');
-  console.log('// Static service from registry');
+  console.log('// Static provider configuring with a GitHub service');
   console.log(`await provider.configure({`);
-  console.log(`  serviceUrl: 'ffmpeg-docker'`);
-  console.log(`});`);
-  console.log('');
-  console.log('// GitHub repository service');
-  console.log(`await provider.configure({`);
-  console.log(`  serviceUrl: 'https://github.com/company/enhanced-ffmpeg-service',`);
-  console.log(`  serviceConfig: { enableGPU: true },`);
+  console.log(`  serviceUrl: 'github:tsavo/prizm-ffmpeg-service',`);
   console.log(`  autoStartService: true`);
   console.log(`});`);
   console.log('');
-  console.log('// NPM package service');
-  console.log(`await provider.configure({`);
-  console.log(`  serviceUrl: '@company/gpu-ffmpeg-service@2.1.0',`);
-  console.log(`  serviceConfig: { memory: '8GB' }`);
-  console.log(`});`);
+  console.log('// Dynamically load a Docker-backed provider');
+  console.log(`const chatterboxProvider = await providerRegistry.getProvider('github:tsavo/prizm-chatterbox-service');`);
+  console.log(`await chatterboxProvider.startService(); // Start the underlying Docker service`);
 
   console.log('\n🚀 ARCHITECTURAL BENEFITS:');
   console.log('===========================');

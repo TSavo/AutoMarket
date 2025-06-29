@@ -28,18 +28,10 @@ export class KokoroDockerProvider implements MediaProvider, TextToAudioProvider 
   readonly capabilities = [MediaCapability.TEXT_TO_AUDIO];
   readonly models: ProviderModel[] = [];
 
-  private dockerService?: KokoroDockerService;
+  private dockerServiceManager?: DockerComposeService;
   private apiClient?: KokoroAPIClient;
 
-  /**
-   * Get the Docker service instance
-   */
-  protected async getDockerService(): Promise<KokoroDockerService> {
-    if (!this.dockerService) {
-      this.dockerService = new KokoroDockerService();
-    }
-    return this.dockerService;
-  }
+  
 
   /**
    * Get the API client instance
@@ -55,34 +47,28 @@ export class KokoroDockerProvider implements MediaProvider, TextToAudioProvider 
    * Start the Docker service
    */
   async startService(): Promise<boolean> {
-    try {
-      const dockerService: KokoroDockerService = await this.getDockerService();
-      const started: boolean = await dockerService.startService();
-
-      if (started) {
-        // Wait for service to be healthy
-        const healthy: boolean = await dockerService.waitForHealthy(30000);
-        return healthy;
-      }
-
-      return false;
-    } catch (error) {
-      console.error('Failed to start Kokoro Docker service:', error);
-      return false;
+    if (!this.dockerServiceManager) {
+      throw new Error('Docker service manager not initialized for KokoroDockerProvider');
     }
+    const started: boolean = await this.dockerServiceManager.startService();
+
+    if (started) {
+      // Wait for service to be healthy
+      const healthy: boolean = await this.dockerServiceManager.waitForHealthy(30000);
+      return healthy;
+    }
+
+    return false;
   }
 
   /**
    * Stop the Docker service
    */
   async stopService(): Promise<boolean> {
-    try {
-      const dockerService: KokoroDockerService = await this.getDockerService();
-      return await dockerService.stopService();
-    } catch (error) {
-      console.error('Failed to stop Kokoro Docker service:', error);
-      return false;
+    if (!this.dockerServiceManager) {
+      throw new Error('Docker service manager not initialized for KokoroDockerProvider');
     }
+    return await this.dockerServiceManager.stopService();
   }
 
   /**
@@ -93,21 +79,20 @@ export class KokoroDockerProvider implements MediaProvider, TextToAudioProvider 
     healthy: boolean;
     error?: string;
   }> {
-    try {
-      const dockerService: KokoroDockerService = await this.getDockerService();
-      const status = await dockerService.getServiceStatus();
-
-      return {
-        running: status.running || false,
-        healthy: status.health === 'healthy'
-      };
-    } catch (error) {
+    if (!this.dockerServiceManager) {
       return {
         running: false,
         healthy: false,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: 'Docker service manager not initialized'
       };
     }
+    const status = await this.dockerServiceManager.getServiceStatus();
+
+    return {
+      running: status.running || false,
+      healthy: status.health === 'healthy',
+      error: status.state === 'error' ? status.state : undefined
+    };
   }
 
   /**
@@ -190,7 +175,21 @@ export class KokoroDockerProvider implements MediaProvider, TextToAudioProvider 
    * Configure the provider
    */
   async configure(config: ProviderConfig): Promise<void> {
+    this.config = config;
+    if (config.serviceUrl) {
+      const { ServiceRegistry } = await import('../../../registry/ServiceRegistry');
+      const serviceRegistry = ServiceRegistry.getInstance();
+      this.dockerServiceManager = await serviceRegistry.getService(config.serviceUrl, config.serviceConfig) as DockerComposeService;
+      const serviceInfo = this.dockerServiceManager.getServiceInfo();
+      if (serviceInfo.ports && serviceInfo.ports.length > 0) {
+        const port = serviceInfo.ports[0];
+        this.apiClient = new KokoroAPIClient({ baseUrl: `http://localhost:${port}` });
+      }
+    }
     // Docker providers typically don't need API keys, but may need service URLs
+    if (config.baseUrl && !this.apiClient) {
+      this.apiClient = new KokoroAPIClient({ baseUrl: config.baseUrl });
+    }
   }
 
   /**
@@ -235,36 +234,10 @@ export class KokoroDockerProvider implements MediaProvider, TextToAudioProvider 
     };
   }
 
-  /**
-   * Initialize the provider (start services if needed)
-   */
-  async initialize(): Promise<void> {
-    console.log('🚀 Initializing Kokoro Docker Provider...');
-
-    const started: boolean = await this.startService();
-    if (!started) {
-      throw new Error('Failed to start Kokoro Docker service');
-    }
-
-    console.log('✅ Kokoro Docker Provider initialized successfully');
-  }
-
-  /**
-   * Cleanup the provider (stop services)
-   */
-  async cleanup(): Promise<void> {
-    console.log('🛑 Cleaning up Kokoro Docker Provider...');
-    
-    await this.stopService();
-    
-    console.log('✅ Kokoro Docker Provider cleaned up');
-  }
+  
 }
 
-/**
- * Default instance for easy importing
- */
-export const kokoroDockerProvider: KokoroDockerProvider = new KokoroDockerProvider();
+
 
 // Self-register with the provider registry
 import { ProviderRegistry } from '../../../registry/ProviderRegistry';

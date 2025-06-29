@@ -9,18 +9,14 @@ import {
   ProviderType, 
   MediaCapability, 
   ProviderModel, 
-  ProviderConfig, 
-  GenerationRequest, 
-  GenerationResult, 
-  JobStatus 
+  ProviderConfig 
 } from '../../../types/provider';
-import { v4 as uuidv4 } from 'uuid';
-import { exec } from 'child_process';
-import { promisify } from 'util';
+import { DockerComposeService } from '../../../services/DockerComposeService';
+import { ChatterboxAPIClient } from './ChatterboxAPIClient';
+import { TextToAudioModel } from '../../../models/abstracts/TextToAudioModel';
+import { TextToAudioProvider } from '../../../capabilities';
 
-const execAsync = promisify(exec);
-
-export class ChatterboxProvider implements MediaProvider {
+export class ChatterboxProvider implements MediaProvider, TextToAudioProvider {
   readonly id = 'chatterbox';
   readonly name = 'Chatterbox TTS';
   readonly type = ProviderType.LOCAL;
@@ -31,8 +27,8 @@ export class ChatterboxProvider implements MediaProvider {
   ];
 
   private config?: ProviderConfig;
-  private dockerImage = 'chatterbox-tts:latest';
-  private baseUrl = 'http://localhost:8080';
+  private dockerServiceManager?: DockerComposeService;
+  private apiClient?: ChatterboxAPIClient;
 
   /**
    * Constructor automatically configures from environment variables
@@ -44,15 +40,22 @@ export class ChatterboxProvider implements MediaProvider {
     });
   }
 
-  /**
-   * Automatically configure from environment variables
-   */
   private async autoConfigureFromEnv(): Promise<void> {
-    const baseUrl = process.env.CHATTERBOX_DOCKER_URL || 'http://localhost:8004';
+    const serviceUrl = process.env.CHATTERBOX_DOCKER_URL || 'github:your-org/chatterbox-docker-service'; // Example GitHub URL
     
     try {
+      const { ServiceRegistry } = await import('../../../registry/ServiceRegistry');
+      const serviceRegistry = ServiceRegistry.getInstance();
+      this.dockerServiceManager = await serviceRegistry.getService(serviceUrl) as DockerComposeService;
+      
+      const serviceInfo = this.dockerServiceManager.getServiceInfo();
+      if (serviceInfo.ports && serviceInfo.ports.length > 0) {
+        const port = serviceInfo.ports[0];
+        this.apiClient = new ChatterboxAPIClient({ baseUrl: `http://localhost:${port}` });
+      }
+
       await this.configure({
-        baseUrl,
+        serviceUrl,
         timeout: 300000,
         retries: 2
       });
@@ -99,154 +102,36 @@ export class ChatterboxProvider implements MediaProvider {
 
   async configure(config: ProviderConfig): Promise<void> {
     this.config = config;
-    if (config.dockerImage) {
-      this.dockerImage = config.dockerImage;
-    }
-    if (config.baseUrl) {
-      this.baseUrl = config.baseUrl;
+    if (config.baseUrl && !this.apiClient) {
+      this.apiClient = new ChatterboxAPIClient({ baseUrl: config.baseUrl });
     }
   }
 
   async isAvailable(): Promise<boolean> {
-    try {
-      // Check if Docker container is running
-      const { stdout } = await execAsync(`docker ps --filter "ancestor=${this.dockerImage}" --format "{{.ID}}"`);
-      
-      if (!stdout.trim()) {
-        // Try to start the container
-        console.log(`Starting Chatterbox Docker container: ${this.dockerImage}`);
-        await execAsync(`docker run -d -p 8080:8080 ${this.dockerImage}`);
-        
-        // Wait a moment for startup
-        await new Promise(resolve => setTimeout(resolve, 3000));
-      }
-
-      // Test API endpoint
-      const response = await fetch(`${this.baseUrl}/health`);
-      return response.ok;
-    } catch (error) {
-      console.warn('Chatterbox provider not available:', error);
+    if (!this.dockerServiceManager) {
       return false;
     }
+    const status = await this.dockerServiceManager.getServiceStatus();
+    return status.running && status.health === 'healthy';
   }
 
   getModelsForCapability(capability: MediaCapability): ProviderModel[] {
     return this.models.filter(model => model.capabilities.includes(capability));
   }
 
-  async generate(request: GenerationRequest): Promise<GenerationResult> {
-    const jobId = uuidv4();
-    
-    try {
-      const model = this.models.find(m => m.id === request.modelId);
-      if (!model) {
-        throw new Error(`Model ${request.modelId} not found`);
-      }
+  
 
-      let result: any;
-
-      switch (request.capability) {
-        case MediaCapability.TEXT_TO_AUDIO:
-          result = await this.generateTTS(request, jobId);
-          break;
-        case MediaCapability.TEXT_TO_AUDIO: // Voice cloning case
-          result = await this.generateVoiceClone(request, jobId);
-          break;
-        default:
-          throw new Error(`Capability ${request.capability} not supported`);
-      }
-
+  async getHealth(): Promise<any> {
+    if (!this.dockerServiceManager) {
       return {
-        jobId,
-        status: JobStatus.COMPLETED,
-        output: result,
-        metadata: {
-          cost: {
-            amount: 0,
-            currency: 'USD'
-          }
-        }
-      };
-    } catch (error) {
-      return {
-        jobId,
-        status: JobStatus.FAILED,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        status: 'unhealthy',
+        details: { error: 'Docker service manager not initialized' }
       };
     }
-  }
-
-  private async generateTTS(request: GenerationRequest, jobId: string) {
-    const { text, voice = 'en-US-AriaNeural', speed = 1.0, pitch = 1.0, volume = 1.0 } = request.parameters;
-
-    const response = await fetch(`${this.baseUrl}/tts`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        text,
-        voice,
-        speed,
-        pitch,
-        volume,
-        format: 'wav'
-      })
-    });
-
-    if (!response.ok) {
-      throw new Error(`TTS generation failed: ${response.statusText}`);
-    }
-
-    const audioBuffer = await response.arrayBuffer();
-    
+    const status = await this.dockerServiceManager.getServiceStatus();
     return {
-      type: 'audio' as const,
-      data: Buffer.from(audioBuffer),
-      metadata: {
-        format: 'wav',
-        voice,
-        duration: this.estimateAudioDuration(text),
-        sampleRate: 22050
-      }
-    };
-  }
-
-  private async generateVoiceClone(request: GenerationRequest, jobId: string) {
-    const { referenceAudio, text, similarity = 0.8 } = request.parameters;
-
-    // This would implement voice cloning logic
-    // For now, return a placeholder
-    throw new Error('Voice cloning not yet implemented');
-  }
-
-  private estimateAudioDuration(text: string): number {
-    // Rough estimate: ~150 words per minute, ~5 characters per word
-    const wordsPerMinute = 150;
-    const charactersPerWord = 5;
-    const estimatedWords = text.length / charactersPerWord;
-    return (estimatedWords / wordsPerMinute) * 60; // seconds
-  }
-
-  async getJobStatus(jobId: string): Promise<GenerationResult> {
-    // For local providers, jobs complete immediately
-    return {
-      jobId,
-      status: JobStatus.COMPLETED
-    };
-  }
-
-  async cancelJob(jobId: string): Promise<boolean> {
-    // Local jobs can't be cancelled as they complete immediately
-    return false;
-  }
-
-  async getHealth() {
-    const isAvailable = await this.isAvailable();
-    
-    return {
-      status: isAvailable ? 'healthy' as const : 'unhealthy' as const,
-      uptime: process.uptime(),
-      activeJobs: 0,
-      queuedJobs: 0
+      status: status.health,
+      details: status
     };
   }
 
@@ -268,7 +153,8 @@ export class ChatterboxProvider implements MediaProvider {
     if (model.capabilities.includes(MediaCapability.TEXT_TO_AUDIO)) {
       const { ChatterboxTextToAudioModel } = await import('./ChatterboxTextToAudioModel');
       return new ChatterboxTextToAudioModel({
-        baseUrl: this.config?.baseUrl || 'http://localhost:8004',
+        apiClient: this.apiClient!,
+        baseUrl: this.apiClient?.baseUrl || 'http://localhost:8004',
         timeout: this.config?.timeout || 300000
       });
     }

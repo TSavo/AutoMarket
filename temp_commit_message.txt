@@ -1,10 +1,11 @@
-Refactor: Implement Docker Compose Only Service Model
+Refactor: Remove DockerBackedMediaProviderAdapter and use DockerMediaProvider directly
 
-This commit refactors the dynamic service loading mechanism to exclusively use Docker Compose for service definitions and management. The key changes include:
+This commit refactors the dynamic service loading mechanism to remove the intermediate `DockerBackedMediaProviderAdapter` and directly use a new `DockerMediaProvider` class.
 
-- **Documentation Updates**: `PRIZM_ARCHITECTURE.md`, `PLATFORM_OVERVIEW.md`, and `README.md` have been updated to reflect the new 'Docker Compose Only' service architecture.
-- **ServiceRegistry Refactoring**: The `ServiceRegistry` now directly instantiates `DockerComposeService` based on `docker-compose.yml` and `prizm.service.json` files found in external repositories or local paths, eliminating the need to import and execute arbitrary JavaScript/TypeScript code for service management.
-- **ProviderRegistry Enhancement**: Introduced `DockerBackedMediaProviderAdapter` to wrap `DockerComposeService` instances, allowing them to be exposed as `MediaProvider`s. The `ProviderRegistry` now uses this adapter for dynamic providers.
-- **Provider Adaptation**: `FFMPEGProvider` and `HuggingFaceDockerProvider` have been updated to implement `DockerBackedMediaProvider` and to correctly interact with `DockerComposeService` instances, whether dynamically loaded or statically configured.
+- **Removed Adapter**: The `DockerBackedMediaProviderAdapter` class has been deleted.
+- **Introduced DockerMediaProvider**: A new `DockerMediaProvider` class has been created. This class directly implements the `MediaProvider` interface and internally manages a `DockerComposeService` instance. This provides a cleaner class hierarchy by avoiding a wrapper.
+- **ProviderRegistry Update**: The `ProviderRegistry` has been updated to instantiate and return `DockerMediaProvider` instances for dynamically loaded Docker-based providers.
+- **Provider Reversion**: `FFMPEGProvider` and `HuggingFaceDockerProvider` have been reverted to their state before the adapter was introduced. They no longer implement `DockerBackedMediaProvider` and manage their Docker services directly via `ServiceRegistry` when statically configured.
+- **Type System Cleanup**: The `DockerBackedMediaProvider` interface has been removed from `src/media/types/provider.ts`.
 
-This refactoring significantly improves separation of concerns, enhances security by avoiding arbitrary code execution, and simplifies service definitions by relying solely on Docker Compose for orchestration.
+This change simplifies the architecture and improves the clarity of the class relationships.
