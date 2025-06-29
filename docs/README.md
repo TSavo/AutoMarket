@@ -1,4 +1,35 @@
-# � Prizm SDK Documentation
+# 🎯 Prizm SDK Documentation
+
+Welcome to the comprehensive documentation for **Prizm** - the TypeScript SDK that provides unified access to 15+ AI providers through a clean provider→model→transform architecture!
+
+## 🚀 **NEW: Dynamic Provider & Service Loading (June 2025)**
+
+Prizm now supports **Go-like module loading** for providers and services from URLs:
+
+```typescript
+// Load providers from GitHub
+const provider = await getProvider('https://github.com/company/custom-ai-provider');
+
+// Load from NPM packages
+const provider = await getProvider('@company/ai-provider@2.1.0');
+
+// Providers can dynamically load their service dependencies
+await provider.configure({
+  serviceUrl: 'github:company/gpu-accelerated-service@v2.0.0',
+  serviceConfig: { enableGPU: true, memory: '24GB' }
+});
+```
+
+**Benefits:**
+- 🔄 **Dynamic Dependencies** - Providers specify exact service needs via URL
+- 📦 **Decentralized Ecosystem** - Community-driven provider/service development  
+- 🚀 **Zero Setup** - Just specify URL, everything else automatic
+- 🔒 **Service Isolation** - Each provider can use different service versions
+
+➡️ **[Quick Start: Dynamic Loading Guide](./getting-started/dynamic-loading-guide.md)**  
+➡️ **[Learn More: Dynamic Loading Architecture](./architecture/dynamic-loading.md)**
+
+## 🚀 **Quick Start & Examples**rizm SDK Documentation
 
 Welcome to the comprehensive documentation for **Prizm** - the TypeScript SDK that provides unified access to 15+ AI providers through a clean provider→model→transform architecture!
 
@@ -10,6 +41,13 @@ Welcome to the comprehensive documentation for **Prizm** - the TypeScript SDK th
 - Core SDK usage
 - Fluent API examples  
 - REST API integration
+
+### 🌐 [Dynamic Loading Guide](./getting-started/dynamic-loading-guide.md)
+**NEW: Load providers and services from URLs!**
+- GitHub and NPM provider loading
+- Provider → Service dependency management
+- Creating custom providers/services
+- Environment-specific configurations
 
 ### � [Awesome Examples](./AWESOME_EXAMPLES.md) 
 **Epic one-liners and advanced pipelines!**
@@ -35,6 +73,13 @@ Welcome to the comprehensive documentation for **Prizm** - the TypeScript SDK th
 - Advanced customization patterns
 
 ## 🏗️ **Architecture Deep Dives**
+
+### 🌐 [Dynamic Loading System](./architecture/dynamic-loading.md)
+**Go-like module loading for providers and services**
+- GitHub and NPM package loading
+- Provider → Service dependency management
+- Zero-configuration setup patterns
+- Community ecosystem development
 
 ### 🔌 [Provider System](./architecture/provider-system.md)
 **Multi-provider unified architecture**

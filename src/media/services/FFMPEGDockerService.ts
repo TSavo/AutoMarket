@@ -152,6 +152,32 @@ export class FFMPEGDockerService {
   }
 
   /**
+   * Check if service is healthy (alias for isHealthy)
+   */
+  async isServiceHealthy(): Promise<boolean> {
+    return this.isHealthy();
+  }
+
+  /**
+   * Check if service is running
+   */
+  async isServiceRunning(): Promise<boolean> {
+    try {
+      const status = await this.getServiceStatus();
+      return status.running;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  /**
+   * Get Docker Compose service instance
+   */
+  getDockerComposeService() {
+    return this.dockerService;
+  }
+
+  /**
    * Wait for the service to become healthy
    */
   async waitForHealthy(timeoutMs: number = 600000): Promise<boolean> {
@@ -222,4 +248,15 @@ export class FFMPEGDockerService {
       serviceDirectory: 'services/ffmpeg'
     };
   }
+
+  /**
+   * Get detailed service information (alias for getDockerServiceInfo)
+   */
+  getServiceInfo() {
+    return this.getDockerServiceInfo();
+  }
 }
+
+// Self-register with the service registry
+import { ServiceRegistry } from '../registry/ServiceRegistry';
+ServiceRegistry.getInstance().register('ffmpeg-docker', FFMPEGDockerService);

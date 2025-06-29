@@ -2,6 +2,47 @@
 
 The `ProviderRegistry` is a core component of Prizm's architecture, acting as a central, singleton hub for managing all available AI `MediaProvider` implementations. It enables dynamic discovery and selection of providers based on their capabilities within the provider→model→transform architecture.
 
+## 🚀 NEW: Dynamic Provider Loading (June 2025)
+
+The `ProviderRegistry` now supports **Go-like module loading** for providers and services from URLs:
+
+```typescript
+// Load providers from GitHub repositories
+const provider = await registry.getProvider('https://github.com/company/custom-provider');
+
+// Load providers from NPM packages
+const provider = await registry.getProvider('@company/ai-provider@2.1.0');
+
+// Load providers from local files
+const provider = await registry.getProvider('file:///path/to/provider');
+```
+
+### **Dynamic Loading Architecture**
+
+The registry automatically detects dynamic identifiers and loads them:
+
+```typescript
+// Static provider (existing behavior)
+const provider = await registry.getProvider('fal-ai');
+
+// Dynamic providers (new behavior)
+const provider = await registry.getProvider('github:company/provider@v2.1.0');
+```
+
+### **Supported URL Formats**
+- **GitHub**: `https://github.com/owner/repo` or `github:owner/repo@ref`
+- **NPM**: `@scope/package@version` or `npm:package@version`  
+- **File**: `file:///absolute/path/to/provider`
+
+### **Dynamic Loading Process**
+1. **Repository Cloning**: `git clone --depth 1 --branch {ref} {repo}`
+2. **Dependency Installation**: `npm install --production` (if package.json exists)
+3. **TypeScript Compilation**: `npx tsc --outDir dist` (if tsconfig.json exists)
+4. **Entry Point Detection**: package.json main, dist/index.js, src/index.ts
+5. **Provider Validation**: Ensures provider implements MediaProvider interface
+6. **Caching**: Provider instances cached for future use
+7. **Cleanup**: Temporary files removed after successful load
+
 ## `ProviderRegistry` Singleton
 
 The `ProviderRegistry` is implemented as a singleton, ensuring that there is only one instance managing all providers across the SDK.
@@ -169,3 +210,56 @@ export function getProviders() { /* ... */ }
 ```
 
 This setup ensures that Prizm can dynamically manage and utilize a wide array of AI providers and their capabilities in a flexible and extensible manner.
+
+## 🔄 Provider → Service Dynamic Loading
+
+Providers can now dynamically load and manage their service dependencies through the `ProviderConfig.serviceUrl` field:
+
+```typescript
+// Provider configuration with dynamic service loading
+await provider.configure({
+  // Service from GitHub repository
+  serviceUrl: 'https://github.com/company/enhanced-ffmpeg-service',
+  
+  // Service configuration
+  serviceConfig: {
+    enableGPU: true,
+    maxConcurrent: 4,
+    memory: '8GB'
+  },
+  
+  // Automatic service management
+  autoStartService: true
+});
+```
+
+### **Service Loading Process**
+1. **Service Registry Lookup**: Uses `ServiceRegistry.getInstance().getService()`
+2. **Dynamic Loading**: Same GitHub/NPM/file loading as providers
+3. **Service Startup**: Automatically starts Docker services if `autoStartService: true`
+4. **Health Checking**: Waits for service to become healthy
+5. **Provider Auto-Configuration**: Extracts service port info and configures provider baseUrl
+6. **Lifecycle Management**: Provider manages service lifecycle
+
+### **Benefits**
+- **🔄 Dynamic Dependencies**: Providers specify exact service needs
+- **📦 Decentralized Services**: Services distributed via GitHub/NPM
+- **🔧 Auto-Configuration**: Provider automatically configures from service info
+- **🚀 Zero-Setup**: Just specify URL, everything else automatic
+- **🔒 Service Isolation**: Each provider can use different service versions
+
+### **Use Cases**
+```typescript
+// AI Provider with GPU-optimized service
+await aiProvider.configure({
+  serviceUrl: 'github:nvidia/tensorrt-service@v8.2.0',
+  serviceConfig: { gpuMemory: '24GB' }
+});
+
+// Different environments
+await provider.configure({
+  serviceUrl: process.env.NODE_ENV === 'production' 
+    ? '@company/prod-service@2.0.0'
+    : 'github:company/dev-service@main'
+});
+```

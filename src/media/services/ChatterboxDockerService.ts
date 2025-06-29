@@ -242,3 +242,7 @@ export class ChatterboxDockerService {
     }
   }
 }
+
+// Self-register with the service registry
+import { ServiceRegistry } from '../registry/ServiceRegistry';
+ServiceRegistry.getInstance().register('chatterbox-docker', ChatterboxDockerService);

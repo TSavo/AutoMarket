@@ -69,8 +69,10 @@ export interface ProviderModel {
 }
 
 /**
- * Provider configuration
+ * Provider configuration that can include dynamic service dependencies
  */
+import { DockerComposeService } from '../../services/DockerComposeService';
+
 export interface ProviderConfig {
   apiKey?: string;
   baseUrl?: string;
@@ -79,6 +81,19 @@ export interface ProviderConfig {
   environment?: Record<string, string>;
   dockerImage?: string;
   scriptPath?: string;
+  
+  // Dynamic service loading configuration
+  serviceUrl?: string;           // URL for dynamic service loading (GitHub, NPM, etc.)
+  serviceConfig?: any;          // Configuration to pass to the loaded service
+  autoStartService?: boolean;   // Whether to automatically start the service (default: true)
+}
+
+/**
+ * Interface for MediaProviders that are backed by a Docker service.
+ * This allows direct access to the underlying DockerComposeService for management.
+ */
+export interface DockerBackedMediaProvider extends MediaProvider {
+  getDockerServiceManager(): DockerComposeService;
 }
 
 /**

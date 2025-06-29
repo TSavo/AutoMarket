@@ -250,6 +250,75 @@ FORMAT_REGISTRY['xyz'] = {
 };
 ```
 
+## 🚀 NEW: DYNAMIC PROVIDER → SERVICE LOADING (June 2025)
+
+### **Go-Like Module Loading for Providers and Services**
+
+Prizm now supports dynamic loading of providers and services from URLs, enabling a decentralized ecosystem similar to Go modules:
+
+```typescript
+// Load providers dynamically from GitHub
+const provider = await getProvider('https://github.com/company/custom-provider');
+
+// Load providers from NPM packages
+const provider = await getProvider('@company/ai-provider@2.1.0');
+
+// Providers can dynamically load their service dependencies
+await provider.configure({
+  serviceUrl: 'https://github.com/company/gpu-accelerated-service',
+  serviceConfig: { enableGPU: true, memory: '24GB' },
+  autoStartService: true
+});
+```
+
+### **Benefits of Dynamic Loading**
+- **🔄 Dynamic Dependencies**: Providers specify exact service needs via URL
+- **📦 Decentralized Ecosystem**: Community-driven provider/service development
+- **🔧 Auto-Configuration**: Providers automatically configure from service info
+- **🚀 Zero-Setup**: Just specify a URL, everything else is automatic
+- **🌐 Version Control**: Use semantic versioning for reproducible deployments
+- **🔒 Service Isolation**: Each provider can use different service versions
+
+### **Supported Sources**
+- **Static Registry**: `getProvider('ffmpeg-docker')`
+- **GitHub Repositories**: `https://github.com/owner/repo` or `github:owner/repo@tag`
+- **NPM Packages**: `@scope/package@version` or `npm:package@version`
+- **File System**: `file:///path/to/provider`
+
+### **Provider → Service Architecture**
+Providers can now declaratively specify their service dependencies:
+
+```typescript
+// Provider configuration with service dependency
+await provider.configure({
+  // Static service from registry
+  serviceUrl: 'ffmpeg-docker',
+  
+  // GitHub service with specific version
+  serviceUrl: 'github:company/enhanced-ffmpeg@v2.1.0',
+  
+  // NPM service package
+  serviceUrl: '@company/gpu-service@latest',
+  
+  // Service-specific configuration
+  serviceConfig: {
+    enableGPU: true,
+    maxConcurrent: 4,
+    memory: '8GB'
+  },
+  
+  // Automatic service lifecycle management
+  autoStartService: true
+});
+```
+
+### **Real-World Use Cases**
+- **AI Provider** needs specific GPU-optimized inference service
+- **Video Provider** needs latest FFMPEG with custom codec support
+- **Audio Provider** needs specialized real-time processing service
+- **Different environments** (dev vs prod) need different service configurations
+- **Enterprise customers** need custom service implementations
+
 ## 🎯 COMPLETE SDK COVERAGE
 
 **Prizm provides every level from zero-config to maximum control:**

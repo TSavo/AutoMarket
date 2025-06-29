@@ -10,8 +10,10 @@ import {
   ProviderType,
   MediaCapability,
   ProviderModel,
-  ProviderConfig
+  ProviderConfig,
+  DockerBackedMediaProvider
 } from '../../../types/provider';
+import { DockerComposeService } from '../../../services/DockerComposeService';
 import { HuggingFaceDockerService } from '../../../services/HuggingFaceDockerService';
 import { HuggingFaceAPIClient } from './HuggingFaceAPIClient';
 import { HuggingFaceDockerModel } from './HuggingFaceDockerModel';
@@ -23,26 +25,18 @@ import { TextToImageProvider, TextToAudioProvider } from '../../../capabilities'
 /**
  * Provider for HuggingFace text-to-image and text-to-audio models via Docker
  */
-export class HuggingFaceDockerProvider implements MediaProvider, TextToImageProvider, TextToAudioProvider {
+export class HuggingFaceDockerProvider implements MediaProvider, TextToImageProvider, TextToAudioProvider, DockerBackedMediaProvider {
   readonly id = 'huggingface-docker';
   readonly name = 'HuggingFace Docker Provider';
   readonly type = ProviderType.LOCAL;
   readonly capabilities = [MediaCapability.TEXT_TO_IMAGE, MediaCapability.TEXT_TO_AUDIO];
   readonly models: ProviderModel[] = [];
 
-  private dockerService?: HuggingFaceDockerService;
+  private dockerServiceManager?: DockerComposeService;
   private apiClient?: HuggingFaceAPIClient;
   private config?: ProviderConfig;
 
-  /**
-   * Get the Docker service instance
-   */
-  protected async getDockerService(): Promise<HuggingFaceDockerService> {
-    if (!this.dockerService) {
-      this.dockerService = new HuggingFaceDockerService();
-    }
-    return this.dockerService;
-  }
+  
 
   /**
    * Get the API client instance
@@ -58,47 +52,43 @@ export class HuggingFaceDockerProvider implements MediaProvider, TextToImageProv
    * Start the Docker service
    */
   async startService(): Promise<boolean> {
-    try {
-      const dockerService = await this.getDockerService();
-      const started = await dockerService.startService();
-      
-      if (started) {
-        // Wait for service to be healthy
-        const healthy = await dockerService.waitForHealthy(120000); // 2 minutes
-        return healthy;
-      }
-      
-      return false;
-    } catch (error) {
-      console.error('Failed to start HuggingFace Docker service:', error);
-      return false;
+    if (!this.dockerServiceManager) {
+      throw new Error('Docker service manager not initialized for HuggingFaceDockerProvider');
     }
+    const started = await this.dockerServiceManager.startService();
+    
+    if (started) {
+      // Wait for service to be healthy
+      const healthy = await this.dockerServiceManager.waitForHealthy(120000); // 2 minutes
+      return healthy;
+    }
+    
+    return false;
   }
 
   /**
    * Stop the Docker service
    */
   async stopService(): Promise<boolean> {
-    try {
-      const dockerService = await this.getDockerService();
-      return await dockerService.stopService();
-    } catch (error) {
-      console.error('Failed to stop HuggingFace Docker service:', error);
-      return false;
+    if (!this.dockerServiceManager) {
+      throw new Error('Docker service manager not initialized for HuggingFaceDockerProvider');
     }
+    return await this.dockerServiceManager.stopService();
   }
 
   /**
    * Get service status
    */
   async getServiceStatus(): Promise<any> {
-    try {
-      const dockerService = await this.getDockerService();
-      return await dockerService.getServiceStatus();
-    } catch (error) {
-      console.error('Failed to get HuggingFace service status:', error);
-      return { running: false, healthy: false };
+    if (!this.dockerServiceManager) {
+      throw new Error('Docker service manager not initialized for HuggingFaceDockerProvider');
     }
+    const status = await this.dockerServiceManager.getServiceStatus();
+    return {
+      running: status.running,
+      healthy: status.health === 'healthy',
+      error: status.state === 'error' ? status.state : undefined
+    };
   }
 
   /**
@@ -325,12 +315,36 @@ export class HuggingFaceDockerProvider implements MediaProvider, TextToImageProv
   /**
    * Configure the provider
    */
-  async configure(config: ProviderConfig): Promise<void> {
+  async configure(config: ProviderConfig, dockerServiceAdapter?: DockerBackedMediaProviderAdapter): Promise<void> {
     this.config = config;
+    if (dockerServiceAdapter) {
+      this.dockerServiceManager = dockerServiceAdapter.getDockerServiceManager();
+      const serviceInfo = this.dockerServiceManager.getConfig();
+      if (serviceInfo.ports && serviceInfo.ports.length > 0) {
+        const port = serviceInfo.ports[0];
+        this.apiClient = new HuggingFaceAPIClient({ baseUrl: `http://localhost:${port}` });
+      }
+    } else if (config.serviceUrl) {
+      const { ServiceRegistry } = await import('../../../registry/ServiceRegistry');
+      const serviceRegistry = ServiceRegistry.getInstance();
+      this.dockerServiceManager = await serviceRegistry.getService(config.serviceUrl, config.serviceConfig) as DockerComposeService;
+      const serviceInfo = this.dockerServiceManager.getConfig();
+      if (serviceInfo.ports && serviceInfo.ports.length > 0) {
+        const port = serviceInfo.ports[0];
+        this.apiClient = new HuggingFaceAPIClient({ baseUrl: `http://localhost:${port}` });
+      }
+    }
     // Docker providers typically don't need API keys, but may need service URLs
-    if (config.baseUrl) {
+    if (config.baseUrl && !this.apiClient) {
       this.apiClient = new HuggingFaceAPIClient({ baseUrl: config.baseUrl });
     }
+  }
+
+  getDockerServiceManager(): DockerComposeService {
+    if (!this.dockerServiceManager) {
+      throw new Error('DockerComposeService manager not initialized for HuggingFaceDockerProvider');
+    }
+    return this.dockerServiceManager;
   }
 
   /**

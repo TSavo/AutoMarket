@@ -138,6 +138,34 @@ export class HuggingFaceDockerService {
   }
 
   /**
+   * Check if service is healthy (alias for isHealthy)
+   */
+  async isServiceHealthy(): Promise<boolean> {
+    return this.isHealthy();
+  }
+
+  /**
+   * Check if service is running (alias for isRunning)
+   */
+  async isServiceRunning(): Promise<boolean> {
+    return this.isRunning();
+  }
+
+  /**
+   * Get Docker Compose service instance
+   */
+  getDockerComposeService(): DockerComposeService {
+    return this.dockerService;
+  }
+
+  /**
+   * Get detailed service information
+   */
+  getServiceInfo() {
+    return this.getDockerServiceInfo();
+  }
+
+  /**
    * Restart the service
    */
   async restartService(): Promise<boolean> {
@@ -260,3 +288,7 @@ export class HuggingFaceDockerService {
     }
   }
 }
+
+// Self-register with the service registry
+import { ServiceRegistry } from '../registry/ServiceRegistry';
+ServiceRegistry.getInstance().register('huggingface-docker', HuggingFaceDockerService);

@@ -10,8 +10,10 @@ import {
   MediaCapability, 
   ProviderType, 
   ProviderModel, 
-  ProviderConfig 
+  ProviderConfig,
+  DockerBackedMediaProvider
 } from '../../types/provider';
+import { DockerComposeService } from '../../../services/DockerComposeService';
 import { AudioToAudioProvider } from '../../capabilities/interfaces/AudioToAudioProvider';
 import { VideoToAudioProvider } from '../../capabilities/interfaces/VideoToAudioProvider';
 import { VideoToVideoProvider } from '../../capabilities/interfaces/VideoToVideoProvider';
@@ -35,7 +37,7 @@ export interface FFMPEGProviderConfig extends ProviderConfig {
  * Provider for FFMPEG-based media processing
  * Works with any FFMPEG client implementation (Docker or local)
  */
-export class FFMPEGProvider implements MediaProvider, AudioToAudioProvider, VideoToAudioProvider, VideoToVideoProvider, VideoToImageProvider {
+export class FFMPEGProvider implements MediaProvider, AudioToAudioProvider, VideoToAudioProvider, VideoToVideoProvider, VideoToImageProvider, DockerBackedMediaProvider {
   readonly id = 'ffmpeg';
   readonly name = 'FFMPEG Provider';
   readonly type = ProviderType.LOCAL;
@@ -51,6 +53,7 @@ export class FFMPEGProvider implements MediaProvider, AudioToAudioProvider, Vide
 
   private config: FFMPEGProviderConfig = {};
   private client?: IFFMPEGClient;
+  private dockerServiceManager?: DockerComposeService;
 
   /**
    * Constructor can take a pre-configured FFMPEG client
@@ -104,9 +107,29 @@ export class FFMPEGProvider implements MediaProvider, AudioToAudioProvider, Vide
     }
   }
 
-  async configure(config: FFMPEGProviderConfig): Promise<void> {
+  async configure(config: FFMPEGProviderConfig, dockerServiceAdapter?: DockerBackedMediaProviderAdapter): Promise<void> {
     this.config = { ...this.config, ...config };
     
+    if (dockerServiceAdapter) {
+      this.dockerServiceManager = dockerServiceAdapter.getDockerServiceManager();
+      const serviceInfo = this.dockerServiceManager.getConfig();
+      if (serviceInfo.ports && serviceInfo.ports.length > 0) {
+        const port = serviceInfo.ports[0];
+        this.config.baseUrl = this.config.baseUrl || `http://localhost:${port}`;
+        console.log(`🔗 Provider configured to use service at: ${this.config.baseUrl}`);
+      }
+    } else if (config.serviceUrl) {
+      const { ServiceRegistry } = await import('../../registry/ServiceRegistry');
+      const serviceRegistry = ServiceRegistry.getInstance();
+      this.dockerServiceManager = await serviceRegistry.getService(config.serviceUrl, config.serviceConfig) as DockerComposeService;
+      const serviceInfo = this.dockerServiceManager.getConfig();
+      if (serviceInfo.ports && serviceInfo.ports.length > 0) {
+        const port = serviceInfo.ports[0];
+        this.config.baseUrl = this.config.baseUrl || `http://localhost:${port}`;
+        console.log(`🔗 Provider configured to use service at: ${this.config.baseUrl}`);
+      }
+    }
+
     // If a client was provided in config, use it
     if (config.client) {
       this.client = config.client;
@@ -117,6 +140,15 @@ export class FFMPEGProvider implements MediaProvider, AudioToAudioProvider, Vide
       await this.initializeDefaultClient();
     }
   }
+
+  getDockerServiceManager(): DockerComposeService {
+    if (!this.dockerServiceManager) {
+      throw new Error('DockerComposeService manager not initialized for FFMPEGProvider');
+    }
+    return this.dockerServiceManager;
+  }
+
+  
   private async initializeDefaultClient(): Promise<void> {
     try {
       // Try to create Docker client first (existing behavior)
@@ -451,42 +483,29 @@ export class FFMPEGProvider implements MediaProvider, AudioToAudioProvider, Vide
 
   // ServiceManagement interface implementation (inherited from both provider interfaces)
   async startService(): Promise<boolean> {
-    try {
-      await this.start();
-      return true;
-    } catch (error) {
-      console.error('Failed to start FFMPEG service:', error);
-      return false;
+    if (!this.dockerServiceManager) {
+      throw new Error('Docker service manager not initialized for FFMPEGProvider');
     }
+    return this.dockerServiceManager.startService();
   }
 
   async stopService(): Promise<boolean> {
-    try {
-      await this.stop();
-      return true;
-    } catch (error) {
-      console.error('Failed to stop FFMPEG service:', error);
-      return false;
+    if (!this.dockerServiceManager) {
+      throw new Error('Docker service manager not initialized for FFMPEGProvider');
     }
+    return this.dockerServiceManager.stopService();
   }
 
   async getServiceStatus(): Promise<{ running: boolean; healthy: boolean; error?: string }> {
-    try {
-      const isAvailable = await this.isAvailable();
-      const health = await this.getHealth();
-      
-      return {
-        running: isAvailable,
-        healthy: health.status === 'healthy',
-        error: health.details?.error
-      };
-    } catch (error) {
-      return {
-        running: false,
-        healthy: false,
-        error: (error as Error).message
-      };
+    if (!this.dockerServiceManager) {
+      throw new Error('Docker service manager not initialized for FFMPEGProvider');
     }
+    const status = await this.dockerServiceManager.getServiceStatus();
+    return {
+      running: status.running,
+      healthy: status.health === 'healthy',
+      error: status.state === 'error' ? status.state : undefined
+    };
   }
 }
 

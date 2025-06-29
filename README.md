@@ -355,19 +355,8 @@ npm run test:providers
 npm run test:assets
 ```
 
-## 🐳 Docker Services
+## 🐳 Docker Services (Docker Compose Only)
 
-Start required Docker services:
-```bash
-# Start FFMPEG service
-cd services/ffmpeg && docker-compose up -d
+Prizm now manages local Docker services purely via Docker Compose. You no longer need to manually `cd` into service directories and run `docker-compose up`. The `ServiceRegistry` handles this dynamically when a `MediaProvider` requests a service.
 
-# Start Chatterbox TTS service
-cd services/chatterbox && docker-compose up -d
-
-# Start Whisper STT service
-cd services/whisper && docker-compose up -d
-
-# Start HuggingFace Text-to-Image service
-cd services/huggingface && docker-compose up -d
-```
+For development, ensure Docker is running and the necessary Docker Compose files are available (e.g., in the `services/` directory).

@@ -86,7 +86,10 @@ const transcript = await asset.asSpeech();  // Auto-transcribe
 - **Mistral**: Efficient language models
 - **Azure OpenAI**: Enterprise-grade AI services
 
-### 🐳 **Local Docker Services**
+### 🐳 **Local Docker Services (Docker Compose Only)**
+
+Prizm integrates seamlessly with local services managed purely via Docker Compose. This ensures robust, isolated, and easily deployable local processing capabilities.
+
 - **FFMPEG**: Professional video processing and composition
 - **Chatterbox**: Text-to-speech with voice cloning
 - **Whisper**: Multi-language speech-to-text

@@ -165,6 +165,25 @@ class ProviderRegistry {
 }
 ```
 
+### **Service Architecture: Docker Compose Only**
+
+Prizm's architecture for local services (like FFMPEG, Chatterbox, Whisper) is designed for maximum separation and reliability. Instead of dynamically loading and executing service-specific JavaScript/TypeScript code within the main application, services are defined and managed purely via **Docker Compose**.
+
+- **Service Definition**: Each local service is defined by a `docker-compose.yml` file and a `prizm.service.json` metadata file (specifying service name, health check URL, etc.) within its own repository (e.g., on GitHub) or local directory.
+- **`ServiceRegistry` Role**: The `ServiceRegistry` acts as the orchestrator. When a `MediaProvider` requires a local service, it requests it from the `ServiceRegistry` using a simple identifier (e.g., a GitHub URL or local file path). The `ServiceRegistry` then:
+    1.  Clones the service's repository (if remote) to a temporary location.
+    2.  Reads the `docker-compose.yml` and `prizm.service.json` files.
+    3.  Instantiates a `DockerComposeService` (which directly interacts with the Docker daemon) configured with the service's Docker Compose details.
+    4.  Returns this `DockerComposeService` instance to the `MediaProvider`.
+- **`MediaProvider` Interaction**: The `MediaProvider` then uses the returned `DockerComposeService` instance to manage the lifecycle of the Docker containers (start, stop, check health) and configures its internal API client to communicate with the running Docker service's exposed ports.
+
+This approach ensures:
+- **True Separation of Concerns**: The application's core logic is decoupled from service-specific implementation details.
+- **Enhanced Security**: No arbitrary external JavaScript/TypeScript code is executed within the main application's process for service management.
+- **Simplified Service Definitions**: Services are self-contained Docker Compose units, making them portable and easy to manage.
+- **Robustness**: Leverages Docker's native orchestration capabilities for reliable service deployment and management.
+
+
 ## 🎯 **Model Layer Design**
 
 ### **Universal Model Pattern**
