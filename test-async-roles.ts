@@ -4,15 +4,16 @@
  * Test script to verify async role casting works
  */
 
-import { MP4Asset } from './src/media/assets/types';
+import { VideoAsset } from './src/media/assets/types';
+import { Audio, Video } from './src/media/assets/roles';
 
 async function testAsyncRoleCasting() {
   console.log('🧪 Testing Async Role Casting...\n');
 
   try {
-    // Create a mock MP4 asset
+    // Create a mock Video asset
     const mockVideoData = Buffer.from('fake mp4 video data');
-    const videoAsset = new MP4Asset(mockVideoData, {
+    const videoAsset = new VideoAsset(mockVideoData, {
       format: 'mp4',
       duration: 60,
       hasAudio: true
@@ -22,19 +23,19 @@ async function testAsyncRoleCasting() {
 
 
     // Test async audio casting
-    console.log('🔊 Testing asAudio() casting...');
-    const audio = await videoAsset.asAudio();
+    console.log('🔊 Testing asRole(Audio) casting...');
+    const audio = await videoAsset.asRole(Audio);
     console.log('✅ Successfully cast to Audio:', audio.toString());
 
     // Test async video casting
-    console.log('📹 Testing asVideo() casting...');
-    const video = await videoAsset.asVideo();
+    console.log('📹 Testing asRole(Video) casting...');
+    const video = await videoAsset.asRole(Video);
     console.log('✅ Successfully cast to Video:', video.toString());
 
     // Test capability checks
     console.log('\n🔍 Checking capabilities:');
-    console.log('  - Can play audio role:', videoAsset.canPlayAudioRole());
-    console.log('  - Can play video role:', videoAsset.canPlayVideoRole());
+    console.log('  - Can play audio role:', videoAsset.canPlayRole(Audio));
+    console.log('  - Can play video role:', videoAsset.canPlayRole(Video));
 
     console.log('\n🎉 All async role casting tests passed!');
 

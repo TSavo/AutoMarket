@@ -131,3 +131,33 @@ export interface FileUploadInfo {
   mimetype: string;
   uploadedAt: Date;
 }
+
+export interface FrameExtractionOptions {
+  frameTime?: number; // Extract frame at specific time (seconds)
+  frameNumber?: number; // Extract specific frame number
+  format?: 'png' | 'jpg' | 'webp' | 'bmp';
+  width?: number;
+  height?: number;
+  quality?: number; // 1-100, for JPEG
+  multiple?: boolean; // Extract multiple frames
+  frameRate?: number; // For multiple frame extraction (fps)
+}
+
+export interface FrameExtractionResult {
+  success: boolean;
+  data: {
+    frames: Array<{
+      filename: string;
+      path: string;
+      size: number;
+      format: string;
+      frameTime?: number;
+      frameNumber?: number;
+      index?: number;
+    }>;
+    extractionOptions: FrameExtractionOptions;
+    processingTime: number;
+    totalFrames: number;
+  };
+  timestamp: Date;
+}

@@ -31,6 +31,44 @@ describe('ChatterboxAPIClient', () => {
   beforeEach(() => {
     client = new ChatterboxAPIClient(mockBaseUrl);
     vi.clearAllMocks();
+    mockFetch.mockImplementation((url, options) => {
+      if (url.endsWith('/tts')) {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          statusText: 'OK',
+          headers: {
+            get: vi.fn().mockReturnValue('audio/mpeg')
+          },
+          arrayBuffer: vi.fn().mockResolvedValue(Buffer.from('fake audio data').buffer),
+          text: vi.fn().mockResolvedValue(''),
+        });
+      } else if (url.endsWith('/upload_reference')) {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          statusText: 'OK',
+          json: vi.fn().mockResolvedValue({ filename: 'voice.wav' }),
+          text: vi.fn().mockResolvedValue(''),
+        });
+      } else if (url.endsWith('/health')) {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          statusText: 'OK',
+          text: vi.fn().mockResolvedValue('OK'),
+        });
+      } else if (url.endsWith('/get_reference_files')) {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          statusText: 'OK',
+          json: vi.fn().mockResolvedValue(['file1.wav', 'file2.wav']),
+          text: vi.fn().mockResolvedValue(''),
+        });
+      }
+      return Promise.reject(new Error('Unknown fetch URL'));
+    });
   });
 
   afterEach(() => {

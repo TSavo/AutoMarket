@@ -6,8 +6,8 @@
  */
 
 import { FalAiProvider } from './src/media/providers/falai/FalAiProvider';
-import { AssetLoader } from './src/media/assets/SmartAssetFactory';
-import { hasVideoRole } from './src/media/assets/roles';
+import { SmartAssetFactory } from './src/media/assets/SmartAssetFactory';
+import { hasVideoRole, Video } from './src/media/assets/roles';
 import { MediaCapability } from './src/media/types/provider';
 import * as path from 'path';
 import * as fs from 'fs';
@@ -41,26 +41,26 @@ async function testFalVideoToVideoFaceSwap() {
     }
 
     // Load videos using smart asset system
-    const targetAsset = AssetLoader.load(targetVideoPath);
-    const sourceAsset = AssetLoader.load(sourceVideoPath);
+    const targetAsset = SmartAssetFactory.load(targetVideoPath);
+    const sourceAsset = SmartAssetFactory.load(sourceVideoPath);
 
     if (!hasVideoRole(targetAsset) || !hasVideoRole(sourceAsset)) {
       throw new Error('Assets do not have video role capabilities');
     }
 
-    const targetVideo = await targetAsset.asVideo();
-    const sourceVideo = await sourceAsset.asVideo();
+    const targetVideo = await targetAsset.asRole(Video);
+    const sourceVideo = await sourceAsset.asRole(Video);
 
     console.log('✅ Loaded target video:', {
-      duration: targetVideo.getDuration(),
-      dimensions: targetVideo.getDimensions(),
-      size: `${(targetVideo.getSize() / 1024 / 1024).toFixed(2)} MB`
+      duration: (targetVideo as Video).getDuration(),
+      dimensions: (targetVideo as Video).getDimensions(),
+      size: `${((targetVideo as Video).getSize() / 1024 / 1024).toFixed(2)} MB`
     });
 
     console.log('✅ Loaded source video:', {
-      duration: sourceVideo.getDuration(),
-      dimensions: sourceVideo.getDimensions(),
-      size: `${(sourceVideo.getSize() / 1024 / 1024).toFixed(2)} MB`
+      duration: (sourceVideo as Video).getDuration(),
+      dimensions: (sourceVideo as Video).getDimensions(),
+      size: `${((sourceVideo as Video).getSize() / 1024 / 1024).toFixed(2)} MB`
     });    // 3. Find available face swap models
     console.log('\n🔍 Finding face swap models...');
     const videoModels = provider.getModelsForCapability(MediaCapability.VIDEO_TO_VIDEO);

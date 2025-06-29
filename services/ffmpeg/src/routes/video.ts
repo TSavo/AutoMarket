@@ -486,3 +486,172 @@ videoRoutes.post('/metadata', asyncHandler(async (req: Request, res: Response) =
     }
   }
 }));
+
+/**
+ * POST /video/extractFrame
+ * Extract frame(s) from video file
+ */
+videoRoutes.post('/extractFrame', asyncHandler(async (req: Request, res: Response) => {
+  const upload = req.app.locals.upload;
+  const logger = req.app.locals.logger;
+  const outputDir = req.app.locals.outputDir;
+
+  // Handle file upload
+  await new Promise<void>((resolve, reject) => {
+    upload.single('video')(req, res, (err: any) => {
+      if (err) reject(err);
+      else resolve();
+    });
+  });
+
+  if (!req.file) {
+    throw createError('No video file provided', 400);
+  }
+
+  const startTime = Date.now();
+  const inputPath = req.file.path;
+  const outputId = uuidv4();
+  
+  // Parse options from request body
+  const options = {
+    frameTime: req.body.frameTime ? parseFloat(req.body.frameTime) : 1.0, // Default: 1 second
+    frameNumber: req.body.frameNumber ? parseInt(req.body.frameNumber) : undefined,
+    format: req.body.format || 'png', // png, jpg, webp
+    width: req.body.width ? parseInt(req.body.width) : undefined,
+    height: req.body.height ? parseInt(req.body.height) : undefined,
+    quality: req.body.quality ? parseInt(req.body.quality) : 90, // For JPEG
+    multiple: req.body.multiple === 'true',
+    frameRate: req.body.frameRate ? parseFloat(req.body.frameRate) : undefined // For multiple frames
+  };
+
+  const outputExtension = options.format === 'jpg' ? 'jpg' : options.format;
+  const outputFilename = options.multiple 
+    ? `frame_${outputId}_%04d.${outputExtension}`
+    : `frame_${outputId}.${outputExtension}`;
+  const outputPath = path.join(outputDir, outputFilename);
+
+  try {
+    logger.info('Starting frame extraction', {
+      input: req.file.originalname,
+      output: outputFilename,
+      options
+    });
+
+    await new Promise<void>((resolve, reject) => {
+      let command = ffmpeg(inputPath);
+
+      // Frame selection
+      if (options.frameNumber !== undefined) {
+        // Extract specific frame number
+        command = command.videoFilters(`select=eq(n\\,${options.frameNumber})`);
+      } else if (options.frameTime !== undefined) {
+        // Extract frame at specific time
+        command = command.seekInput(options.frameTime);
+      }
+
+      // Multiple frames
+      if (options.multiple && options.frameRate) {
+        command = command.videoFilters(`fps=${options.frameRate}`);
+      } else if (!options.multiple) {
+        // Single frame extraction
+        command = command.frames(1);
+      }
+
+      // Scaling
+      if (options.width || options.height) {
+        const width = options.width || -1; // -1 maintains aspect ratio
+        const height = options.height || -1;
+        command = command.size(`${width}x${height}`);
+      }
+
+      // Output format and quality
+      if (options.format === 'jpg') {
+        command = command.format('image2').outputOptions([
+          '-q:v', Math.max(1, Math.min(31, Math.round((100 - options.quality) * 0.31))).toString()
+        ]);
+      } else {
+        command = command.format(options.format);
+      }
+
+      command
+        .output(outputPath)
+        .outputOptions(['-y']) // Overwrite output files
+        .on('start', (commandLine) => {
+          logger.info('FFmpeg frame extraction started', { command: commandLine });
+        })
+        .on('progress', (progress) => {
+          logger.debug('Frame extraction progress', progress);
+        })
+        .on('end', () => {
+          logger.info('Frame extraction completed', { outputFile: outputFilename });
+          resolve();
+        })
+        .on('error', (err) => {
+          logger.error('FFmpeg frame extraction error', { error: err.message });
+          reject(err);
+        })
+        .run();
+    });
+
+    // Handle results
+    let results: any[] = [];
+
+    if (options.multiple) {
+      // Find all extracted frames
+      const frameFiles = fs.readdirSync(outputDir)
+        .filter(f => f.startsWith(`frame_${outputId}_`))
+        .sort();
+
+      for (const frameFile of frameFiles) {
+        const framePath = path.join(outputDir, frameFile);
+        const frameStats = fs.statSync(framePath);        results.push({
+          filename: frameFile,
+          path: `/outputs/${frameFile}`,
+          size: frameStats.size,
+          format: options.format,
+          index: results.length
+        });
+      }
+    } else {
+      // Single frame
+      const outputStats = fs.statSync(outputPath);      results.push({
+        filename: outputFilename,
+        path: `/outputs/${outputFilename}`,
+        size: outputStats.size,
+        format: options.format,
+        frameTime: options.frameTime,
+        frameNumber: options.frameNumber
+      });
+    }
+
+    const processingTime = Date.now() - startTime;
+
+    logger.info('Frame extraction completed successfully', {
+      file: req.file.originalname,
+      outputFiles: results.length,
+      processingTime
+    });
+
+    res.json({
+      success: true,
+      data: {
+        frames: results,
+        extractionOptions: options,
+        processingTime,
+        totalFrames: results.length
+      },
+      timestamp: new Date()
+    });
+
+  } catch (error) {
+    logger.error('Frame extraction failed', { error: error instanceof Error ? error.message : 'Unknown error' });
+    throw createError(`Frame extraction failed: ${error instanceof Error ? error.message : 'Unknown error'}`, 500);
+  } finally {
+    // Clean up uploaded file
+    if (req.file?.path) {
+      fs.unlink(req.file.path, (err) => {
+        if (err) logger.error('Failed to delete uploaded file', { file: req.file!.path, error: err.message });
+      });
+    }
+  }
+}));

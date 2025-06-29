@@ -72,7 +72,7 @@ export class FalTextToAudioModel extends TextToAudioModel {
     if (typeof inputRole === 'string') {
       text = Text.fromString(inputRole);
     } else {
-      text = await inputRole.asText();
+      text = await inputRole.asRole(Text);
     }
     if (!text.isValid()) {
       throw new Error('Invalid text data provided');
@@ -84,7 +84,7 @@ export class FalTextToAudioModel extends TextToAudioModel {
       // Handle voice cloning if voice audio is provided
       let voiceUrl: string | undefined;
       if (voiceAudio) {
-        const voice = await voiceAudio.asAudio();
+        const voice = await voiceAudio.asRole(Audio);
         console.log(`[FalTextToAudio] Uploading voice sample to fal.ai...`);
         const voiceUploadResult = await this.falAiClient.uploadAsset(voice.data, 'voice_sample.wav');
         voiceUrl = voiceUploadResult.url;
@@ -142,7 +142,7 @@ export class FalTextToAudioModel extends TextToAudioModel {
 
         // Use SmartAssetFactory to create Asset with automatic metadata extraction
         console.log(`[FalTextToAudio] Loading audio asset with metadata extraction...`);        const smartAsset = await SmartAssetFactory.load(localPath);
-        const audio = await (smartAsset as any).asAudio();
+        const audio = await (smartAsset as any).asRole(Audio);
           // Add our custom metadata to the audio
         if (audio.metadata) {
           Object.assign(audio.metadata, {

@@ -7,6 +7,7 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
+import { Audio, Video, Text, Image } from './roles/classes';
 
 export interface AssetMetadata {
   // File metadata
@@ -238,7 +239,7 @@ export abstract class Asset {
   /**
    * Check if this asset can play a specific role
    */
-  canPlayRole(role: string): boolean {
+  canPlayRole<T extends Audio | Video | Text | Image>(targetType: new (...args: any[]) => T): boolean {
     // This will be enhanced by mixins
     return false;
   }

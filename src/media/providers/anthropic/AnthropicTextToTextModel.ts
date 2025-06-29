@@ -52,7 +52,7 @@ export class AnthropicTextToTextModel extends TextToTextModel {
     if (typeof inputRole === 'string') {
       text = Text.fromString(inputRole);
     } else {
-      text = await inputRole.asText();
+      text = await inputRole.asRole(Text);
     }
 
     if (!text.isValid()) {
@@ -68,7 +68,7 @@ export class AnthropicTextToTextModel extends TextToTextModel {
 
     const processingTime = Date.now() - startTime;
 
-    return new Text(generated, text.language || 'auto', 1.0, {
+    return Text.fromString(generated, text.language || 'auto', 1.0, {
       processingTime,
       model: this.modelId,
       provider: 'anthropic',

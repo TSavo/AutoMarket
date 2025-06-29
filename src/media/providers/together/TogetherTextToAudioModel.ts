@@ -74,7 +74,7 @@ export class TogetherTextToAudioModel extends TextToAudioModel {
     if (typeof inputRole === 'string') {
       text = Text.fromString(inputRole);
     } else {
-      text = await inputRole.asText();
+      text = await inputRole.asRole(Text);
     }
     if (!text.isValid()) {
       throw new Error('Invalid text data provided');
@@ -122,9 +122,9 @@ export class TogetherTextToAudioModel extends TextToAudioModel {
       console.log(`[TogetherTextToAudio] Audio saved to: ${localPath}`);
         // Use SmartAssetFactory to create Asset with automatic metadata extraction
       console.log(`[TogetherTextToAudio] Loading audio asset with metadata extraction...`);
-      const { AssetLoader } = await import('../../assets/SmartAssetFactory');
-      const smartAsset = AssetLoader.load(localPath);
-      const audio = await (smartAsset as any).asAudio();
+      const { SmartAssetFactory } = await import('../../assets/SmartAssetFactory');
+      const smartAsset = SmartAssetFactory.load(localPath);
+      const audio = await (smartAsset as any).asRole(Audio);
         // Add our custom metadata to the audio
       if (audio.metadata) {
         Object.assign(audio.metadata, {

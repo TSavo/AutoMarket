@@ -1,6 +1,6 @@
 # 🧪 Testing Guide
 
-AutoMarket employs a comprehensive testing strategy to ensure the reliability, correctness, and performance of its various components, including AI provider integrations, media processing, and core utilities. This guide outlines the testing frameworks and commands used in the project.
+Prizm employs a comprehensive testing strategy to ensure the reliability, correctness, and performance of its various components, including AI provider integrations, media processing, and core utilities. This guide outlines the testing frameworks and commands used in the project.
 
 ## Testing Frameworks
 

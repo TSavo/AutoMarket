@@ -3,8 +3,8 @@
  */
 
 import { FalAiProvider } from './src/media/providers/falai/FalAiProvider';
-import { AssetLoader } from './src/media/assets/SmartAssetFactory';
-import { hasVideoRole } from './src/media/assets/roles';
+import { SmartAssetFactory } from './src/media/assets/SmartAssetFactory';
+import { hasVideoRole, Video } from './src/media/assets/roles';
 import { MediaCapability } from './src/media/types/provider';
 import * as path from 'path';
 import * as fs from 'fs';
@@ -36,15 +36,15 @@ async function testFaceSwap() {
     }
 
     // Load videos
-    const targetAsset = AssetLoader.load(targetPath);
-    const sourceAsset = AssetLoader.load(sourcePath);
+    const targetAsset = await SmartAssetFactory.load(targetPath);
+    const sourceAsset = await SmartAssetFactory.load(sourcePath);
 
     if (!hasVideoRole(targetAsset) || !hasVideoRole(sourceAsset)) {
       throw new Error('Videos do not have video capabilities');
     }
 
-    const targetVideo = await targetAsset.asVideo();
-    const sourceVideo = await sourceAsset.asVideo();
+    const targetVideo = await targetAsset.asRole(Video);
+    const sourceVideo = await sourceAsset.asRole(Video);
     console.log('✅ Videos loaded');
 
     // Find face swap models

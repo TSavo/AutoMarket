@@ -1,6 +1,36 @@
 # 🚀 Prizm - The Ultimate AI Media Processing Platform
 
-The most advanced multi-provider AI media processing platform ever built! Prizm unifies 15+ AI providers, supports 500+ models, and makes complex media pipelines as simple as one line of code.
+The most advanced multi-provider AI media processing platform ever built! Prizm unifies 15+ AI providers, supports 500+ models, and features **Universal Role Compatibility** - where ANY asset can be input to ANY model through automatic conversions.
+
+## 🔥 **Universal Role Compatibility - GAME CHANGER**
+
+**The breakthrough feature that changes everything:** Any asset can be input to any model through automatic provider-based conversions.
+
+```typescript
+// ✨ Text → Image → Video pipeline (automatically!)
+const textAsset = TextAsset.fromString("A sunset over mountains");
+const video = await imageToVideoModel.transform(textAsset);
+// Behind the scenes: Text →(DALL-E)→ Image →(Runway)→ Video
+
+// ✨ Video → Audio extraction (automatically!)  
+const videoAsset = VideoAsset.fromFile('movie.mp4');
+const audio = await audioModel.transform(videoAsset);
+// Behind the scenes: Video →(FFmpeg)→ Audio
+
+// ✨ Audio → Text transcription (automatically!)
+const audioAsset = AudioAsset.fromFile('speech.wav');
+const transcript = await textModel.transform(audioAsset);
+// Behind the scenes: Audio →(Whisper)→ Text
+
+// 🎯 The magic: inputAsset.asRole(RequiredType)
+```
+
+**Benefits:**
+- 🌍 **Universal Input**: ANY asset → ANY model
+- 🔄 **Automatic Pipelines**: Complex workflows become simple
+- 🛡️ **Type Safe**: Full TypeScript support  
+- 🚀 **Future Proof**: New providers enhance ALL assets
+- 🎨 **Composable**: Chain any transformations seamlessly
 
 ## ⚡ **One-Line Magic**
 ```typescript

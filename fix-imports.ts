@@ -7,7 +7,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 
-const modelsDir = 'c:/Users/T/Projects/AutoMarket/src/media/models';
+const modelsDir = 'c:/Users/T/Projects/Prizm/src/media/models';
 
 // Define path mappings for different file locations
 const pathMappings = {

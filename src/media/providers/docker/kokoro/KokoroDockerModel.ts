@@ -68,13 +68,13 @@ export class KokoroDockerModel extends TextToAudioModel {
 
     let textRole: TextRole;
     if (Array.isArray(input)) {
-      textRole = typeof input[0] === 'string' ? new Text(input[0]) : input[0];
+      textRole = typeof input[0] === 'string' ? Text.fromString(input[0]) : input[0];
     } else {
-      textRole = typeof input === 'string' ? new Text(input) : input;
+      textRole = typeof input === 'string' ? Text.fromString(input) : input;
     }
 
     // Get text from the TextRole
-    const text = await textRole.asText();
+    const text = await textRole.asRole(Text);
     
     // Validate text data
     if (!text.isValid()) {

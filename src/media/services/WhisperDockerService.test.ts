@@ -19,13 +19,18 @@ describe('WhisperDockerService', () => {
 
   beforeEach(() => {
     mockDockerService = {
-      startService: vi.fn(),
-      stopService: vi.fn(),
-      restartService: vi.fn(),
-      getServiceStatus: vi.fn(),
-      waitForHealthy: vi.fn(),
-      getConfig: vi.fn()
-    };
+        startService: vi.fn(),
+        stopService: vi.fn(),
+        restartService: vi.fn(),
+        getServiceStatus: vi.fn().mockResolvedValue({
+          running: true,
+          health: 'healthy',
+          state: 'running',
+          containerId: 'xyz789'
+        }),
+        waitForHealthy: vi.fn(),
+        getConfig: vi.fn()
+      };
 
     MockDockerComposeService.mockImplementation(() => mockDockerService);
     service = new WhisperDockerService();
@@ -204,7 +209,7 @@ describe('WhisperDockerService', () => {
 
       await service.waitForHealthy();
 
-      expect(mockDockerService.waitForHealthy).toHaveBeenCalledWith(60000);
+      expect(mockDockerService.waitForHealthy).toHaveBeenCalledWith(600000);
     });
   });
 

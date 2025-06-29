@@ -1,8 +1,8 @@
 /**
- * Asset Role Mixins
+ * Asset Role Mixins - Refactored for asRole<T>() Pattern
  * 
- * TypeScript mixin functions that add role capabilities to Asset classes.
- * These mixins enable Assets to play different roles (Audio, Video, Text).
+ * TypeScript mixin functions that add unified role capabilities to Asset classes.
+ * These mixins enable Assets to use the universal asRole<T>() pattern.
  */
 
 import { Asset, BaseAsset, Constructor } from '../Asset';
@@ -12,6 +12,7 @@ import {
   AudioMetadata, VideoMetadata, TextMetadata, ImageMetadata,
   AudioFormat, VideoFormat, ImageFormat
 } from '../roles';
+import { asRole } from '../RoleTransformation';
 
 // ============================================================================
 // AUDIO ROLE MIXIN
@@ -23,42 +24,25 @@ import {
 export function withAudioRole<T extends Constructor<BaseAsset>>(Base: T) {
   return class extends Base implements AudioRole {
     /**
-     * Convert this Asset to Audio data
-     * For video assets, extracts audio using FFmpeg
+     * Universal role transformation method
+     * @param targetType - Target role class (Audio, Video, Text, Image)
+     * @param modelId - Optional model ID
      */
-    async asAudio(): Promise<Audio> {
-      // Check if this is a video format that needs audio extraction
-      if (this.isVideoFormatForAudio()) {
-        return await this.extractAudioFromVideo();
-      }
-      
-      // For audio formats, return as-is
-      return new Audio(this.data, this);
-    }
-
-    /**
-     * Extract audio from video using Smart FFMPEG Provider (placeholder)
+    async asRole<TRole extends Audio | Video | Text | Image>(
+      targetType: new (...args: any[]) => TRole,
+      modelId: string = 'default'
+    ): Promise<TRole> {
+      return await asRole<TRole>(this, targetType, modelId);
+    }    /**
+     * Check if this asset can play a specific role
+     * @param targetType - Target role class to check
      */
-    private async extractAudioFromVideo(): Promise<Audio> {
-      console.log('[AudioRole Mixin] Video to audio extraction not implemented yet');
-      
-      // Fallback to original data
-      return new Audio(this.data, this);
-    }
-
-    /**
-     * Check if this Asset represents a video format (for audio extraction)
-     */
-    private isVideoFormatForAudio(): boolean {
-      const videoFormats = ['mp4', 'avi', 'mov', 'wmv', 'flv', 'webm', 'mkv'];
-      return videoFormats.includes(this.metadata.format?.toLowerCase() || '');
-    }
-
-    /**
-     * Check if this Asset can play the Audio role
-     */
-    canPlayAudioRole(): boolean {
-      return this.isValid() && this.isAudioFormat();
+    canPlayRole<TRole extends Audio | Video | Text | Image>(
+      targetType: new (...args: any[]) => TRole
+    ): boolean {
+      // Use the utility function to check provider capabilities
+      const { canPlayRoleSync } = require('../RoleTransformation');
+      return canPlayRoleSync(this, targetType);
     }
 
     /**
@@ -85,16 +69,6 @@ export function withAudioRole<T extends Constructor<BaseAsset>>(Base: T) {
       const baseRoles = super.getRoles();
       return [...baseRoles, 'audio'];
     }
-
-    /**
-     * Override canPlayRole to include Audio
-     */
-    canPlayRole(role: string): boolean {
-      if (role === 'audio') {
-        return this.canPlayAudioRole();
-      }
-      return super.canPlayRole(role);
-    }
   };
 }
 
@@ -108,13 +82,26 @@ export function withAudioRole<T extends Constructor<BaseAsset>>(Base: T) {
 export function withVideoRole<T extends Constructor<BaseAsset>>(Base: T) {
   return class extends Base implements VideoRole {
     /**
-     * Convert this Asset to Video data
+     * Universal role transformation method
+     * @param targetType - Target role class (Audio, Video, Text, Image)
+     * @param modelId - Optional model ID
      */
-    async asVideo(): Promise<Video> {
-      const videoMetadata = this.getVideoMetadata();
-      const format = videoMetadata.format || this.detectVideoFormat();
+    async asRole<TRole extends Audio | Video | Text | Image>(
+      targetType: new (...args: any[]) => TRole,
+      modelId: string = 'default'
+    ): Promise<TRole> {
+      return await asRole<TRole>(this, targetType, modelId);
+    }
 
-      return new Video(this.data, format, videoMetadata, this); // Pass reference to source Asset
+    /**
+     * Check if this asset can play a specific role
+     * @param targetType - Target role class to check
+     */    canPlayRole<TRole extends Audio | Video | Text | Image>(
+      targetType: new (...args: any[]) => TRole
+    ): boolean {
+      // Use the utility function to check provider capabilities
+      const { canPlayRoleSync } = require('../RoleTransformation');
+      return canPlayRoleSync(this, targetType);
     }
 
     /**
@@ -132,13 +119,6 @@ export function withVideoRole<T extends Constructor<BaseAsset>>(Base: T) {
         hasAudio: this.metadata.hasAudio,
         ...this.metadata.video
       };
-    }
-
-    /**
-     * Check if this Asset can play the Video role
-     */
-    canPlayVideoRole(): boolean {
-      return this.isValid() && this.isVideoFormat();
     }
 
     /**
@@ -180,16 +160,6 @@ export function withVideoRole<T extends Constructor<BaseAsset>>(Base: T) {
       const baseRoles = super.getRoles();
       return [...baseRoles, 'video'];
     }
-
-    /**
-     * Override canPlayRole to include Video
-     */
-    canPlayRole(role: string): boolean {
-      if (role === 'video') {
-        return this.canPlayVideoRole();
-      }
-      return super.canPlayRole(role);
-    }
   };
 }
 
@@ -203,19 +173,26 @@ export function withVideoRole<T extends Constructor<BaseAsset>>(Base: T) {
 export function withTextRole<T extends Constructor<BaseAsset>>(Base: T) {
   return class extends Base implements TextRole {
     /**
-     * Convert this Asset to Text data
+     * Universal role transformation method
+     * @param targetType - Target role class (Audio, Video, Text, Image)
+     * @param modelId - Optional model ID
      */
-    async asText(): Promise<Text> {
-      const textMetadata = this.getTextMetadata();
-      const content = this.extractTextContent();
+    async asRole<TRole extends Audio | Video | Text | Image>(
+      targetType: new (...args: any[]) => TRole,
+      modelId: string = 'default'
+    ): Promise<TRole> {
+      return await asRole<TRole>(this, targetType, modelId);
+    }
 
-      return new Text(
-        content,
-        textMetadata.language || this.metadata.language,
-        textMetadata.confidence || this.metadata.confidence,
-        textMetadata,
-        this // Pass reference to source Asset
-      );
+    /**
+     * Check if this asset can play a specific role
+     * @param targetType - Target role class to check
+     */    canPlayRole<TRole extends Audio | Video | Text | Image>(
+      targetType: new (...args: any[]) => TRole
+    ): boolean {
+      // Use the utility function to check provider capabilities
+      const { canPlayRoleSync } = require('../RoleTransformation');
+      return canPlayRoleSync(this, targetType);
     }
 
     /**
@@ -229,13 +206,6 @@ export function withTextRole<T extends Constructor<BaseAsset>>(Base: T) {
         wordCount: this.metadata.wordCount,
         ...this.metadata.text
       };
-    }
-
-    /**
-     * Check if this Asset can play the Text role
-     */
-    canPlayTextRole(): boolean {
-      return this.isValid() && this.isTextFormat();
     }
 
     /**
@@ -267,16 +237,6 @@ export function withTextRole<T extends Constructor<BaseAsset>>(Base: T) {
       const baseRoles = super.getRoles();
       return [...baseRoles, 'text'];
     }
-
-    /**
-     * Override canPlayRole to include Text
-     */
-    canPlayRole(role: string): boolean {
-      if (role === 'text') {
-        return this.canPlayTextRole();
-      }
-      return super.canPlayRole(role);
-    }
   };
 }
 
@@ -290,57 +250,76 @@ export function withTextRole<T extends Constructor<BaseAsset>>(Base: T) {
 export function withImageRole<T extends Constructor<BaseAsset>>(Base: T) {
   return class extends Base implements ImageRole {
     /**
-     * Convert this Asset to Image data
-     * For already image assets, returns the data as-is
+     * Universal role transformation method
+     * @param targetType - Target role class (Audio, Video, Text, Image)
+     * @param modelId - Optional model ID
      */
-    async asImage(): Promise<Image> {
-      // For image assets, return the data directly
-      const format = this.getImageFormat();
-      
-      return new Image(
-        this.data,
-        format,
-        {
-          format,
-          fileSize: this.data.length,
-          sourceFile: this.metadata.sourceFile
-        },
-        this
-      );
-    }    /**
-     * Get image metadata
+    async asRole<TRole extends Audio | Video | Text | Image>(
+      targetType: new (...args: any[]) => TRole,
+      modelId: string = 'default'
+    ): Promise<TRole> {
+      return await asRole<TRole>(this, targetType, modelId);
+    }
+
+    /**
+     * Check if this asset can play a specific role
+     * @param targetType - Target role class to check
+     */    canPlayRole<TRole extends Audio | Video | Text | Image>(
+      targetType: new (...args: any[]) => TRole
+    ): boolean {
+      // Use the utility function to check provider capabilities
+      const { canPlayRoleSync } = require('../RoleTransformation');
+      return canPlayRoleSync(this, targetType);
+    }
+
+    /**
+     * Get image-specific metadata
      */
     getImageMetadata(): ImageMetadata {
       return {
-        format: this.getImageFormat(),
-        fileSize: this.data.length,
-        sourceFile: this.metadata.sourceFile,
-        ...this.metadata
-      } as ImageMetadata;
+        format: this.getImageFormat() as ImageFormat,
+        width: this.metadata.width,
+        height: this.metadata.height,
+        colorSpace: this.metadata.colorSpace,
+        ...this.metadata.image
+      };
     }
 
     /**
-     * Check if this Asset can play the Image role
+     * Get image format from metadata or detect from data
      */
-    canPlayImageRole(): boolean {
-      const format = this.metadata.format?.toLowerCase();
-      const imageFormats = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'bmp', 'tiff'];
-      return imageFormats.includes(format || '');
-    }
-
-    /**
-     * Get the image format from metadata or file extension
-     */
-    private getImageFormat(): ImageFormat {
-      const format = this.metadata.format?.toLowerCase();
-      const validFormats: ImageFormat[] = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'bmp', 'tiff'];
-      
-      if (format && validFormats.includes(format as ImageFormat)) {
-        return format as ImageFormat;
+    private getImageFormat(): string {
+      // Try to get format from metadata first
+      if (this.metadata.format) {
+        return this.metadata.format.toLowerCase();
       }
-      
-      // Default to png if unknown
+
+      // Try to detect from file extension
+      if (this.metadata.sourceFile) {
+        const ext = this.metadata.sourceFile.split('.').pop()?.toLowerCase();
+        if (ext && ['png', 'jpg', 'jpeg', 'gif', 'bmp', 'svg', 'webp'].includes(ext)) {
+          return ext;
+        }
+      }
+
+      // Default fallback
       return 'png';
+    }
+
+    /**
+     * Check if this Asset represents an image format
+     */
+    private isImageFormat(): boolean {
+      const imageFormats = ['png', 'jpg', 'jpeg', 'gif', 'bmp', 'svg', 'webp'];
+      return imageFormats.includes(this.metadata.format?.toLowerCase() || '');
+    }
+
+    /**
+     * Override getRoles to include Image
+     */
+    getRoles(): string[] {
+      const baseRoles = super.getRoles();
+      return [...baseRoles, 'image'];
     }
   };
 }

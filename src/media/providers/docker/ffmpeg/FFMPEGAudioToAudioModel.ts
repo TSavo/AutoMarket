@@ -75,7 +75,7 @@ export class FFMPEGAudioToAudioModel extends AudioToAudioModel {
     }
 
     // Convert AudioRole to Audio object
-    const audioObject = await input.asAudio();
+    const audioObject = await input.asRole(Audio);
     
     // Validate input format
     if (!this.validateInputFormat(audioObject)) {

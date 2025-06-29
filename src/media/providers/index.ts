@@ -48,5 +48,8 @@ export * from './docker/ffmpeg';
 export * from './docker/ollama';
 export * from './docker/zonos';
 
+// FFMPEG Provider Package
+export * from './ffmpeg';
+
 // Local Provider Packages
 export * from './ffmpeg';

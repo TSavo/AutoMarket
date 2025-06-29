@@ -399,7 +399,7 @@ Once a task has been broken down into subtasks using `expand_task` or similar me
     *   Once the implementation for the subtask is functionally complete, review all code changes and the relevant chat history.
     *   Identify any new or modified code patterns, conventions, or best practices established during the implementation.
     *   Create new or update existing rules following internal guidelines (previously linked to `cursor_rules.md` and `self_improve.md`).
-
+    *   The canonical source for `self_improve.md` is located at `.github/docs/self_improve.md`.
 8.  **Mark Task Complete:**
     *   After verifying the implementation and updating any necessary rules, mark the subtask as completed: `set_task_status` / `task-master set-status --id=<subtaskId> --status=done`.
 

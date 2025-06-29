@@ -67,7 +67,7 @@ export class ReplicateTextToImageModel extends TextToImageModel {
     if (typeof inputRole === 'string') {
       text = Text.fromString(inputRole);
     } else {
-      text = await inputRole.asText();
+      text = await inputRole.asRole(Text);
     }
 
     if (!text.isValid()) {

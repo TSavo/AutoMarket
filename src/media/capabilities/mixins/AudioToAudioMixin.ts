@@ -33,7 +33,7 @@
  * 
  * const provider = new MyProvider();
  * const model = await provider.createAudioToAudioModel('ffmpeg-audio-converter');
- * const audioInput = AssetLoader.load('song.mp3');
+ * const audioInput = SmartAssetFactory.load('song.mp3');
  * const convertedAudio = await model.transform(audioInput, {
  *   outputFormat: 'wav',
  *   sampleRate: 44100,

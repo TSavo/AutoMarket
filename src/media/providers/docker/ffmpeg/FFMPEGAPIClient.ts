@@ -10,7 +10,7 @@ const FormData = require('form-data');
 import * as fs from 'fs';
 import * as path from 'path';
 import { Readable } from 'stream';
-import { IFFMPEGClient, HealthCheckResult, VideoCompositionOptions, VideoCompositionResult } from '../../ffmpeg/IFFMPEGClient';
+import { IFFMPEGClient, HealthCheckResult, VideoCompositionOptions, VideoCompositionResult, FrameExtractionOptions, FrameExtractionResult } from '../../ffmpeg/IFFMPEGClient';
 
 export interface FFMPEGClientConfig {
   baseUrl: string;
@@ -558,6 +558,127 @@ export class FFMPEGAPIClient implements IFFMPEGClient {
         throw new Error(`Failed to get video metadata: ${error.response.data.error}`);
       }
       throw new Error(`Failed to get video metadata: ${error.message}`);
+    }
+  }
+
+  /**
+   * Extract frames from video
+   */
+  async extractFrames(videoData: Buffer | Readable | string, options?: FrameExtractionOptions): Promise<FrameExtractionResult> {
+    try {
+      console.log('API Client: extractFrames called with options:', options);
+      
+      const formData = new FormData();
+      
+      // Handle different video data input types
+      if (typeof videoData === 'string') {
+        // File path
+        const videoBuffer = fs.readFileSync(videoData);
+        formData.append('video', videoBuffer, { filename: path.basename(videoData) });
+      } else if (videoData instanceof Readable) {
+        formData.append('video', videoData, { filename: 'video.mp4' });
+      } else if (Buffer.isBuffer(videoData)) {
+        formData.append('video', videoData, { filename: 'video.mp4' });
+      } else {
+        formData.append('video', videoData, { filename: 'video.mp4' });
+      }
+
+      // Add options to form data
+      if (options?.frameTime !== undefined) {
+        formData.append('frameTime', options.frameTime.toString());
+      }
+      if (options?.frameNumber !== undefined) {
+        formData.append('frameNumber', options.frameNumber.toString());
+      }
+      if (options?.format) {
+        formData.append('format', options.format);
+      }
+      if (options?.width) {
+        formData.append('width', options.width.toString());
+      }
+      if (options?.height) {
+        formData.append('height', options.height.toString());
+      }
+      if (options?.quality) {
+        formData.append('quality', options.quality.toString());
+      }
+      if (options?.extractAll) {
+        formData.append('multiple', 'true');
+      }
+      if (options?.frameRate) {
+        formData.append('frameRate', options.frameRate.toString());
+      }
+
+      console.log('API Client: extractFrames formData prepared');
+
+      const response: AxiosResponse<ApiResponse<any>> = await this.client.post(
+        '/video/extractFrame',
+        formData,
+        {
+          headers: {
+            ...formData.getHeaders(),
+            'Content-Type': 'multipart/form-data'
+          },
+          maxContentLength: Infinity,
+          maxBodyLength: Infinity
+        }
+      );
+
+      console.log('API Client: extractFrames response:', response.data);
+
+      if (response.data.success && response.data.data) {
+        // Download the extracted frame(s) and convert to buffers
+        const frameBuffers: Buffer[] = [];
+        const frames = response.data.data.frames;
+
+        for (const frame of frames) {
+          try {
+            // Download frame from the service
+            const frameResponse = await this.client.get(frame.path, {
+              responseType: 'arraybuffer'
+            });
+            frameBuffers.push(Buffer.from(frameResponse.data));
+          } catch (downloadError) {
+            console.warn(`Failed to download frame ${frame.filename}:`, downloadError.message);
+          }
+        }
+
+        return {
+          success: true,
+          frames: frameBuffers,
+          format: options?.format || 'png',
+          width: options?.width || 0, // Will be updated from actual frame dimensions
+          height: options?.height || 0,
+          frameCount: frameBuffers.length,
+          processingTime: response.data.data.processingTime || 0
+        };
+      } else {
+        throw new Error(response.data.error || 'Failed to extract frames');
+      }
+    } catch (error) {
+      console.error('API Client: extractFrames error:', error);
+      if (error.response?.data?.error) {
+        return {
+          success: false,
+          frames: [],
+          format: options?.format || 'png',
+          width: 0,
+          height: 0,
+          frameCount: 0,
+          processingTime: 0,
+          error: `Failed to extract frames: ${error.response.data.error}`
+        };
+      }
+      return {
+        success: false,
+        frames: [],
+        format: options?.format || 'png',
+        width: 0,
+        height: 0,
+        frameCount: 0,
+        processingTime: 0,
+        error: `Failed to extract frames: ${error.message}`
+      };
     }
   }
 

@@ -1,6 +1,6 @@
 # Documentation Cleanup Summary
 
-This document summarizes the documentation cleanup performed on the AutoMarket project to align documentation with the actual codebase.
+This document summarizes the documentation cleanup performed on the Prizm project to align documentation with the actual codebase.
 
 ## Changes Made
 
@@ -40,7 +40,7 @@ This document summarizes the documentation cleanup performed on the AutoMarket p
 ### ✅ Specialized Documentation (Kept)
 - `COMPOSITION_BUILDER_REFACTORING.md` - Video composition details
 - `FALAI_IMPLEMENTATION_SUMMARY.md` - FAL.ai provider specifics
-- `N-VIDEO-COMPOSITION-ENHANCEMENT.md` - N-video composition features
+- `N-VIDEO_COMPOSITION-ENHANCEMENT.md` - N-video composition features
 - `SMART_ASSET_LOADING.md` - Asset loading system
 - `FFMPEG_LOCAL_CLIENT_README.md` - FFMPEG client documentation
 

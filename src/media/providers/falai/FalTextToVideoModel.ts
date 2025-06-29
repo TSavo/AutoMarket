@@ -56,13 +56,13 @@ export class FalTextToVideoModel extends TextToVideoModel {
     // Handle array input - get first element for single video generation
     let textRole: TextRole;
     if (Array.isArray(input)) {
-      textRole = typeof input[0] === 'string' ? new Text(input[0]) : input[0];
+      textRole = typeof input[0] === 'string' ? Text.fromString(input[0]) : input[0];
     } else {
-      textRole = typeof input === 'string' ? new Text(input) : input;
+      textRole = typeof input === 'string' ? Text.fromString(input) : input;
     }
 
     // Cast input to Text
-    const text = await textRole.asText();
+    const text = await textRole.asRole(Text);
 
     if (!text.isValid()) {
       throw new Error('Invalid text data provided');
@@ -158,7 +158,7 @@ export class FalTextToVideoModel extends TextToVideoModel {
       
       console.log(`[FalTextToVideo] Video saved to: ${localPath} (${(videoBuffer.length / 1024 / 1024).toFixed(2)} MB)`);      // Use SmartAssetFactory to create Asset with automatic metadata extraction
       const smartAsset = await SmartAssetFactory.load(localPath);
-      const video = await (smartAsset as any).asVideo();
+      const video = await (smartAsset as any).asRole(Video);
       
       // Add our custom metadata to the video
       if (video.metadata) {

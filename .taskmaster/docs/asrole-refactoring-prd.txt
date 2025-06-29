@@ -1,0 +1,145 @@
+# AsRole<T> Universal Role Transformation Refactoring
+
+## Product Overview
+
+Refactor the current media role system from individual `asText()`, `asAudio()`, `asVideo()`, `asImage()` methods to a unified `asRole<T>()` generic method that automatically discovers and uses the appropriate provider based on capability interfaces.
+
+## Problem Statement
+
+The current role system has the following issues:
+1. **Code Duplication**: Each role conversion (`asText()`, `asAudio()`, etc.) implements the same provider lookup and model instantiation pattern
+2. **Maintenance Overhead**: Adding new role conversions requires writing new individual methods
+3. **Inconsistent API**: Each method has slightly different implementation patterns
+4. **Type Safety Gaps**: No compile-time verification of provider capability matching
+
+## Solution: Universal AsRole<T> Pattern
+
+Replace all individual role conversion methods with a single generic `asRole<T>()` method that:
+- Uses TypeScript generics for type safety
+- Automatically discovers providers based on capability interfaces
+- Provides consistent API across all role conversions
+- Eliminates code duplication
+
+## Technical Specifications
+
+### 1. Core AsRole Implementation
+
+Create a universal role transformation method:
+
+```typescript
+async asRole<T>(
+  targetRoleType: new (...args: any[]) => T,
+  providerCapability: MediaCapability,
+  modelId: string = 'default'
+): Promise<T> {
+  const registry = ProviderRegistry.getInstance();
+  const provider = registry.getProviderForCapability(providerCapability);
+  const model = await provider.getModel(modelId);
+  return await model.transform(this);
+}
+```
+
+### 2. Provider Capability Mapping
+
+Support all existing provider capability combinations:
+
+| Source Role | Target Role | Provider Capability | Example Usage |
+|-------------|-------------|-------------------|---------------|
+| Video | Audio | VideoToAudioProvider | `asRole<Audio>(Audio, VideoToAudioProvider)` |
+| Video | Text | VideoToTextProvider | `asRole<Text>(Text, VideoToTextProvider)` |
+| Video | Image | VideoToImageProvider | `asRole<Image>(Image, VideoToImageProvider)` |
+| Audio | Text | AudioToTextProvider | `asRole<Text>(Text, AudioToTextProvider)` |
+| Audio | Audio | AudioToAudioProvider | `asRole<Audio>(Audio, AudioToAudioProvider)` |
+| Text | Audio | TextToAudioProvider | `asRole<Audio>(Audio, TextToAudioProvider)` |
+| Text | Video | TextToVideoProvider | `asRole<Video>(Video, TextToVideoProvider)` |
+| Text | Image | TextToImageProvider | `asRole<Image>(Image, TextToImageProvider)` |
+| Text | Text | TextToTextProvider | `asRole<Text>(Text, TextToTextProvider)` |
+| Image | Video | ImageToVideoProvider | `asRole<Video>(Video, ImageToVideoProvider)` |
+| Image | Text | ImageToTextProvider | `asRole<Text>(Text, ImageToTextProvider)` |
+| Image | Image | ImageToImageProvider | `asRole<Image>(Image, ImageToImageProvider)` |
+
+### 3. Migration Strategy
+
+1. **Phase 1**: Implement `asRole<T>()` method in base role mixins
+2. **Phase 2**: Update all existing `asX()` method calls to use `asRole<T>()`
+3. **Phase 3**: Remove deprecated `asX()` methods
+4. **Phase 4**: Update documentation and examples
+
+## File Impact Analysis
+
+### Files to Modify
+
+1. **Role Mixins** (`src/media/assets/mixins/index.ts`)
+   - Remove individual `asText()`, `asAudio()`, `asVideo()`, `asImage()` methods
+   - Add universal `asRole<T>()` method
+
+2. **Role Interfaces** (`src/media/assets/roles/interfaces/`)
+   - Update `AudioRole.ts`, `VideoRole.ts`, `TextRole.ts`, `ImageRole.ts`
+   - Replace individual methods with `asRole<T>()` signature
+
+3. **Provider Model Files** (throughout `src/media/providers/`)
+   - Update all model `transform()` method calls from `input.asText()` to `input.asRole<Text>(Text, AudioToTextProvider)`
+   - Affected files: All model files that use role conversion
+
+4. **Example Files**
+   - `src/media/examples/async-role-casting.ts`
+   - Any documentation examples
+
+5. **Test Files**
+   - `src/media/assets/Asset.test.ts`
+   - Update test assertions for new API
+
+### Provider Files to Update
+
+Search for all occurrences of:
+- `asText()` calls
+- `asAudio()` calls  
+- `asVideo()` calls
+- `asImage()` calls
+
+Replace with appropriate `asRole<T>()` calls based on context.
+
+## Success Criteria
+
+1. **Zero Breaking Changes**: All existing functionality works with new API
+2. **Type Safety**: Full TypeScript compile-time verification
+3. **Provider Discovery**: Automatic provider selection works for all combinations
+4. **Performance**: No performance regression
+5. **Documentation**: Complete migration guide and updated examples
+6. **Test Coverage**: All existing tests pass with new implementation
+
+## Dependencies
+
+- Existing ProviderRegistry functionality
+- Current provider capability interfaces
+- TypeScript generic support
+- Existing role class definitions (Audio, Video, Text, Image)
+
+## Acceptance Criteria
+
+- [ ] Universal `asRole<T>()` method implemented
+- [ ] All individual `asX()` methods removed
+- [ ] All provider model files updated to use new API
+- [ ] All tests passing
+- [ ] No TypeScript compilation errors
+- [ ] Documentation updated
+- [ ] Example code updated
+- [ ] Performance benchmarks show no regression
+
+## Risk Mitigation
+
+1. **Gradual Migration**: Implement alongside existing methods initially
+2. **Comprehensive Testing**: Ensure all provider combinations work
+3. **Type Safety**: Leverage TypeScript to catch issues at compile time
+4. **Rollback Plan**: Keep old methods deprecated but functional during transition
+
+## Timeline Estimate
+
+- **Phase 1 (Core Implementation)**: 2-3 days
+- **Phase 2 (Migration)**: 3-4 days  
+- **Phase 3 (Cleanup)**: 1-2 days
+- **Phase 4 (Documentation)**: 1 day
+
+**Total Estimate**: 7-10 days
+
+This refactoring will significantly improve code maintainability, type safety, and API consistency while reducing duplication across the entire media processing system.

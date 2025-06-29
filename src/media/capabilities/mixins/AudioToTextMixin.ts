@@ -34,7 +34,7 @@
  * 
  * const provider = new MyProvider();
  * const model = await provider.createAudioToTextModel('whisper-base');
- * const audioInput = AssetLoader.load('speech.wav');
+ * const audioInput = SmartAssetFactory.load('speech.wav');
  * const transcription = await model.transform(audioInput);
  * console.log(transcription.content); // "Hello, this is a test"
  * ```

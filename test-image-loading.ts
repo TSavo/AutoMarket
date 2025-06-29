@@ -5,7 +5,7 @@
  */
 
 import { SmartAssetFactory } from './src/media/assets/SmartAssetFactory';
-import { hasImageRole } from './src/media/assets/roles';
+import { hasImageRole, Image } from './src/media/assets/roles';
 
 async function testImageLoading() {
   console.log('🖼️ Testing image asset loading...\n');
@@ -35,7 +35,7 @@ async function testImageLoading() {
       console.log('✅ Asset has image role capability');
       
       console.log('3️⃣ Converting to image...');
-      const image = await asset.asImage();
+      const image = await asset.asRole(Image);
       console.log(`✅ Image created: ${image.toString()}`);
       
       console.log('4️⃣ Getting image metadata...');

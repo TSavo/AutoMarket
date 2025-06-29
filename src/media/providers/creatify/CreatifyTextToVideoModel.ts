@@ -50,7 +50,7 @@ export class CreatifyTextToVideoModel extends TextToVideoModel {
     if (typeof inputRole === 'string') {
       text = Text.fromString(inputRole);
     } else {
-      text = await inputRole.asText();
+      text = await inputRole.asRole(Text);
     }
     
     if (!text.isValid()) {
@@ -80,7 +80,7 @@ export class CreatifyTextToVideoModel extends TextToVideoModel {
     fs.writeFileSync(filePath, buffer);
 
     const asset = await SmartAssetFactory.load(filePath);
-    const video = await (asset as any).asVideo();
+    const video = await (asset as any).asRole(Video);
     if (video.metadata) {
       Object.assign(video.metadata, {
         url: result.output,

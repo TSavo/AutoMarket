@@ -57,13 +57,13 @@ export class ReplicateTextToAudioModel extends TextToAudioModel {
     // Handle array input - get first element for single audio generation
     let textRole: TextRole;
     if (Array.isArray(input)) {
-      textRole = typeof input[0] === 'string' ? new Text(input[0]) : input[0];
+      textRole = typeof input[0] === 'string' ? Text.fromString(input[0]) : input[0];
     } else {
-      textRole = typeof input === 'string' ? new Text(input) : input;
+      textRole = typeof input === 'string' ? Text.fromString(input) : input;
     }
 
     // Get text from the TextRole
-    const text = await textRole.asText();
+    const text = await textRole.asRole(Text);
 
     if (!text.isValid()) {
       throw new Error('Invalid text data provided');
@@ -79,7 +79,7 @@ export class ReplicateTextToAudioModel extends TextToAudioModel {
       // Convert AudioRole to Audio if provided
       let voiceAudioData: Audio | undefined;
       if (voiceAudio) {
-        voiceAudioData = await voiceAudio.asAudio();
+        voiceAudioData = await voiceAudio.asRole(Audio);
       }      // Prepare input for this specific Replicate TTS model
       const replicateInput = this.prepareReplicateInput(text.content, voiceAudioData, options);
 

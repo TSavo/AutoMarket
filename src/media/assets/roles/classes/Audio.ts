@@ -9,6 +9,9 @@
 import { AudioMetadata } from '../types';
 import { AudioRole } from '../interfaces/AudioRole';
 import { AudioFormat } from '../types/formats';
+import { Video } from './Video';
+import { Text } from './Text';
+import { Image } from './Image';
 
 export class Audio implements AudioRole {
   constructor(
@@ -22,13 +25,29 @@ export class Audio implements AudioRole {
   }
 
   toString(): string {
-    return `Audio(${this.data.length} bytes)`;
+    return `AUDIO(${this.data.length} bytes)`;
   }
 
   // AudioRole interface implementation
-  async asAudio(): Promise<Audio> {
-    return this;
+  async asRole<T extends Audio | Video | Text | Image>(
+    targetType: new (...args: any[]) => T,
+    modelId?: string
+  ): Promise<T> {
+    if (targetType === Audio as any) {
+      return this as unknown as T;
+    }
+    // For other roles, would need provider-based transformation
+    throw new Error(`Cannot transform Audio to ${targetType.name} without a provider`);
   }
+
+  canPlayRole<T extends Audio | Video | Text | Image>(
+    targetType: new (...args: any[]) => T
+  ): boolean {
+    // Use synchronous version for immediate checking
+    const { canPlayRoleSync } = require('../../RoleTransformation');
+    return canPlayRoleSync(this, targetType);
+  }
+
   getAudioMetadata(): AudioMetadata {
     return this.metadata || {
       format: this.getFormat() as AudioFormat,
@@ -38,12 +57,12 @@ export class Audio implements AudioRole {
     };
   }
 
-  canPlayAudioRole(): boolean {
-    return this.isValid();
-  }
-
   // Rich interface methods for compatibility
   getFormat(): string {
+    // Try to get format from own metadata first
+    if (this.metadata?.format) {
+      return this.metadata.format;
+    }
     // Try to get format from source asset metadata
     if (this.sourceAsset?.metadata?.format) {
       return this.sourceAsset.metadata.format;

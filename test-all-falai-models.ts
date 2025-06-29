@@ -6,7 +6,7 @@
 
 import { FalAiProvider } from './src/media/providers/falai/FalAiProvider';
 import { Text, Image, Video, Audio } from './src/media/assets/roles';
-import { AssetLoader } from './src/media/assets/SmartAssetFactory';
+import { SmartAssetFactory } from './src/media/assets/SmartAssetFactory';
 import { MediaCapability } from './src/media/types/provider';
 import * as fs from 'fs';
 import * as path from 'path';

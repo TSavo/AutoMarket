@@ -3,25 +3,25 @@ const path = require('path');
 
 // List of files that need updating
 const filesToUpdate = [
-  'c:\\Users\\T\\Projects\\AutoMarket\\src\\media\\providers\\together\\TogetherTextToImageModel.ts',
-  'c:\\Users\\T\\Projects\\AutoMarket\\src\\media\\providers\\together\\TogetherTextToAudioModel.ts',
-  'c:\\Users\\T\\Projects\\AutoMarket\\src\\media\\providers\\replicate\\ReplicateTextToVideoModel.ts',
-  'c:\\Users\\T\\Projects\\AutoMarket\\src\\media\\providers\\replicate\\ReplicateTextToImageModel.ts',
-  'c:\\Users\\T\\Projects\\AutoMarket\\src\\media\\providers\\replicate\\ReplicateTextToAudioModel.ts',
-  'c:\\Users\\T\\Projects\\AutoMarket\\src\\media\\providers\\openai\\OpenAITextToImageModel.ts',
-  'c:\\Users\\T\\Projects\\AutoMarket\\src\\media\\providers\\openai\\OpenAITextToAudioModel.ts',
-  'c:\\Users\\T\\Projects\\AutoMarket\\src\\media\\providers\\falai\\FalTextToVideoModel.ts',
-  'c:\\Users\\T\\Projects\\AutoMarket\\src\\media\\providers\\falai\\FalTextToImageModel.ts',
-  'c:\\Users\\T\\Projects\\AutoMarket\\src\\media\\providers\\falai\\FalTextToAudioModel.ts',
-  'c:\\Users\\T\\Projects\\AutoMarket\\src\\media\\providers\\elevenlabs\\ElevenLabsTextToAudioModel.ts',
-  'c:\\Users\\T\\Projects\\AutoMarket\\src\\media\\providers\\docker\\zonos\\ZonosTextToAudioModel.ts',
-  'c:\\Users\\T\\Projects\\AutoMarket\\src\\media\\providers\\docker\\kokoro\\KokoroDockerModel.ts',
-  'c:\\Users\\T\\Projects\\AutoMarket\\src\\media\\providers\\docker\\huggingface\\HuggingFaceTextToAudioModel.ts',
-  'c:\\Users\\T\\Projects\\AutoMarket\\src\\media\\providers\\docker\\huggingface\\HuggingFaceDockerModel.ts',
-  'c:\\Users\\T\\Projects\\AutoMarket\\src\\media\\providers\\docker\\chatterbox\\ChatterboxDockerModel.ts',
-  'c:\\Users\\T\\Projects\\AutoMarket\\src\\media\\providers\\docker\\chatterbox\\ChatterboxTextToAudioModel.ts',
-  'c:\\Users\\T\\Projects\\AutoMarket\\src\\media\\providers\\creatify\\CreatifyTextToVideoModel.ts',
-  'c:\\Users\\T\\Projects\\AutoMarket\\src\\media\\providers\\creatify\\CreatifyTextToAudioModel.ts'
+  'c:\\Users\\T\\Projects\\Prizm\\src\\media\\providers\\together\\TogetherTextToImageModel.ts',
+  'c:\\Users\\T\\Projects\\Prizm\\src\\media\\providers\\together\\TogetherTextToAudioModel.ts',
+  'c:\\Users\\T\\Projects\\Prizm\\src\\media\\providers\\replicate\\ReplicateTextToVideoModel.ts',
+  'c:\\Users\\T\\Projects\\Prizm\\src\\media\\providers\\replicate\\ReplicateTextToImageModel.ts',
+  'c:\\Users\\T\\Projects\\Prizm\\src\\media\\providers\\replicate\\ReplicateTextToAudioModel.ts',
+  'c:\\Users\\T\\Projects\\Prizm\\src\\media\\providers\\openai\\OpenAITextToImageModel.ts',
+  'c:\\Users\\T\\Projects\\Prizm\\src\\media\\providers\\openai\\OpenAITextToAudioModel.ts',
+  'c:\\Users\\T\\Projects\\Prizm\\src\\media\\providers\\falai\\FalTextToVideoModel.ts',
+  'c:\\Users\\T\\Projects\\Prizm\\src\\media\\providers\\falai\\FalTextToImageModel.ts',
+  'c:\\Users\\T\\Projects\\Prizm\\src\\media\\providers\\falai\\FalTextToAudioModel.ts',
+  'c:\\Users\\T\\Projects\\Prizm\\src\\media\\providers\\elevenlabs\\ElevenLabsTextToAudioModel.ts',
+  'c:\\Users\\T\\Projects\\Prizm\\src\\media\\providers\\docker\\zonos\\ZonosTextToAudioModel.ts',
+  'c:\\Users\\T\\Projects\\Prizm\\src\\media\\providers\\docker\\kokoro\\KokoroDockerModel.ts',
+  'c:\\Users\\T\\Projects\\Prizm\\src\\media\\providers\\docker\\huggingface\\HuggingFaceTextToAudioModel.ts',
+  'c:\\Users\\T\\Projects\\Prizm\\src\\media\\providers\\docker\\huggingface\\HuggingFaceDockerModel.ts',
+  'c:\\Users\\T\\Projects\\Prizm\\src\\media\\providers\\docker\\chatterbox\\ChatterboxDockerModel.ts',
+  'c:\\Users\\T\\Projects\\Prizm\\src\\media\\providers\\docker\\chatterbox\\ChatterboxTextToAudioModel.ts',
+  'c:\\Users\\T\\Projects\\Prizm\\src\\media\\providers\\creatify\\CreatifyTextToVideoModel.ts',
+  'c:\\Users\\T\\Projects\\Prizm\\src\\media\\providers\\creatify\\CreatifyTextToAudioModel.ts'
 ];
 
 function fixTextImports(content) {

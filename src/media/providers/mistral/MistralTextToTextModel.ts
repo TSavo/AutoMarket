@@ -40,12 +40,12 @@ export class MistralTextToTextModel extends TextToTextModel {
     
     let textRole: TextRole;
     if (Array.isArray(input)) {
-      textRole = typeof input[0] === 'string' ? new Text(input[0]) : input[0];
+      textRole = typeof input[0] === 'string' ? Text.fromString(input[0]) : input[0];
     } else {
-      textRole = typeof input === 'string' ? new Text(input) : input;
+      textRole = typeof input === 'string' ? Text.fromString(input) : input;
     }
 
-    const text = await textRole.asText();
+    const text = await textRole.asRole(Text);
 
     if (!text.isValid()) {
       throw new Error('Invalid text data provided');
@@ -60,7 +60,7 @@ export class MistralTextToTextModel extends TextToTextModel {
 
     const processingTime = Date.now() - startTime;
 
-    return new Text(generated, text.language || 'auto', 1.0, {
+    return Text.fromString(generated, text.language || 'auto', 1.0, {
       processingTime,
       model: this.modelId,
       provider: 'mistral',

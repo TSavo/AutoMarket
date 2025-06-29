@@ -218,9 +218,37 @@ export interface IFFMPEGClient {
    * Filter multiple videos (for Docker-based clients)
    */
   filterMultipleVideos?(videoBuffers: Buffer[], options?: VideoCompositionOptions): Promise<VideoCompositionResult>;
-
   /**
    * Get video metadata (for Docker-based clients)
    */
   getVideoMetadata?(videoData: Buffer | Readable | string): Promise<{ width: number; height: number; duration: number; framerate: number }>;
+
+  /**
+   * Extract frame(s) from video as images
+   */
+  extractFrames?(videoData: Buffer | Readable | string, options?: FrameExtractionOptions): Promise<FrameExtractionResult>;
+}
+
+export interface FrameExtractionOptions {
+  frameTime?: number; // Time in seconds to extract frame from
+  frameNumber?: number; // Specific frame number to extract
+  width?: number; // Output width
+  height?: number; // Output height
+  format?: 'png' | 'jpg' | 'webp'; // Output image format
+  quality?: number; // Image quality (0-100)
+  extractAll?: boolean; // Extract all frames
+  frameRate?: number; // For extracting multiple frames at specific intervals
+  startTime?: number; // Start time for frame extraction
+  endTime?: number; // End time for frame extraction
+}
+
+export interface FrameExtractionResult {
+  success: boolean;
+  frames: Buffer[]; // Array of image buffers
+  format: string;
+  width: number;
+  height: number;
+  frameCount: number;
+  processingTime: number;
+  error?: string;
 }

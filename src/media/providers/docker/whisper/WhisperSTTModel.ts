@@ -65,7 +65,7 @@ export class WhisperSTTModel extends AudioToTextModel {
     const inputRole = Array.isArray(input) ? input[0] : input;
 
     // Get audio from the AudioRole
-    const audio = await inputRole.asAudio();
+    const audio = await inputRole.asRole(Audio);
 
     // Validate audio data
     if (!audio.isValid()) {
@@ -103,7 +103,7 @@ export class WhisperSTTModel extends AudioToTextModel {
         const processingTime = Date.now() - startTime;
 
         // Create Text result
-        const text = new Text(
+        const text = Text.fromString(
           response.text,
           response.language || options?.language || audio.sourceAsset?.metadata?.language || 'auto',
           response.confidence || 0.9,

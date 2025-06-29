@@ -8,6 +8,9 @@
 
 import { ImageFormat, ImageMetadata } from '../types';
 import { ImageRole } from '../interfaces/ImageRole';
+import { Audio } from './Audio';
+import { Video } from './Video';
+import { Text } from './Text';
 
 export class Image implements ImageRole {
   constructor(
@@ -24,18 +27,27 @@ export class Image implements ImageRole {
   toString(): string {
     return `Image(${this.format}, ${this.data.length} bytes)`;
   }
-
   // ImageRole interface implementation
-  async asImage(): Promise<Image> {
-    return this;
+  async asRole<T extends Audio | Video | Text | Image>(
+    targetType: new (...args: any[]) => T,
+    modelId?: string
+  ): Promise<T> {
+    if (targetType === Image as any) {
+      return this as any;
+    }
+    // For other roles, would need provider-based transformation
+    throw new Error(`Cannot transform Image to ${targetType.name} without a provider`);
+  }
+  canPlayRole<T extends Audio | Video | Text | Image>(
+    targetType: new (...args: any[]) => T
+  ): boolean {
+    // Use synchronous version for immediate checking
+    const { canPlayRoleSync } = require('../../RoleTransformation');
+    return canPlayRoleSync(this, targetType);
   }
 
   getImageMetadata(): ImageMetadata {
     return this.metadata;
-  }
-
-  canPlayImageRole(): boolean {
-    return this.isValid();
   }
 
   // Rich interface methods for compatibility

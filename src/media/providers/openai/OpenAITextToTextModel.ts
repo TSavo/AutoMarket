@@ -62,7 +62,7 @@ export class OpenAITextToTextModel extends TextToTextModel {
     if (typeof inputRole === 'string') {
       text = Text.fromString(inputRole);
     } else {
-      text = await inputRole.asText();
+      text = await inputRole.asRole(Text);
     }
 
     // Validate text data
@@ -88,7 +88,7 @@ export class OpenAITextToTextModel extends TextToTextModel {
       const processingTime = Date.now() - startTime;
 
       // Create Text result
-      const result = new Text(
+      const result = Text.fromString(
         generatedText,
         text.language || 'auto', // Preserve input language
         1.0, // High confidence for successful generation

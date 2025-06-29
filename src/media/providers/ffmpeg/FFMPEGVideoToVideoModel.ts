@@ -55,7 +55,7 @@ export class FFMPEGVideoToVideoModel extends VideoToVideoModel {
     }
   
     // Convert VideoRoles to Video objects
-    const videoObjects = await Promise.all(videos.map(v => v.asVideo()));
+    const videoObjects = await Promise.all(videos.map(v => v.asRole(Video)));
     const videoBuffers = videoObjects.map(video => video.data);
 
     if (!this.apiClient) {

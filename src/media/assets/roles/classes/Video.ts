@@ -8,6 +8,9 @@
 
 import { VideoFormat, VideoMetadata } from '../types';
 import { VideoRole } from '../interfaces/VideoRole';
+import { Audio } from './Audio';
+import { Text } from './Text';
+import { Image } from './Image';
 
 export class Video implements VideoRole {
   constructor(
@@ -24,18 +27,27 @@ export class Video implements VideoRole {
   toString(): string {
     return `Video(${this.format}, ${this.data.length} bytes)`;
   }
-
   // VideoRole interface implementation
-  async asVideo(): Promise<Video> {
-    return this;
+  async asRole<T extends Audio | Video | Text | Image>(
+    targetType: new (...args: any[]) => T,
+    modelId?: string
+  ): Promise<T> {
+    if (targetType === Video as any) {
+      return this as any;
+    }
+    // For other roles, would need provider-based transformation
+    throw new Error(`Cannot transform Video to ${targetType.name} without a provider`);
+  }
+  canPlayRole<T extends Audio | Video | Text | Image>(
+    targetType: new (...args: any[]) => T
+  ): boolean {
+    // Use synchronous version for immediate checking
+    const { canPlayRoleSync } = require('../../RoleTransformation');
+    return canPlayRoleSync(this, targetType);
   }
 
   getVideoMetadata(): VideoMetadata {
     return this.metadata;
-  }
-
-  canPlayVideoRole(): boolean {
-    return this.isValid();
   }
 
   // Rich interface methods for compatibility

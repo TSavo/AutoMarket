@@ -2,7 +2,7 @@
 
 ## 🎯 Overview
 
-I have thoroughly analyzed the AutoMarket codebase and completely updated the documentation to reflect the actual current implementation. The previous documentation was significantly outdated and focused on a much more limited "MediaTransformer" concept, while the actual codebase implements a sophisticated multi-provider media processing platform.
+I have thoroughly analyzed the Prizm codebase and completely updated the documentation to reflect the actual current implementation. The previous documentation was significantly outdated and focused on a much more limited "MediaTransformer" concept, while the actual codebase implements a sophisticated multi-provider media processing platform.
 
 ## 📚 Updated Documentation Files
 
@@ -72,7 +72,7 @@ src/media/
 │   │   └── index.ts          # Package exports
 │   ├── together/             # Together.ai provider package
 │   ├── openrouter/           # OpenRouter provider package
-│   ├── replicate/            # Replicate provider package
+���   ├── replicate/            # Replicate provider package
 │   └── docker/               # Docker provider packages
 │       ├── ffmpeg/           # FFMPEG video processing
 │       ├── chatterbox/       # TTS services

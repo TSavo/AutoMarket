@@ -51,7 +51,7 @@ export class OpenAIAudioToTextModel extends AudioToTextModel {
   async transform(input: AudioRole | AudioRole[], options?: OpenAIAudioToTextOptions): Promise<Text> {
     const start = Date.now();
     const role = Array.isArray(input) ? input[0] : input;
-    const audio = await role.asAudio();
+    const audio = await role.asRole(Audio);
     const validation = this.validateAudio(audio);
     if (!validation.valid) {
       throw new Error(`Invalid audio input: ${validation.errors.join('; ')}`);
@@ -88,7 +88,7 @@ export class OpenAIAudioToTextModel extends AudioToTextModel {
       }
 
       const processingTime = Date.now() - start;
-      return new Text(
+      return Text.fromString(
         response.text,
         response.language || options?.language || 'auto',
         1.0,

@@ -54,7 +54,7 @@ export class FalVideoToVideoModel extends VideoToVideoModel {
     if (!Array.isArray(baseVideo)) {
       baseVideo = [baseVideo];
     }
-    const videos = await Promise.all(baseVideo.map(v => v.asVideo()));
+    const videos = await Promise.all(baseVideo.map(v => v.asRole(Video)));
 
     for (const video of videos) {
       if (!video.isValid()) {
@@ -166,7 +166,7 @@ export class FalVideoToVideoModel extends VideoToVideoModel {
       
       console.log(`[FalVideoToVideo] Video saved to: ${localPath} (${(videoBuffer.length / 1024 / 1024).toFixed(2)} MB)`);      // Use SmartAssetFactory to create Asset with automatic metadata extraction
       const smartAsset = await SmartAssetFactory.load(localPath);
-      const video = await (smartAsset as any).asVideo();
+      const video = await (smartAsset as any).asRole(Video);
       
       // Add our custom metadata to the video
       if (video.metadata) {

@@ -51,7 +51,7 @@ export class ElevenLabsTextToAudioModel extends TextToAudioModel {
     if (typeof role === 'string') {
       text = Text.fromString(role);
     } else {
-      text = await role.asText();
+      text = await role.asRole(Text);
     }
     
     if (!text.isValid()) throw new Error('Invalid text');

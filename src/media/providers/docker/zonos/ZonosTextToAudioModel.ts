@@ -87,7 +87,7 @@ export class ZonosTextToAudioModel extends TextToAudioModel {
     if (typeof inputRole === 'string') {
       text = Text.fromString(inputRole);
     } else {
-      text = await inputRole.asText();
+      text = await inputRole.asRole(Text);
     }
     
     // Validate text data
@@ -121,7 +121,7 @@ export class ZonosTextToAudioModel extends TextToAudioModel {
       
       try {
         // Get the audio data from the AudioRole
-        const audioData = await voiceRole.asAudio();
+        const audioData = await voiceRole.asRole(Audio);
         
         if (audioData.data && Buffer.isBuffer(audioData.data)) {
           speakerAudio = audioData.data;

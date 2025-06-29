@@ -12,7 +12,7 @@ import { FFMPEGLocalClient } from './src/media/providers/docker/ffmpeg/FFMPEGLoc
 import { FFMPEGVideoFilterModel } from './src/media/providers/docker/ffmpeg/FFMPEGVideoFilterModel';
 import { FFMPEGCompositionBuilder } from './src/media/providers/docker/ffmpeg/FFMPEGCompositionBuilder';
 import { SmartAssetFactory } from './src/media/assets/SmartAssetFactory';
-import { hasVideoRole } from './src/media/assets/roles';
+import { hasVideoRole, Video } from './src/media/assets/roles';
 import fs from 'fs';
 import path from 'path';
 
@@ -39,8 +39,8 @@ async function executeComplexComposition() {
       try {
         const asset = SmartAssetFactory.load(filePath);
         if (hasVideoRole(asset)) {
-          videos[name] = await asset.asVideo();
-          videoBuffers.push(videos[name].data);
+          videos[name] = await asset.asRole(Video);
+          videoBuffers.push((videos[name] as Video).data);
           console.log(`✅ ${name}: ${filePath} (${videos[name].data.length} bytes)`);
         }
       } catch (error) {

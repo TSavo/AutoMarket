@@ -4,7 +4,7 @@
 
 import { FFMPEGLocalClient } from './src/media/providers/docker/ffmpeg/FFMPEGLocalClient';
 import { SmartAssetFactory } from './src/media/assets/SmartAssetFactory';
-import { hasVideoRole } from './src/media/assets/roles';
+import { hasVideoRole, Video } from './src/media/assets/roles';
 import fs from 'fs';
 import path from 'path';
 
@@ -84,17 +84,17 @@ async function testConcatDemuxer() {
       throw new Error('Videos do not have video role capabilities');
     }
     
-    const baseVideo = await baseAsset.asVideo();
-    const introVideo = await introAsset.asVideo();
+    const baseVideo = await baseAsset.asRole(Video);
+    const introVideo = await introAsset.asRole(Video);
     
     console.log('✅ Loaded videos');
-    console.log(`  Intro: ${introVideo.data.length} bytes`);
-    console.log(`  Base: ${baseVideo.data.length} bytes`);
+    console.log(`  Intro: ${(introVideo as Video).data.length} bytes`);
+    console.log(`  Base: ${(baseVideo as Video).data.length} bytes`);
 
     const client = new ConcatDemuxerClient({ timeout: 120000 });
     
     console.log('\n🎬 Testing concat demuxer...');
-    const result = await client.concatWithDemuxer([introVideo.data, baseVideo.data]);
+    const result = await client.concatWithDemuxer([(introVideo as Video).data, (baseVideo as Video).data]);
     
     console.log('✅ Concat demuxer successful!');
     console.log(`📊 Result size: ${result.length} bytes`);

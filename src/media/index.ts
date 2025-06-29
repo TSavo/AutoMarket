@@ -90,7 +90,7 @@ export function $$(providerId: string): (modelId: string) => (input: any, option
 
 
 // Export Smart Asset Loading System (Layer 5)
-export { SmartAssetFactory, AssetLoader } from './assets/SmartAssetFactory';
+export { SmartAssetFactory } from './assets/SmartAssetFactory';
 
 // Export Asset system
 export { BaseAsset } from './assets/Asset';

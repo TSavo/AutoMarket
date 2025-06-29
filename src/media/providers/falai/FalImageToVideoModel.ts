@@ -7,7 +7,7 @@
 
 import { ModelMetadata } from '../../models/abstracts/Model';
 import { ImageToVideoModel, ImageToVideoOptions } from '../../models/abstracts/ImageToVideoModel';
-import { Video, ImageRole } from '../../assets/roles';
+import { Video, ImageRole, Image } from '../../assets/roles';
 import { FalAiClient, FalModelMetadata } from './FalAiClient';
 import { SmartAssetFactory } from '../../assets/SmartAssetFactory';
 import * as fs from 'fs';
@@ -57,7 +57,7 @@ export class FalImageToVideoModel extends ImageToVideoModel {
     const inputRole = Array.isArray(input) ? input[0] : input;
 
     // Cast input to Image
-    const image = await inputRole.asImage();
+    const image = await inputRole.asRole(Image);
 
     if (!image.isValid()) {
       throw new Error('Invalid image data provided');
@@ -157,7 +157,7 @@ export class FalImageToVideoModel extends ImageToVideoModel {
       
       console.log(`[FalImageToVideo] Video saved to: ${localPath} (${(videoBuffer.length / 1024 / 1024).toFixed(2)} MB)`);      // Use SmartAssetFactory to create Asset with automatic metadata extraction
       const smartAsset = await SmartAssetFactory.load(localPath);
-      const video = await (smartAsset as any).asVideo();
+      const video = await (smartAsset as any).asRole(Video);
       
       // Add our custom metadata to the video
       if (video.metadata) {

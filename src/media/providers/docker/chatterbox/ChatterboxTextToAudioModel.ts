@@ -80,13 +80,13 @@ export class ChatterboxTextToAudioModel extends TextToAudioModel {
 
     let textRole: TextRole;
     if (Array.isArray(input)) {
-      textRole = typeof input[0] === 'string' ? new Text(input[0]) : input[0];
+      textRole = typeof input[0] === 'string' ? Text.fromString(input[0]) : input[0];
     } else {
-      textRole = typeof input === 'string' ? new Text(input) : input;
+      textRole = typeof input === 'string' ? Text.fromString(input) : input;
     }
 
     // Get text from the TextRole
-    const text = await textRole.asText();
+    const text = await textRole.asRole(Text);
 
     // Validate text data
     if (!text.isValid()) {
@@ -123,7 +123,7 @@ export class ChatterboxTextToAudioModel extends TextToAudioModel {
         
         try {
           // Convert AudioRole to Audio and save to temporary file
-          const voice = await voiceAudio.asAudio();
+          const voice = await voiceAudio.asRole(Audio);
           const timestamp = Date.now();
           const format = voice.getFormat();
           const tempFileName = `voice_clone_${timestamp}.${format}`;

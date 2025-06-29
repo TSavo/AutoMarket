@@ -70,7 +70,7 @@ export class TogetherTextToImageModel extends TextToImageModel {
     if (typeof inputRole === 'string') {
       text = Text.fromString(inputRole);
     } else {
-      text = await inputRole.asText();
+      text = await inputRole.asRole(Text);
     }
 
     // Validate text data
@@ -116,9 +116,9 @@ export class TogetherTextToImageModel extends TextToImageModel {
       fs.writeFileSync(localPath, imageBuffer);
 
       console.log(`[TogetherTextToImage] Image saved to: ${localPath}`);      // Use SmartAssetFactory to create Asset with automatic metadata extraction
-      const { AssetLoader } = await import('../../assets/SmartAssetFactory');
-      const smartAsset = await AssetLoader.load(localPath);
-      const image = await (smartAsset as any).asImage();      // Add our custom metadata to the image
+      const { SmartAssetFactory } = await import('../../assets/SmartAssetFactory');
+      const smartAsset = await SmartAssetFactory.load(localPath);
+      const image = await (smartAsset as any).asRole(Image);      // Add our custom metadata to the image
       if (image.metadata) {
         Object.assign(image.metadata, {
           url: imageUrl,

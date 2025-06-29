@@ -62,7 +62,7 @@ export class FalTextToImageModel extends TextToImageModel {
     if (typeof inputRole === 'string') {
       text = Text.fromString(inputRole);
     } else {
-      text = await inputRole.asText();
+      text = await inputRole.asRole(Text);
     }
 
     if (!text.isValid()) {
@@ -155,7 +155,7 @@ export class FalTextToImageModel extends TextToImageModel {
       
       console.log(`[FalTextToImage] Image saved to: ${localPath} (${(imageBuffer.length / 1024).toFixed(2)} KB)`);      // Use SmartAssetFactory to create Asset with automatic metadata extraction
       const smartAsset = await SmartAssetFactory.load(localPath);
-      const image = await (smartAsset as any).asImage();
+      const image = await (smartAsset as any).asRole(Image);
       
       // Add our custom metadata to the image
       if (image.metadata) {

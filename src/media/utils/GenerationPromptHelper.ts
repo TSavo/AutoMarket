@@ -72,4 +72,6 @@ export function extractInputContent(input: any): string {
   return String(input);
 }
 
-export default { createGenerationPrompt, extractInputContent };
+const GenerationPromptHelper = { createGenerationPrompt, extractInputContent };
+
+export default GenerationPromptHelper;

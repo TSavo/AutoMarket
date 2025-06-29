@@ -15,7 +15,10 @@ import {
 import { AudioToAudioProvider } from '../../capabilities/interfaces/AudioToAudioProvider';
 import { VideoToAudioProvider } from '../../capabilities/interfaces/VideoToAudioProvider';
 import { VideoToVideoProvider } from '../../capabilities/interfaces/VideoToVideoProvider';
+import { VideoToImageProvider } from '../../capabilities/interfaces/VideoToImageProvider';
 import { IFFMPEGClient } from './IFFMPEGClient';
+import { VideoRole, Image } from '../../assets/roles';
+import { VideoToImageOptions } from '../../models/abstracts/VideoToImageModel';
 
 export interface FFMPEGProviderConfig extends ProviderConfig {
   client?: IFFMPEGClient;
@@ -32,7 +35,7 @@ export interface FFMPEGProviderConfig extends ProviderConfig {
  * Provider for FFMPEG-based media processing
  * Works with any FFMPEG client implementation (Docker or local)
  */
-export class FFMPEGProvider implements MediaProvider, AudioToAudioProvider, VideoToAudioProvider, VideoToVideoProvider {
+export class FFMPEGProvider implements MediaProvider, AudioToAudioProvider, VideoToAudioProvider, VideoToVideoProvider, VideoToImageProvider {
   readonly id = 'ffmpeg';
   readonly name = 'FFMPEG Provider';
   readonly type = ProviderType.LOCAL;
@@ -56,7 +59,12 @@ export class FFMPEGProvider implements MediaProvider, AudioToAudioProvider, Vide
     this.client = client;
     
     // Auto-configure from environment variables (async but non-blocking)
-    this.autoConfigureFromEnv().catch(error => {
+    this.autoConfigureFromEnv().then(() => {
+      // If client is still not set after auto-configuration, initialize default
+      if (!this.client) {
+        this.initializeDefaultClient();
+      }
+    }).catch(error => {
       console.warn('Failed to auto-configure FFMPEG provider from environment:', error.message);
     });
   }
@@ -119,9 +127,9 @@ export class FFMPEGProvider implements MediaProvider, AudioToAudioProvider, Vide
         timeout: this.config.timeout || 300000
       });
 
-      console.log('✅ FFMPEG Provider initialized with Docker client');
+      console.log(`✅ FFMPEG Provider initialized with Docker client. Base URL: ${this.config.baseUrl || 'http://localhost:8006'}`);
     } catch (error) {
-      console.warn('⚠️ Failed to initialize Docker client, FFMPEG provider will be unavailable:', error.message);
+      console.warn('⚠️ Failed to initialize Docker client, FFMPEG provider will be unavailable:', (error as Error).message);
     }
   }
 
@@ -188,6 +196,22 @@ export class FFMPEGProvider implements MediaProvider, AudioToAudioProvider, Vide
         pricing: { inputCost: 0, outputCost: 0, currency: 'USD' },
         limits: { maxInputSize: 1000000000, maxOutputSize: 1000000000, rateLimit: 10 },
         parameters: {}
+      },
+      {
+        id: 'ffmpeg-video-to-image',
+        name: 'FFMPEG Video to Image',
+        description: 'Extract frames from video as images using FFMPEG',
+        capabilities: [MediaCapability.VIDEO_TO_IMAGE],
+        pricing: { inputCost: 0, outputCost: 0, currency: 'USD' },
+        limits: { maxInputSize: 1000000000, maxOutputSize: 1000000000, rateLimit: 10 },
+        parameters: {
+          frameTime: { type: 'number', description: 'Time in seconds to extract frame from' },
+          frameNumber: { type: 'number', description: 'Specific frame number to extract' },
+          format: { type: 'string', description: 'Output image format (png, jpg, webp)', default: 'png' },
+          width: { type: 'number', description: 'Output width in pixels' },
+          height: { type: 'number', description: 'Output height in pixels' },
+          quality: { type: 'number', description: 'Image quality (1-100)', default: 90 }
+        }
       }
     ];
   }
@@ -215,7 +239,7 @@ export class FFMPEGProvider implements MediaProvider, AudioToAudioProvider, Vide
 
       const healthResult = await this.client.checkHealth();
       return {
-        status: healthResult.status,
+        status: 'healthy',
         details: {
           clientType: this.getClientType(),
           version: healthResult.version,
@@ -227,7 +251,7 @@ export class FFMPEGProvider implements MediaProvider, AudioToAudioProvider, Vide
       return {
         status: 'unhealthy',
         details: {
-          error: error.message,
+          error: (error as Error).message,
           config: this.config
         }
       };
@@ -243,20 +267,66 @@ export class FFMPEGProvider implements MediaProvider, AudioToAudioProvider, Vide
     if (clientName.includes('Local')) return 'local';
     return 'unknown';
   }
-
   /**
-   * Get a model instance by ID with automatic type detection
+   * Get a model instance by ID
    */
   async getModel(modelId: string): Promise<any> {
     if (!await this.isAvailable()) {
       throw new Error('FFMPEG provider is not available');
     }
 
+    // Handle "default" model ID by picking the first available model
+    let actualModelId = modelId;
+    if (modelId === 'default') {
+      const availableModels = this.models;
+      if (availableModels.length > 0) {
+        actualModelId = availableModels[0].id;
+      } else {
+        throw new Error('No models available in FFMPEG provider');
+      }
+    }
+
     // Check if the model exists
-    const model = this.models.find(m => m.id === modelId);
+    const model = this.models.find(m => m.id === actualModelId);
     if (!model) {
-      throw new Error(`Model '${modelId}' not found in FFMPEG provider`);
-    }    // Create the appropriate model based on capabilities
+      throw new Error(`Model '${actualModelId}' not found in FFMPEG provider. Available models: ${this.models.map(m => m.id).join(', ')}`);
+    }
+
+    return await this.createModelInstance(model);
+  }
+
+  /**
+   * Get a model instance by capability (picks the first available model for that capability)
+   */
+  async getModelByCapability(capability: MediaCapability): Promise<any> {
+    if (!await this.isAvailable()) {
+      throw new Error('FFMPEG provider is not available');
+    }
+
+    // Find the first model that supports the requested capability
+    const capableModel = this.models.find(m => m.capabilities.includes(capability));
+    if (!capableModel) {
+      throw new Error(`No models available for capability ${capability} in FFMPEG provider`);
+    }
+
+    return await this.createModelInstance(capableModel);
+  }
+
+  /**
+   * Create a model instance from a model definition
+   */
+  private async createModelInstance(model: ProviderModel): Promise<any> {
+    // Create the appropriate model based on capabilities
+    if (model.capabilities.includes(MediaCapability.VIDEO_TO_IMAGE)) {
+      const { FFMPEGVideoToImageModel } = await import('./FFMPEGVideoToImageModel');
+        return new FFMPEGVideoToImageModel({
+        client: this.client!,
+        enableGPU: this.config?.enableGPU,
+        outputFormat: 'jpg',  // Use JPG as default format
+        defaultQuality: 90
+      });
+    }
+
     if (model.capabilities.includes(MediaCapability.VIDEO_TO_VIDEO)) {
       const { FFMPEGVideoToVideoModel } = await import('./FFMPEGVideoToVideoModel');
       
@@ -285,7 +355,7 @@ export class FFMPEGProvider implements MediaProvider, AudioToAudioProvider, Vide
       });
     }
 
-    throw new Error(`Model type not implemented for '${modelId}' in FFMPEG provider`);
+    throw new Error(`Model type not implemented for '${model.id}' (capabilities: ${model.capabilities.join(', ')}) in FFMPEG provider`);
   }
 
   // AudioToAudioProvider interface implementation
@@ -330,6 +400,55 @@ export class FFMPEGProvider implements MediaProvider, AudioToAudioProvider, Vide
     return model ? model.capabilities.includes(MediaCapability.VIDEO_TO_AUDIO) : false;
   }
 
+  // VideoToImageProvider implementation
+  getSupportedVideoToImageModels(): string[] {
+    return this.getModelsForCapability(MediaCapability.VIDEO_TO_IMAGE).map(m => m.id);
+  }
+
+  async extractFrames(input: VideoRole | VideoRole[], modelId: string, options?: VideoToImageOptions): Promise<Image> {
+    const model = this.models.find(m => m.id === modelId);
+    if (!model || !model.capabilities.includes(MediaCapability.VIDEO_TO_IMAGE)) {
+      throw new Error(`Model ${modelId} does not support video-to-image conversion`);
+    }
+
+    if (!this.client) {
+      throw new Error('No FFMPEG client configured');
+    }
+
+    // Import and create the model
+    const { FFMPEGVideoToImageModel } = await import('./FFMPEGVideoToImageModel');
+    const videoToImageModel = new FFMPEGVideoToImageModel({
+      client: this.client,
+      enableGPU: this.config.enableGPU,
+      outputFormat: 'jpg',  // Use JPG as default format
+      defaultQuality: 90
+    });
+
+    return await videoToImageModel.transform(input, options);
+  }
+
+  async extractMultipleFrames(input: VideoRole, modelId: string, options: VideoToImageOptions): Promise<Image[]> {
+    const model = this.models.find(m => m.id === modelId);
+    if (!model || !model.capabilities.includes(MediaCapability.VIDEO_TO_IMAGE)) {
+      throw new Error(`Model ${modelId} does not support video-to-image conversion`);
+    }
+
+    if (!this.client) {
+      throw new Error('No FFMPEG client configured');
+    }
+
+    // Import and create the model
+    const { FFMPEGVideoToImageModel } = await import('./FFMPEGVideoToImageModel');
+    const videoToImageModel = new FFMPEGVideoToImageModel({
+      client: this.client,
+      enableGPU: this.config.enableGPU,
+      outputFormat: options?.format as 'png' | 'jpg' | 'webp',
+      defaultQuality: options?.quality
+    });
+
+    return await videoToImageModel.extractMultipleFrames(input, options);
+  }
+
   // ServiceManagement interface implementation (inherited from both provider interfaces)
   async startService(): Promise<boolean> {
     try {
@@ -365,7 +484,7 @@ export class FFMPEGProvider implements MediaProvider, AudioToAudioProvider, Vide
       return {
         running: false,
         healthy: false,
-        error: error.message
+        error: (error as Error).message
       };
     }
   }

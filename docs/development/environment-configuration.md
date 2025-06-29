@@ -1,6 +1,6 @@
 # 🔧 Environment Configuration Guide
 
-AutoMarket relies on environment variables for configuring API keys, service URLs, and other critical settings. This guide details the essential environment variables and how to set them up for development and deployment.
+Prizm relies on environment variables for configuring API keys, service URLs, and other critical settings. This guide details the essential environment variables and how to set them up for development and deployment.
 
 ## `.env.example` and `.env.local`
 

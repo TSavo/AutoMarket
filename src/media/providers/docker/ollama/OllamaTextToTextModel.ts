@@ -36,19 +36,19 @@ export class OllamaTextToTextModel extends TextToTextModel {
     
     let textRole: TextRole;
     if (Array.isArray(input)) {
-      textRole = typeof input[0] === 'string' ? new Text(input[0]) : input[0];
+      textRole = typeof input[0] === 'string' ? Text.fromString(input[0]) : input[0];
     } else {
-      textRole = typeof input === 'string' ? new Text(input) : input;
+      textRole = typeof input === 'string' ? Text.fromString(input) : input;
     }
 
-    const text = await textRole.asText();
+    const text = await textRole.asRole(Text);
     
     if (!text.isValid()) {
       throw new Error('Invalid text input');
     }
     const result = await this.apiClient.generateText({ model: this.modelId, prompt: text.content });
     const processingTime = Date.now() - start;
-    return new Text(result.response, text.language || 'auto', 1.0, {
+    return Text.fromString(result.response, text.language || 'auto', 1.0, {
       processingTime,
       model: this.modelId,
       provider: 'ollama',

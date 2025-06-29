@@ -6,8 +6,9 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import fs from 'fs';
-import { MP3Asset, WAVAsset, MP4Asset, TextAsset, createAssetFromBuffer } from './types';
+import { AudioAsset, VideoAsset, TextAsset, ImageAsset } from './types';
 import { hasAudioRole, hasVideoRole, hasTextRole } from './roles';
+import { Audio, Video, Text, Image } from './roles';
 
 // Mock fs
 vi.mock('fs');
@@ -25,25 +26,26 @@ describe('Asset System', () => {
     vi.clearAllMocks();
   });
 
-  describe('MP3Asset', () => {
-    it('should create MP3Asset with Audio role', () => {
-      const asset = new MP3Asset(mockAudioData, { duration: 120 });
+  describe('AudioAsset (MP3)', () => {
+    it('should create AudioAsset with Audio role (MP3)', () => {
+      const asset = new AudioAsset(mockAudioData, { duration: 120, format: 'mp3' });
 
-      expect(asset.canPlayRole('audio')).toBe(true);
-      expect(asset.canPlayRole('video')).toBe(false);
-      expect(asset.canPlayRole('text')).toBe(false);
+      expect(asset.canPlayRole(Audio)).toBe(true);
+      expect(asset.canPlayRole(Video)).toBe(false);
+      expect(asset.canPlayRole(Text)).toBe(false);
 
       expect(asset.getRoles()).toContain('audio');
     });
 
     it('should convert to Audio role', async () => {
-      const asset = new MP3Asset(mockAudioData, { 
+      const asset = new AudioAsset(mockAudioData, {
         duration: 120,
         sampleRate: 44100,
-        channels: 2
+        channels: 2,
+        format: 'mp3'
       });
 
-      const audio = await asset.asAudio();
+      const audio = await asset.asRole(Audio);
       expect(audio.getFormat()).toBe('mp3');
       expect(audio.isValid()).toBe(true);
       expect(audio.toString()).toContain('AUDIO');
@@ -53,7 +55,7 @@ describe('Asset System', () => {
       mockFs.existsSync.mockReturnValue(true);
       mockFs.readFileSync.mockReturnValue(mockAudioData as any);
 
-      const asset = MP3Asset.fromFile('/path/to/audio.mp3');
+      const asset = AudioAsset.fromFile('/path/to/audio.mp3');
 
       expect(asset.metadata.sourceFile).toBe('/path/to/audio.mp3');
       expect(asset.metadata.format).toBe('mp3');
@@ -61,7 +63,7 @@ describe('Asset System', () => {
     });
 
     it('should create from buffer', () => {
-      const asset = MP3Asset.fromBuffer(mockAudioData, { duration: 60 });
+      const asset = AudioAsset.fromBuffer(mockAudioData, { duration: 60, format: 'mp3' });
 
       expect(asset.metadata.format).toBe('mp3');
       expect(asset.metadata.duration).toBe(60);
@@ -69,35 +71,36 @@ describe('Asset System', () => {
     });
   });
 
-  describe('WAVAsset', () => {
-    it('should create WAVAsset with Audio role', () => {
-      const asset = new WAVAsset(mockAudioData);
+  describe('AudioAsset (WAV)', () => {
+    it('should create AudioAsset with Audio role (WAV)', () => {
+      const asset = new AudioAsset(mockAudioData, { format: 'wav' });
 
-      expect(asset.canPlayRole('audio')).toBe(true);
+      expect(asset.canPlayRole(Audio)).toBe(true);
       expect(asset.getMimeType()).toBe('audio/wav');
       expect(asset.getFileExtension()).toBe('wav');
     });
   });
 
-  describe('MP4Asset', () => {
-    it('should create MP4Asset with Video and Audio roles', () => {
-      const asset = new MP4Asset(mockVideoData, { 
+  describe('VideoAsset', () => {
+    it('should create VideoAsset with Video and Audio roles', () => {
+      const asset = new VideoAsset(mockVideoData, { 
         width: 1920,
         height: 1080,
-        duration: 300
+        duration: 300,
+        format: 'mp4'
       });
 
-      expect(asset.canPlayRole('video')).toBe(true);
-      expect(asset.canPlayRole('audio')).toBe(true);
-      expect(asset.canPlayRole('text')).toBe(false);
+      expect(asset.canPlayRole(Video)).toBe(true);
+      expect(asset.canPlayRole(Audio)).toBe(true);
+      expect(asset.canPlayRole(Text)).toBe(false);
 
       expect(asset.getRoles()).toContain('video');
       expect(asset.getRoles()).toContain('audio');
     });
 
     it('should convert to Audio role from MP4', async () => {
-      const asset = new MP4Asset(mockVideoData);
-      const audio = await asset.asAudio();
+      const asset = new VideoAsset(mockVideoData, { format: 'mp4' });
+      const audio = await asset.asRole(Audio);
       
       expect(audio.getFormat()).toBe('mp3'); // Default audio format extraction
       expect(audio.isValid()).toBe(true);
@@ -106,11 +109,11 @@ describe('Asset System', () => {
 
   describe('TextAsset', () => {
     it('should create TextAsset with Text role only', () => {
-      const asset = new TextAsset(mockTextData);
+      const asset = new TextAsset(mockTextData.toString());
 
-      expect(asset.canPlayRole('text')).toBe(true);
-      expect(asset.canPlayRole('audio')).toBe(false);
-      expect(asset.canPlayRole('video')).toBe(false);
+      expect(asset.canPlayRole(Text)).toBe(true);
+      expect(asset.canPlayRole(Audio)).toBe(false);
+      expect(asset.canPlayRole(Video)).toBe(false);
 
       expect(asset.getRoles()).toContain('text');
     });
@@ -119,14 +122,14 @@ describe('Asset System', () => {
       const content = 'Hello world this is a test';
       const asset = TextAsset.fromString(content, { language: 'en' });
 
-      const text = await asset.asText();
+      const text = await asset.asRole(Text);
       expect(text.isValid()).toBe(true);
       expect(text.toString()).toContain('TEXT');
     });
 
     it('should create from string', () => {
       const content = 'Hello world';
-      const asset = TextAsset.fromString(content);
+      const asset = TextAsset.fromString(content.toString());
 
       expect(asset.metadata.format).toBe('txt');
       expect(asset.metadata.encoding).toBe('utf-8');
@@ -136,9 +139,9 @@ describe('Asset System', () => {
 
   describe('Role Type Guards', () => {
     it('should correctly identify role capabilities', () => {
-      const mp3Asset = new MP3Asset(mockAudioData);
-      const mp4Asset = new MP4Asset(mockVideoData);
-      const textAsset = new TextAsset(mockTextData);
+      const mp3Asset = new AudioAsset(mockAudioData, { format: 'mp3' });
+      const mp4Asset = new VideoAsset(mockVideoData, { format: 'mp4' });
+      const textAsset = new TextAsset(mockTextData.toString());
 
       // MP3Asset
       expect(hasAudioRole(mp3Asset)).toBe(true);
@@ -159,24 +162,20 @@ describe('Asset System', () => {
 
   describe('Asset Factory', () => {
     it('should create correct asset type from buffer and format', () => {
-      const mp3Asset = createAssetFromBuffer(mockAudioData, 'mp3');
-      const mp4Asset = createAssetFromBuffer(mockVideoData, 'mp4');
-      const textAsset = createAssetFromBuffer(mockTextData, 'txt');
+      const mp3Asset = new AudioAsset(mockAudioData, { format: 'mp3' });
+      const mp4Asset = new VideoAsset(mockVideoData, { format: 'mp4' });
+      const textAsset = new TextAsset(mockTextData.toString(), { format: 'txt' });
 
-      expect(mp3Asset).toBeInstanceOf(MP3Asset);
-      expect(mp4Asset).toBeInstanceOf(MP4Asset);
+      expect(mp3Asset).toBeInstanceOf(AudioAsset);
+      expect(mp4Asset).toBeInstanceOf(VideoAsset);
       expect(textAsset).toBeInstanceOf(TextAsset);
     });
 
-    it('should throw error for unsupported format', () => {
-      expect(() => createAssetFromBuffer(mockAudioData, 'unsupported'))
-        .toThrow('Unsupported asset format: unsupported');
     });
-  });
 
   describe('Asset Cloning and Metadata', () => {
     it('should clone asset with new metadata', () => {
-      const original = new MP3Asset(mockAudioData, { duration: 120 });
+      const original = new AudioAsset(mockAudioData, { duration: 120, format: 'mp3' });
       const cloned = original.withMetadata({ artist: 'Test Artist' });
 
       expect(cloned.metadata.duration).toBe(120);
@@ -186,7 +185,7 @@ describe('Asset System', () => {
     });
 
     it('should clone asset completely', () => {
-      const original = new MP3Asset(mockAudioData, { duration: 120 });
+      const original = new AudioAsset(mockAudioData, { duration: 120, format: 'mp3' });
       const cloned = original.clone();
 
       expect(cloned.metadata).toEqual(original.metadata);
@@ -198,8 +197,8 @@ describe('Asset System', () => {
 
   describe('Asset Validation', () => {
     it('should validate asset data', () => {
-      const validAsset = new MP3Asset(mockAudioData);
-      const invalidAsset = new MP3Asset(Buffer.alloc(0));
+      const validAsset = new AudioAsset(mockAudioData, { format: 'mp3' });
+      const invalidAsset = new AudioAsset(Buffer.alloc(0), { format: 'mp3' });
 
       expect(validAsset.isValid()).toBe(true);
       expect(invalidAsset.isValid()).toBe(false);

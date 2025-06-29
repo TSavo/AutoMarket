@@ -7,6 +7,9 @@
 
 import { TextMetadata } from '../types';
 import { TextRole } from '../interfaces/TextRole';
+import { Audio } from './Audio';
+import { Video } from './Video';
+import { Image } from './Image';
 
 export class Text implements TextRole {
   constructor(
@@ -22,12 +25,27 @@ export class Text implements TextRole {
   }
 
   toString(): string {
-    return `Text(${this.content.length} chars${this.language ? `, ${this.language}` : ''})`;
+    return `TEXT(${this.content.length} chars${this.language ? `, ${this.language}` : ''})`;
   }
 
   // TextRole interface implementation
-  async asText(): Promise<Text> {
-    return this;
+  async asRole<T extends Audio | Video | Text | Image>(
+    targetType: new (...args: any[]) => T,
+    modelId?: string
+  ): Promise<T> {
+    if (targetType === Text as any) {
+      return this as any;
+    }
+    // For other roles, would need provider-based transformation
+    throw new Error(`Cannot transform Text to ${targetType.name} without a provider`);
+  }
+
+  canPlayRole<T extends Audio | Video | Text | Image>(
+    targetType: new (...args: any[]) => T
+  ): boolean {
+    // Use synchronous version for immediate checking
+    const { canPlayRoleSync } = require('../../RoleTransformation');
+    return canPlayRoleSync(this, targetType);
   }
 
   getTextMetadata(): TextMetadata {
@@ -37,11 +55,19 @@ export class Text implements TextRole {
     };
   }
 
-  canPlayTextRole(): boolean {
-    return this.isValid();
-  }
-
-  static fromString(content: string, metadata: TextMetadata = {}): Text {
-    return new Text(content, metadata.language, metadata.confidence, metadata);
+  static fromString(
+    content: string, 
+    language?: string, 
+    confidence?: number, 
+    metadata: TextMetadata = {},
+    sourceAsset?: any
+  ): Text {
+    return new Text(
+      content, 
+      language || metadata.language, 
+      confidence || metadata.confidence, 
+      metadata, 
+      sourceAsset
+    );
   }
 }

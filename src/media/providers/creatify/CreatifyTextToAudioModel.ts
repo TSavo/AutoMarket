@@ -44,7 +44,7 @@ export class CreatifyTextToAudioModel extends TextToAudioModel {
     if (typeof role === 'string') {
       text = Text.fromString(role);
     } else {
-      text = await role.asText();
+      text = await role.asRole(Text);
     }
     if (!text.isValid()) throw new Error('Invalid text input');
     const voiceId = options?.voiceId || this.defaultVoiceId;
@@ -64,7 +64,7 @@ export class CreatifyTextToAudioModel extends TextToAudioModel {
     fs.writeFileSync(filePath, buffer);
 
     const asset = await SmartAssetFactory.load(filePath);
-    const audio = await (asset as any).asAudio();
+    const audio = await (asset as any).asRole(Audio);
     if (audio.metadata) {
       Object.assign(audio.metadata, { url: result.output, provider: 'creatify' });
     }

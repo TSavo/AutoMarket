@@ -61,7 +61,7 @@ export class FFMPEGDockerModel extends VideoToAudioModel {
       const inputRole = Array.isArray(input) ? input[0] : input;
 
       // Get video from the VideoRole
-      const video = await inputRole.asVideo();
+      const video = await inputRole.asRole(Video);
 
       // Validate input
       if (!video.isValid()) {

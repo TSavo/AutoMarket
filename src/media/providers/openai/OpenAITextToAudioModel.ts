@@ -65,13 +65,13 @@ export class OpenAITextToAudioModel extends TextToAudioModel {
 
     let textRole: TextRole;
     if (Array.isArray(inputOrText)) {
-      textRole = typeof inputOrText[0] === 'string' ? new Text(inputOrText[0]) : inputOrText[0];
+      textRole = typeof inputOrText[0] === 'string' ? Text.fromString(inputOrText[0]) : inputOrText[0];
     } else {
-      textRole = typeof inputOrText === 'string' ? new Text(inputOrText) : inputOrText;
+      textRole = typeof inputOrText === 'string' ? Text.fromString(inputOrText) : inputOrText;
     }
 
     // Get text from the TextRole
-    const text = await textRole.asText();
+    const text = await textRole.asRole(Text);
     if (!text.isValid()) {
       throw new Error('Invalid text data provided');
     }
