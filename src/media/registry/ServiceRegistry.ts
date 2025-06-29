@@ -1,11 +1,32 @@
 /**
  * Service Registry for Configuration-Driven Service Management
  * 
- * Manages Docker services by loading prizm.service.yml configurations
- * from GitHub repositories. No dynamic code loading - pure configuration.
+ * Manages Docker services in two ways:
+ * 1. Static services: Class-based services that self-register
+ * 2. Dynamic services: Configuration-driven services from GitHub repos with prizm.service.yml
  */
 
 import { DockerComposeService } from '../../services/DockerComposeService';
+
+/**
+ * Common interface that all Docker services must implement
+ */
+export interface DockerService {
+  startService(): Promise<boolean>;
+  stopService(): Promise<boolean>;
+  restartService(): Promise<boolean>;
+  getServiceStatus(): Promise<any>;
+  isServiceHealthy(): Promise<boolean>;
+  isServiceRunning(): Promise<boolean>;
+  waitForHealthy(timeoutMs?: number): Promise<boolean>;
+  getDockerComposeService(): DockerComposeService;
+  getServiceInfo(): any;
+}
+
+/**
+ * Constructor type for static services
+ */
+export type ServiceConstructor = new (config?: any) => DockerService;
 
 /**
  * Service configuration from prizm.service.yml
@@ -29,6 +50,16 @@ export interface ServiceConfig {
     capabilities?: string[];        // what this service provides
     tags?: string[];               // categorization tags
   };
+}
+
+/**
+ * Service status information
+ */
+export interface ServiceStatus {
+  running: boolean;
+  health: 'healthy' | 'unhealthy' | 'starting' | 'none';
+  state: string;
+  containerId?: string;
 }
 
 /**

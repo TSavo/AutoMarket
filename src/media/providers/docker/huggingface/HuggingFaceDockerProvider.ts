@@ -39,6 +39,16 @@ export class HuggingFaceDockerProvider implements MediaProvider, TextToImageProv
   
 
   /**
+   * Get the Docker service instance
+   */
+  protected async getDockerService(): Promise<HuggingFaceDockerService> {
+    if (!this.dockerService) {
+      this.dockerService = new HuggingFaceDockerService();
+    }
+    return this.dockerService;
+  }
+
+  /**
    * Get the API client instance
    */
   protected async getAPIClient(): Promise<HuggingFaceAPIClient> {
@@ -52,43 +62,47 @@ export class HuggingFaceDockerProvider implements MediaProvider, TextToImageProv
    * Start the Docker service
    */
   async startService(): Promise<boolean> {
-    if (!this.dockerServiceManager) {
-      throw new Error('Docker service manager not initialized for HuggingFaceDockerProvider');
+    try {
+      const dockerService = await this.getDockerService();
+      const started = await dockerService.startService();
+      
+      if (started) {
+        // Wait for service to be healthy
+        const healthy = await dockerService.waitForHealthy(120000); // 2 minutes
+        return healthy;
+      }
+      
+      return false;
+    } catch (error) {
+      console.error('Failed to start HuggingFace Docker service:', error);
+      return false;
     }
-    const started = await this.dockerServiceManager.startService();
-    
-    if (started) {
-      // Wait for service to be healthy
-      const healthy = await this.dockerServiceManager.waitForHealthy(120000); // 2 minutes
-      return healthy;
-    }
-    
-    return false;
   }
 
   /**
    * Stop the Docker service
    */
   async stopService(): Promise<boolean> {
-    if (!this.dockerServiceManager) {
-      throw new Error('Docker service manager not initialized for HuggingFaceDockerProvider');
+    try {
+      const dockerService = await this.getDockerService();
+      return await dockerService.stopService();
+    } catch (error) {
+      console.error('Failed to stop HuggingFace Docker service:', error);
+      return false;
     }
-    return await this.dockerServiceManager.stopService();
   }
 
   /**
    * Get service status
    */
   async getServiceStatus(): Promise<any> {
-    if (!this.dockerServiceManager) {
-      throw new Error('Docker service manager not initialized for HuggingFaceDockerProvider');
+    try {
+      const dockerService = await this.getDockerService();
+      return await dockerService.getServiceStatus();
+    } catch (error) {
+      console.error('Failed to get HuggingFace service status:', error);
+      return { running: false, healthy: false };
     }
-    const status = await this.dockerServiceManager.getServiceStatus();
-    return {
-      running: status.running,
-      healthy: status.health === 'healthy',
-      error: status.state === 'error' ? status.state : undefined
-    };
   }
 
   /**

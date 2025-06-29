@@ -6,7 +6,7 @@
  */
 
 import { MediaProvider, MediaCapability } from '../types/provider';
-import { DockerBackedMediaProviderAdapter } from '../providers/docker/DockerBackedMediaProviderAdapter';
+import { DockerMediaProvider } from '../providers/docker/DockerMediaProvider';
 
 /**
  * Provider constructor type
@@ -344,7 +344,7 @@ export class ProviderRegistry {
       const providerId = serviceMetadata.id || parsed.repo;
       const providerName = serviceMetadata.name || `${parsed.repo} (Docker)`;
 
-      const adapter = new DockerBackedMediaProviderAdapter(dockerComposeService, capabilities, providerId, providerName);
+      const adapter = new DockerMediaProvider(dockerComposeService, capabilities, providerId, providerName);
 
       // Cleanup temp files after successful load
       setTimeout(async () => {
@@ -410,7 +410,7 @@ export class ProviderRegistry {
       const providerId = serviceMetadata.id || pathModule.basename(serviceDirectory);
       const providerName = serviceMetadata.name || `${providerId} (Docker)`;
 
-      const adapter = new DockerBackedMediaProviderAdapter(dockerComposeService, capabilities, providerId, providerName);
+      const adapter = new DockerMediaProvider(dockerComposeService, capabilities, providerId, providerName);
 
       console.log(`✅ Successfully loaded file provider: ${path}`);
       return adapter;
@@ -424,9 +424,9 @@ export class ProviderRegistry {
    * Validate that a loaded provider implements the MediaProvider interface
    */
   private async validateProvider(provider: any): Promise<void> {
-    const { DockerBackedMediaProviderAdapter } = await import('../providers/docker/DockerBackedMediaProviderAdapter');
-    if (!(provider instanceof DockerBackedMediaProviderAdapter)) {
-      throw new Error('Loaded provider is not an instance of DockerBackedMediaProviderAdapter');
+    const { DockerMediaProvider } = await import('../providers/docker/DockerMediaProvider');
+    if (!(provider instanceof DockerMediaProvider)) {
+      throw new Error('Loaded provider is not an instance of DockerMediaProvider');
     }
   }
   /**

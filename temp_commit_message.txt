@@ -1,5 +1,10 @@
-fix: Resolve TypeScript import errors
+Refactor: Implement Docker Compose Only Service Model
 
-Corrected import statements for Node.js built-in modules (fs, path, os) and
-'form-data' from default imports to namespace imports in several files.
-This addresses TS1192 and TS1259 errors related to esModuleInterop.
+This commit refactors the dynamic service loading mechanism to exclusively use Docker Compose for service definitions and management. The key changes include:
+
+- **Documentation Updates**: `PRIZM_ARCHITECTURE.md`, `PLATFORM_OVERVIEW.md`, and `README.md` have been updated to reflect the new 'Docker Compose Only' service architecture.
+- **ServiceRegistry Refactoring**: The `ServiceRegistry` now directly instantiates `DockerComposeService` based on `docker-compose.yml` and `prizm.service.json` files found in external repositories or local paths, eliminating the need to import and execute arbitrary JavaScript/TypeScript code for service management.
+- **ProviderRegistry Enhancement**: Introduced `DockerBackedMediaProviderAdapter` to wrap `DockerComposeService` instances, allowing them to be exposed as `MediaProvider`s. The `ProviderRegistry` now uses this adapter for dynamic providers.
+- **Provider Adaptation**: `FFMPEGProvider` and `HuggingFaceDockerProvider` have been updated to implement `DockerBackedMediaProvider` and to correctly interact with `DockerComposeService` instances, whether dynamically loaded or statically configured.
+
+This refactoring significantly improves separation of concerns, enhances security by avoiding arbitrary code execution, and simplifies service definitions by relying solely on Docker Compose for orchestration.
